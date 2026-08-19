@@ -36,11 +36,11 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-08-19
-**Phase:** Planning. Milestone 0 is planned but not started.
-**Code:** None. The repository holds documents only.
-**Build system:** None yet. Milestone 0 Task 1 creates the spike scaffold and
-the test runner.
-**Tests:** None.
+**Phase:** Milestone 0, Part A, Task 1. Started, not finished.
+**Code:** None. `spike/` holds a package manifest and an empty README only.
+**Build system:** Partial. `spike/package.json` sets `type: "module"` and points
+`npm test` at `node --test`. `linkedom` is not installed. No test file exists.
+**Tests:** None. `cd spike; npm test` finds no test file.
 
 **Key documents:**
 
@@ -52,10 +52,13 @@ the test runner.
   compatibility spike (Tasks 1 to 7), Part B is the throwaway board prototype
   (Tasks 8 to 12).
 - `CLAUDE.md` and `AGENTS.md` - the instructions for assistants. They hold the
-  same content for two different tools.
+  same content for two different tools. Only the two header lines differ.
+- `docs/learning-notes.md` - the questions the developer asked, with short
+  answers. It is a reference for the developer. No code reads it.
 
-**Next up:** Milestone 0, Part A, Task 1: create the spike scaffold and the test
-runner.
+**Next up:** Milestone 0, Part A, Task 1, Step 3: run
+`cd spike; npm install --save-dev linkedom`. Then do Steps 4 to 7: the smoke
+test, the README skeleton, and the empty `fixtures/manifest.json`.
 
 **Open questions:**
 
@@ -69,6 +72,26 @@ runner.
 ---
 
 ## Entries
+
+### 2026-08-19 - Start Task 1 and add a learning-notes record (commit 0f23ae1 and this commit)
+
+**What changed:** Created `.gitignore` and `spike/package.json` for Milestone 0
+Task 1, Steps 1 and 2. Added `docs/learning-notes.md` with the answers to six
+questions about `.gitignore`, `package.json`, Node, and `linkedom`. Added a
+"Learning notes" section to `CLAUDE.md` and `AGENTS.md`.
+**Why:** The developer learns the stack as the work goes on. The answers to the
+concept questions stay true after the task ends, so a file keeps them. The
+alternative, a note in `changes.log`, was rejected. `changes.log` is the handoff
+record, and long concept answers hide the "Current state" and the "Next up"
+lines.
+**Files:** `.gitignore` (new), `spike/package.json` (new), `spike/README.md`
+(new, empty), `docs/learning-notes.md` (new), `CLAUDE.md`, `AGENTS.md`.
+**Verification:** Not run. `spike/` has no test file yet.
+**State after:** Task 1 is part done. Steps 1 and 2 are complete.
+`spike/README.md` is an empty file, so Step 6 is not complete. Steps 3, 4, 5,
+and 7 are not started. `npm test` fails to find a test.
+**Next up:** Task 1, Step 3: install `linkedom` as a dev dependency.
+**Open questions:** None.
 
 ### 2026-08-19 - Add this changes log
 
