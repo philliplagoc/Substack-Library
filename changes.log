@@ -1,0 +1,110 @@
+# Changes Log - Substack-Library
+
+This file is the handoff record for the repository. It tells any person or any
+assistant (Claude Code, Codex, ChatGPT, or a human) what was done, why it was
+done, and what to do next. Read this file first before you start work.
+
+## How to read this file
+
+- "Current state" is the only section that is rewritten. It always shows the
+  present position of the project. Trust it before you trust the entries.
+- "Entries" is append-only and newest first. Do not edit or delete old entries.
+  If an old entry became wrong, write a new entry that corrects it.
+- Git history records the code. This file records the intent, the decisions,
+  and the point to continue from. Do not repeat the diff here.
+
+## How to add an entry
+
+Add a new entry at the top of the "Entries" section. Use this template. Use
+absolute dates (YYYY-MM-DD), not "today" or "last week". Keep the sentences
+short and plain.
+
+    ### YYYY-MM-DD - <short title>
+
+    **What changed:** <the change, in one or two sentences>
+    **Why:** <the reason, and the option that was rejected if there was one>
+    **Files:** <the files that were touched>
+    **Verification:** <the command that was run and its result, or "not run">
+    **State after:** <what works now and what does not>
+    **Next up:** <the immediate next step>
+    **Open questions:** <what is undecided, or "none">
+
+Then update the "Current state" section to match.
+
+---
+
+## Current state
+
+**Date:** 2026-08-19
+**Phase:** Planning. Milestone 0 is planned but not started.
+**Code:** None. The repository holds documents only.
+**Build system:** None yet. Milestone 0 Task 1 creates the spike scaffold and
+the test runner.
+**Tests:** None.
+
+**Key documents:**
+
+- `implementation-plan.md` - the product plan. Scope, architecture, the `Card`
+  data model, the Markdown export format, the build sequence for Milestones 0
+  to 3, the risks, and the success criteria.
+- `docs/superpowers/plans/2026-08-16-milestone-0.md` - the task-by-task plan for
+  Milestone 0. It holds 12 tasks in two parts: Part A is the Substack
+  compatibility spike (Tasks 1 to 7), Part B is the throwaway board prototype
+  (Tasks 8 to 12).
+- `CLAUDE.md` and `AGENTS.md` - the instructions for assistants. They hold the
+  same content for two different tools.
+
+**Next up:** Milestone 0, Part A, Task 1: create the spike scaffold and the test
+runner.
+
+**Open questions:**
+
+- The extension shell is not final. The plan names WXT, with CRXJS as the
+  alternative.
+- Milestone 0 Part B ends with layout decisions and a list of open questions for
+  Milestone 1. Those questions are not answered yet.
+
+**Blockers:** None.
+
+---
+
+## Entries
+
+### 2026-08-19 - Add this changes log
+
+**What changed:** Added `changes.log` and a "Session log" instruction to
+`CLAUDE.md` and `AGENTS.md`.
+**Why:** The project must survive a move between assistants and a long pause
+between sessions. Git history shows the diffs but not the intent or the point to
+continue from. A hook that appends entries automatically was rejected, because a
+machine cannot write the "why" and the "next up" lines, and those lines are the
+value of this file.
+**Files:** `changes.log` (new), `CLAUDE.md`, `AGENTS.md`.
+**Verification:** Not applicable. No code changed.
+**State after:** The project stays in the planning phase. No product code exists.
+**Next up:** Milestone 0, Part A, Task 1: the spike scaffold and the test runner.
+**Open questions:** None.
+
+### 2026-08-17 - Write the plans (commit f866ba4)
+
+**What changed:** Added `implementation-plan.md`, the Milestone 0 plan in
+`docs/superpowers/plans/2026-08-16-milestone-0.md`, `CLAUDE.md`, and `AGENTS.md`.
+**Why:** To set the scope and the sequence before any code. Milestone 0 comes
+first, because the extension reads Substack's unversioned signed-in UI, and that
+risk must be measured before product code depends on it.
+**Files:** `implementation-plan.md`, `docs/superpowers/plans/2026-08-16-milestone-0.md`,
+`CLAUDE.md`, `AGENTS.md`.
+**Verification:** Not applicable. No code changed.
+**State after:** The plans are complete. No code exists.
+**Next up:** Milestone 0, Part A, Task 1.
+**Open questions:** WXT or CRXJS for the extension shell.
+
+### 2026-08-16 - Initial commit (commit 2c5b058)
+
+**What changed:** Created the repository with a `README.md`.
+**Why:** To start the project.
+**Files:** `README.md`.
+**Verification:** Not applicable.
+**State after:** An empty repository with a one-paragraph description.
+**Next up:** Write the implementation plan.
+**Open questions:** None.
