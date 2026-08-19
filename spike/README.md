@@ -7,9 +7,10 @@ Captured: 2026-08-19 (fill in). Substack UI is unversioned. Re-check this doc wh
 | Kind | URL pattern | Signed in? | Fixture |
 |---|---|---|---|
 | Free article | | yes | fixtures/article-free.html |
-| Paid article, subscribed | | yes | fixtures/article-paid-subscribed.html |
-| Paid article, preview only | | yes | fixtures/article-paid-preview.html |
+| Paywalled article, not subscribed | | yes | fixtures/article-paywalled.html |
 | Saved list | | yes | fixtures/saved-list.html |
+
+Out of scope for v1: a paid article read as a subscriber. The reader pays for no publication.
 
 ## Article metadata read paths
 
