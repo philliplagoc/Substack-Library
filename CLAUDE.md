@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Substack-Library is a local-first Chrome/Edge extension for a deliberate Substack reading workflow: capture articles from any device, triage them on a three-column board, take notes beside the article on its original page, and export those notes as Markdown, either as a download or written into an Obsidian vault.
 
-
-
 ## Session log
 
 `changes.log` is the handoff record for this repository.
@@ -30,16 +28,13 @@ build this project. The developer learns the stack as the work goes on.
   step comes next?", "Did the test pass?", "Show me the diff."
 - Write the note after you give the answer. Use the answer you gave. Make it
   shorter. Keep the tables, the code blocks, and the comparisons. Remove the
-  conversational lines.
+  conversational lines. **Explain like I'm 5.**
 - Put the note in the section for the current date. Add a new
   `## YYYY-MM-DD - <milestone and task>` section at the end of the file when
   that date has no section.
 - Make the question the `###` heading. Keep the words the developer used.
-- Write the notes in ASD-STE100, like the other documents.
 - Run the `stop-slop` skill on the note text after you write it. This step is
   necessary, not optional. Remove the adverbs, the passive voice, the em dashes,
   the throat-clearing openers, and the "not X, it is Y" contrasts. Keep the
   tables and the code blocks.
-- ASD-STE100 wins where the two rule sets disagree. Keep the sentences short and
-  uniform. Do not vary the rhythm for effect.
 - No code reads this file. Do not add an entry to `changes.log` for it.
