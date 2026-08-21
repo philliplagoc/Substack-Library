@@ -727,3 +727,30 @@ not want to spend, so the milestone would sit open.
 Read "Deferred to a later version" in the plan. If you subscribe one day,
 capture the page, add a manifest entry, and run `npm test`. If the read paths
 match the free article, you write no new code.
+
+## 2026-08-21 - Milestone 0, Task 3
+
+### I only care about reading free articles. Would I only need `article-free`?
+
+No. Keep `article-paywalled.html`. The plan cut one job: reading the body of a
+paid article you subscribe to. It kept a second job: spotting a paywall when you
+land on one.
+
+Think of a bouncer at a door. You never enter the paid club. The bouncer must
+know what the closed door looks like, so they can tell you "this one is closed
+to you" before you walk into a hallway with one poster in it.
+
+| Job | In v1? | Fixture |
+|---|---|---|
+| Read a free article body | Yes | `article-free.html` |
+| Spot a paywall and mark the card | Yes | `article-paywalled.html` |
+| Read a paid article body as a subscriber | No | None. Deferred. |
+
+One day you save a link from Notes and the article turns out to be paywalled.
+Without the paywall check, `extract.js` counts the ~90-word teaser and the board
+shows a "1 min read" card for an article you cannot open. The `isPreview: true`
+test in Task 4 runs against `article-paywalled.html`. Drop the fixture and that
+test has nothing to parse.
+
+The capture costs a few minutes and no money. Open a paid article you did not
+buy and run the snippet.
