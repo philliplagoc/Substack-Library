@@ -1,6 +1,9 @@
 (async function captureFixture() {
     const PRIVATE_STRINGS = [
-        'the'
+        'Phillip Lagoc',
+        '@philliplagoc',
+        'lagocphillip13@gmail.com',
+        'phillip-lagoc'
     ];
 
     function redact(text) {
@@ -9,6 +12,71 @@
         const escaped = PRIVATE_STRINGS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
         const pattern = new RegExp(escaped.join('|'), 'gi');
         return text.replace(pattern, 'READER');
+    }
+
+    function stripIdentifiers(url) {
+        for (const key of [...url.searchParams.keys()]) url.searchParams.delete(key);
+        url.pathname = url.pathname.replace(/\d{6,}/g, '0');
+    }
+
+    function cleanUrl(value) {
+        const trimmed = value.trim();
+
+        // new URL() does NOT throw on plain text. It treats the text as a
+        // relative path and returns a valid URL. That turned og:title into
+        // "/p/I%20Posted%20on%20Substack..." in the 15:12 capture.
+        // So try/catch is not enough. Only touch a value that already
+        // looks like a URL.
+        if (!/^(https?:\/\/|\/\/|\/|\?)/i.test(trimmed)) return value;
+
+        let url;
+        try {
+            url = new URL(trimmed, location.href);
+        } catch (_) {
+            return value; // Malformed. Leave it alone.
+        }
+        stripIdentifiers(url);
+
+        // Give back the same shape we were handed. Turning a relative href
+        // absolute would make the fixture stop matching the live page.
+        const tail = url.pathname + url.search + url.hash;
+        if (/^https?:\/\//i.test(trimmed)) return url.href;
+        if (trimmed.startsWith('//')) return '//' + url.host + tail;
+        if (trimmed.startsWith('?')) return url.search + url.hash;
+        return tail;
+    }
+
+    // Handle a URL that hides inside other data.
+    function cleanEmbedded(value) {
+        return null;
+    }
+
+    // Routes URL-bearing attributes through cleanUrl, and
+    // attributes that hold serialized JSON through cleanEmbedded.
+    // Note: 'content' is NOT in URL_ATTRS. It holds og:title and og:description,
+    // which are prose. The 15:12 capture proved what happens when it is.
+    function scrubIdentifiers(root) {
+        const URL_ATTRS = ['href', 'src', 'data-href', 'action'];
+        const JSON_ATTRS = ['data-attrs'];
+        for (const el of root.querySelectorAll('*')) {
+            for (const name of URL_ATTRS) {
+                const value = el.getAttribute(name);
+                if (!value) continue;
+                el.setAttribute(name, cleanUrl(value));
+            }
+            for (const name of JSON_ATTRS) {
+                const value = el.getAttribute(name);
+                if (!value) continue;
+                const out = cleanEmbedded(value);
+                if (out === null) el.removeAttribute(name);
+                else el.setAttribute(name, out);
+            }
+        }
+        // og:url and og:image are the only content= values that hold a URL.
+        for (const el of root.querySelectorAll('meta[property="og:url"], meta[property="og:image"], meta[name^="twitter:image"]')) {
+            const value = el.getAttribute('content');
+            if (value) el.setAttribute('content', cleanUrl(value));
+        }
     }
 
     const clone = document.documentElement.cloneNode(true);
@@ -31,6 +99,9 @@
             }
         }
     }
+
+    // 3.5. Strip ids and tokens that a literal string match cannot reach.
+    scrubIdentifiers(clone);
 
     // 4. Redact private strings 
     const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);

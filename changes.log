@@ -35,19 +35,24 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-08-19
-**Phase:** Milestone 0, Part A, Task 3. Started, not finished.
-**Code:** `spike/capture-fixture.js` (the DevTools capture snippet, with
-`redact()` written). No extraction module yet.
+**Date:** 2026-08-24
+**Phase:** Milestone 0, Part A, Task 3. Steps 1 to 5 done. Steps 6 to 9 open.
+**Code:** `spike/capture-fixture.js` (the DevTools capture snippet). It holds
+`redact()` for literal strings and a pass 3.5 (`scrubIdentifiers`, `cleanUrl`,
+`cleanEmbedded`) for identifiers that a literal match cannot reach. No
+extraction module yet.
 **Build system:** Working. `spike/package.json` sets `type: "module"` and points
 `npm test` at `node --test`. `linkedom` 0.18.13 is installed.
 **Tests:** One smoke test in `spike/extract.test.mjs`. `cd spike; npm test`
-passes it.
-**Fixtures:** None captured. `spike/fixtures/article-free.html` exists but holds
-zero bytes. `spike/fixtures/manifest.json` is an empty list.
-**Uncommitted:** `spike/fixtures/article-free.html`. It holds zero bytes and
-Task 3 Step 5 overwrites it, so it stays untracked until it holds a real
-capture.
+passes it. No fixture tests yet, because `extract.js` does not exist.
+**Fixtures:** `article-free.html` is captured, anonymized, and verified clean
+(100 KB, 1599 body words). `article-paywalled.html` holds only a URL, not a
+capture. `saved-list.html` does not exist. `manifest.json` is an empty list.
+**Anonymization contract:** The capture snippet removes every `data-attrs`
+attribute, every query string in `href`, `src`, `data-href`, and `action`, and
+zeroes any run of 6 or more digits in a URL path. Fixtures are therefore not
+byte-faithful. Do not write a test that asserts on a query parameter or a
+numeric profile id. `spike/README.md`, "Risks found", holds the detail.
 **Known drift:** `AGENTS.md` still holds the old learning-note rules.
 `CLAUDE.md` dropped ASD-STE100 for those notes. The two files no longer match
 below their header lines.
@@ -86,6 +91,49 @@ Like controls, then capture `spike/fixtures/article-free.html`.
 ---
 
 ## Entries
+
+### 2026-08-24 - Capture the free article fixture and harden the anonymizer
+
+**What changed:** Captured `spike/fixtures/article-free.html` (100 KB, 1599 body
+words) from `escapethecubicle.substack.com`. Added `scrubIdentifiers()`,
+`cleanUrl()`, and `cleanEmbedded()` to `spike/capture-fixture.js`, which run as a
+new pass 3.5 before `redact()`. Filled the "body word count" and
+"paywall / preview state" rows in `spike/README.md` and added five bullets to
+"Risks found". Marked Task 3 Steps 1 to 5 complete in the plan.
+
+**Why:** The first three captures leaked the reader's Substack `user_id`
+(494698927). `redact()` matches literal strings, so it could not see the id in a
+URL path, and could not see it at all inside a base64 share token nested in a
+JSON blob in a `data-attrs` attribute. Three leak classes needed three fixes:
+delete every query string, zero every 6-or-more digit run in a URL path, and
+drop `data-attrs` outright. Dropping `data-attrs` beat parsing its JSON because
+nothing downstream reads it: the word count, the button labels, and both button
+target URLs all survive the delete, measured.
+
+**Files:** `spike/capture-fixture.js`, `spike/fixtures/article-free.html`,
+`spike/README.md`, `docs/superpowers/plans/2026-08-16-milestone-0.md`,
+`docs/learning-notes.md`
+
+**Verification:** `grep` over the fixture returns 0 for the user id, for any JWT,
+for `token=`, for `data-attrs`, for the reader's name and email, and for any
+query string or 6-digit run in a URL attribute. A linkedom parse confirms
+`og:title`, `meta[name=author]`, `link[rel=canonical]`, `og:url`, and both
+JSON-LD blocks read correctly, and that `.body.markup` still counts 1599 words,
+the same as the unscrubbed capture. `npm test` not run: `extract.js` does not
+exist yet.
+
+**State after:** The free fixture is clean and committable. The extractor and its
+fixture tests do not exist. `spike/fixtures/article-paywalled.html` holds only a
+URL, and `manifest.json` is still an empty list, so Task 3 is not finished.
+
+**Next up:** Task 3 Step 6. Capture the paywalled article from
+`kevinszabo.substack.com` with the same snippet, then Step 7 (signed-out state),
+then Step 8 (fill the manifest).
+
+**Open questions:** The fixture keeps seven commenters' display names and profile
+slugs. Their numeric ids are zeroed. The plan's constraint names the reader's
+data only, so this is in bounds, but nothing reads those names either. Decide
+whether a later capture strips them.
 
 ### 2026-08-19 - Cut paid subscriptions from Milestone 0 scope (commit 477f86e)
 

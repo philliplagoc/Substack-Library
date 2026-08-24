@@ -754,3 +754,319 @@ test has nothing to parse.
 
 The capture costs a few minutes and no money. Open a paid article you did not
 buy and run the snippet.
+
+## 2026-08-24 - Milestone 0, Task 3
+
+### How can I get the State attribute of the Unsave/Save button?
+
+A state attribute is any attribute whose **value flips** when the button
+toggles. Watch the button while you click it. Reading the Elements tab alone
+will not show you which attribute moved.
+
+Picture a room of light switches behind a curtain. Someone flips one. You learn
+which switch moved by watching the room go dark.
+
+A `MutationObserver` watches the room for you. It reports every attribute that
+changed, with the old value beside the new one.
+
+```js
+const btn = document.querySelector('YOUR SAVE SELECTOR');
+
+// Print every attribute it has right now.
+const dump = (el) => Object.fromEntries([...el.attributes].map(a => [a.name, a.value]));
+console.log('BEFORE', dump(btn), '| text:', btn.innerText.trim());
+
+// Watch the parent, not the button. React may replace the button itself.
+const obs = new MutationObserver((records) => {
+  for (const r of records) {
+    if (r.type === 'attributes') {
+      console.log('ATTR', r.attributeName,
+        ':', JSON.stringify(r.oldValue),
+        '->', JSON.stringify(r.target.getAttribute(r.attributeName)));
+    } else if (r.type === 'characterData') {
+      console.log('TEXT', JSON.stringify(r.oldValue), '->', JSON.stringify(r.target.data));
+    } else {
+      console.log('NODES replaced under', r.target);
+    }
+  }
+});
+obs.observe(btn.parentElement, {
+  attributes: true, attributeOldValue: true,
+  characterData: true, characterDataOldValue: true,
+  childList: true, subtree: true,
+});
+
+// Click Save with the mouse. Then click again to undo.
+// When you finish: obs.disconnect();
+```
+
+Click with the mouse. `btn.click()` fires a synthetic click and Substack may
+ignore it.
+
+Read the log, then fill the table cell:
+
+| What the log showed | State attribute |
+|---|---|
+| `ATTR aria-pressed : "false" -> "true"` | `aria-pressed` |
+| `ATTR aria-label : "Save" -> "Unsave"` | `aria-label`, value flips |
+| `TEXT "Save" -> "Saved"` | none, read `innerText` |
+| Only `class` changed, to a hashed name | none, record it as a risk |
+| Nothing logged | The button was replaced. Watch `document.body` instead. |
+
+Two catches worth knowing.
+
+React swaps nodes instead of editing them. An observer attached to the button
+goes deaf the moment React replaces that button. Attach it to the parent with
+`subtree: true` and it survives the swap.
+
+If the state lives in a hashed class such as `pencraft_x3f9k`, the extension
+cannot read it. Substack regenerates that name on the next deploy. Write that
+in "Risks found" and the finding is worth more than a filled cell.
+
+### Why will the selector DevTools gave me break?
+
+DevTools **Copy → Copy selector** answers one question: what path finds this
+element on this page, right now. You need a different answer: what path finds
+this element on every article, next month.
+
+Every part of a selector sits in one of three tiers.
+
+| Tier | Example | What happens to it |
+|---|---|---|
+| Semantic | `post-ufi`, `data-testid`, `aria-label` | Survives a redesign. A human named it, and the name describes the thing. |
+| Stylistic | `pc-gap-16`, `flex-grow-rzmknG` | Dies. `rzmknG` is a build hash. `pc-gap-16` dies when a designer changes the gap to 12px. |
+| Positional | `nth-child(1)`, `div > div` | The worst kind. |
+
+Positional parts earn last place because of how they fail. A broken semantic
+selector returns `null`, and your code sees the miss. A broken positional
+selector returns **the wrong button**, and your code reports it as the right
+one. The plan bans silent failure, and `nth-child` is the purest form of it.
+
+Two live examples from the free article:
+
+```
+#radix-P0-46 > div > div > button:nth-child(1)
+```
+
+Radix UI builds `radix-P0-46` at runtime from a counter. Reload the page and
+the number changes. Radix IDs also belong to popovers, so a Save button behind
+one does not exist in the DOM until the reader opens the menu.
+
+```
+... div.pencraft.pc-gap-16.flex-grow-rzmknG.post-ufi > div:nth-child(1) > div > button
+```
+
+One part of that chain is worth keeping. `post-ufi` is Substack's own name for
+the like, comment, and share bar. UFI stands for user-facing interactions.
+Throw away the rest and test `.post-ufi button[aria-pressed]`.
+
+Shrink a selector by testing candidates against the element you already have:
+
+```js
+const el = document.querySelector('THE LONG SELECTOR');
+const tryIt = (sel) => {
+  const found = document.querySelectorAll(sel);
+  console.log(sel, '| count:', found.length, '| same:', found[0] === el);
+};
+tryIt('.post-ufi button[aria-pressed]');
+```
+
+Keep the shortest candidate that reports **count 1** and **same true**.
+
+### Why are we doing Step 4 at all? Why do the Save and Like buttons matter?
+
+Because the extension does not only read those buttons. It clicks them.
+
+Three lines of `implementation-plan.md` put the buttons on the critical path:
+
+| Line | What it says | What it needs from Step 4 |
+|---|---|---|
+| 88 | Desktop capture "invokes Substack's native Save" | A selector that finds the button so the code can click it |
+| 166 | "Native Save/Unsave fails: leave the card unchanged and show the actual completion state" | A way to ask the page whether the click worked |
+| 68-70 | `liked`, `commented`, `unsavedFromSubstack` are fields on every card | A way to read each button's current state |
+
+The middle row is the hard one. Your extension clicks Save. Then what? The
+network call may have failed. The reader may have signed out. Substack may have
+changed the button. The code needs one question it can ask the page: **did the
+state flip?**
+
+The state attribute is that question. `aria-pressed` reads `"false"` before the
+click and `"true"` after. No flip means no save, and the card stays unchanged
+with an honest message.
+
+Take the state attribute away and the code has two bad options. It can claim
+success and lie to you. It can refuse to say anything and leave you guessing.
+The spec bans both under "silent failure is banned throughout."
+
+So Step 4 is not paperwork. It answers whether one of the spec's rules can be
+built at all. A "none, the state lives in a hashed class" answer in the Risks
+section is a real result, and Milestone 4 would have to change to match it.
+
+### Why does the Like button sit next to Save in the same table?
+
+Like is the control sample.
+
+You already found `aria-pressed` on Like. Now Save gets the same test, and the
+comparison tells you something neither button tells you alone.
+
+| Result | What it means for Milestone 2 |
+|---|---|
+| Save also uses `aria-pressed` | Substack builds its toggles one way. Write one helper, `readToggleState(el)`, and point it at both buttons. |
+| Save uses something else | Substack's buttons are not uniform. Each button needs its own read strategy, and the next button you meet needs its own survey. |
+
+One sample tells you what a button does. Two samples start telling you what
+Substack does.
+
+### Why was finding the Save and Like buttons so hard? Was it how Substack labels them?
+
+Labelling caused one of the four problems. Here they are in the order we hit
+them.
+
+| # | What we saw | Cause |
+|---|---|---|
+| 1 | `#radix-P0-46 > div > div > button:nth-child(1)` returned `null` on the next load | Radix UI numbers popovers from a counter that restarts every page load |
+| 2 | `button[aria-label^="Like"]` matched 5 buttons | Two belong to this post. Three belong to recommended articles at the page foot |
+| 3 | The Save button was absent from a fresh page | It lives inside a menu that mounts when you open it |
+| 4 | The Save label reads `Save` on an unsaved article | The label names the action you can take, not the state you are in |
+
+Only #4 comes from a label. Problems 1 to 3 come from where Substack puts the
+buttons and what it names their classes, which is why a copied selector read
+fine and worked exactly once.
+
+#### The one technique that solved three of them
+
+Take a census of every button, then take it again after something changes, and
+compare.
+
+```js
+console.table([...document.querySelectorAll('button, [role="button"]')].map((el, i) => ({
+  i,
+  label: (el.getAttribute('aria-label') || el.innerText || '').trim().slice(0, 40),
+  pressed: el.getAttribute('aria-pressed'),
+  cls: el.className.split(' ').filter(c => !c.startsWith('pc-')).join(' ').slice(0, 50),
+  visible: el.offsetParent !== null,
+})));
+```
+
+We ran it twice on the article page. Closed menu: 55 rows. Open menu: 58 rows.
+The three new rows were `Save`, `Cross post`, and `Open as PDF`.
+
+We found the Save button in that difference, without reading Substack's source
+or guessing at a class name. The census works on a page you have never seen,
+because it compares the page against itself.
+
+#### Reading the census told us which Like button was ours
+
+| i | label | pressed | class variant | Whose |
+|---|---|---|---|---|
+| 0 | Like (4,160) | true | `style-button` | This post, top bar |
+| 1 | Like (4,160) | true | `style-button` | This post, bottom bar |
+| 2 | Like (5,171) | false | `style-compressed` | A recommendation |
+| 3 | Like (4,462) | false | `style-compressed` | A recommendation |
+| 4 | Like (1,407) | false | `style-compressed` | A recommendation |
+
+Two clues separated them. Rows 0 and 1 share the count 4,160, so they are one
+article drawn twice. Rows 2 to 4 carry `style-compressed`, the variant Substack
+uses for a post it is advertising.
+
+Scoping to `article` cut the 5 down to 2, and both of those carry the same
+state, so either one answers the question.
+
+#### The inverted label
+
+The Like button announces itself with `aria-pressed="true"`. The Save menu item
+has no such attribute. Its state is its text.
+
+| Text on the item | The article is |
+|---|---|
+| `Save` | not saved |
+| `Unsave` | saved |
+
+A door sign reading PUSH tells you what to do. It does not tell you whether the
+door is open. Substack's menu item works the same way, and the trap is that
+reading it backwards produces no error.
+
+```js
+// Wrong. Reads "the label says Save, so it is saved."
+card.savedOnSubstack = item.innerText.trim() === 'Save';
+```
+
+That line runs, returns `true` on an unsaved article, and the board shows a
+confident lie. Name the inversion so the next reader sees it:
+
+```js
+// The menu offers the action available next, so the saved state is the opposite.
+const LABEL_WHEN_SAVED = 'Unsave';
+card.savedOnSubstack = item.innerText.trim() === LABEL_WHEN_SAVED;
+```
+
+#### What survived
+
+Everything durable turned out to be a role, an ARIA attribute, a framework data
+attribute, or an HTML5 element. Every class we started with died.
+
+| Control | Final handle | State |
+|---|---|---|
+| Like | `article .post-ufi-button[aria-label^="Like"]` | `aria-pressed` |
+| Save trigger | `article .post-ufi-button.style-button:not([aria-label])` | n/a |
+| Save item | `[data-radix-menu-content] button[role="menuitem"]`, matched on `innerText` | `innerText`, inverted |
+
+Nothing in that table depends on position, on an `id`, or on a hashed class
+such as `flex-grow-rzmknG` or `item-Npdq6R`. Those all appeared in the selectors
+we started with.
+
+#### The method, for the next button
+
+1. Use **Copy selector** to get any handle on the element. It proves you found the right thing today.
+2. Print that element's own markup. Read its `role`, its `aria-*`, its `data-*`, and its unhashed classes.
+3. Census every candidate on a freshly loaded page.
+4. Census again after the state changes, then diff the two.
+5. Shrink the selector until the count is the smallest set that all belongs to you, and confirm with `found[0] === el`.
+
+Step 4 of the plan asked three questions. The answers: Like sits at the top and
+the bottom of the post. Save sits in a menu behind an unlabelled `...` in both
+of those bars. Like reports state through `aria-pressed`, and Save reports it
+through a word.
+
+### If we drop it, what happens?
+
+Two of the four `data-attrs` attributes in the fixture held a signed token
+carrying your Substack user id. The choice: delete the attributes, or parse the
+JSON inside them and clean the URL.
+
+Simulate the delete first. Compare the numbers:
+
+```
+with attrs     words=1599  bodyFound=true  links=13  buttonWrappers=4
+dropped        words=1599  bodyFound=true  links=13  buttonWrappers=4
+
+word count delta : 0
+bytes saved      : 1862
+```
+
+Nothing moved.
+
+| Worry | Why it does not happen |
+|---|---|
+| The word count changes | `textContent` reads text nodes. An attribute is not a text node. |
+| The button labels vanish | "Share" and "Leave a comment" are real text in the DOM. |
+| The button targets are lost | Both URLs also sit in a real `href`. The attribute held a second copy. |
+
+Check that last row instead of assuming it:
+
+```bash
+grep -o 'href="[^"]*stan\.store[^"]*"' fixture.html | wc -l   # 1, a real link
+grep -o 'stan\.store' fixture.html | wc -l                    # 2, link plus attribute
+```
+
+You give up page fidelity. The fixture stops being a byte-faithful copy of what
+Substack served, which matters when a later task asks how Substack marks up an
+in-body button.
+
+#### The rule
+
+Delete beats scrub when nothing downstream reads the thing. A scrub must handle
+every value the site puts there next month. A delete handles the attribute once
+and stays correct.
+
+Simplicity picked before measuring is a guess. Measure, then pick it.
