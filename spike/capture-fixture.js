@@ -6,10 +6,24 @@
         'phillip-lagoc'
     ];
 
+    // Adds the shapes a page prints that PRIVATE_STRINGS does not hold
+    // verbatim. The paywall greeted the reader as "Hi Phillip" while the list
+    // above held only the full name. Keep this list explicit: every term here
+    // is one a human decided is safe to blank out. redact() matches with the
+    // `i` flag, so one casing of each term covers every casing.
+    function expandPrivateStrings(strings) {
+        return [...strings, 'Phillip'];
+    }
+
+    const REDACT_TERMS = expandPrivateStrings(PRIVATE_STRINGS);
+
     function redact(text) {
-        // Replace every private string, case-insensitive, with READER
-        if (!text || PRIVATE_STRINGS.length === 0) return text;
-        const escaped = PRIVATE_STRINGS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        // Replace every term, case-insensitive, with READER
+        if (!text || REDACT_TERMS.length === 0) return text;
+        // Longest first, so "Phillip Lagoc" is consumed whole before a shorter
+        // "Phillip" can turn it into "READER Lagoc".
+        const ordered = [...REDACT_TERMS].sort((a, b) => b.length - a.length);
+        const escaped = ordered.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
         const pattern = new RegExp(escaped.join('|'), 'gi');
         return text.replace(pattern, 'READER');
     }

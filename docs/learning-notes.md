@@ -1070,3 +1070,81 @@ every value the site puts there next month. A delete handles the attribute once
 and stays correct.
 
 Simplicity picked before measuring is a guess. Measure, then pick it.
+
+### What is the `+` coercion?
+
+`+` in JavaScript does two different jobs. It picks one by looking at what sits
+on each side.
+
+| Both sides are | `+` does | Example |
+| --- | --- | --- |
+| numbers | addition | `2 + 3` gives `5` |
+| anything else | glues text together | `'a' + 1` gives `'a1'` |
+
+An array counts as "anything else". So `+` turns each array into text first. An
+array turns into text by joining its items with commas and dropping the
+brackets.
+
+```js
+['Phillip Lagoc', '@philliplagoc'] + ['Phillip']
+// left side becomes  'Phillip Lagoc,@philliplagoc'
+// right side becomes 'Phillip'
+// glued:             'Phillip Lagoc,@philliplagocPhillip'
+```
+
+The result is one string, with no comma at the seam. JavaScript raises no error,
+because a string is a fine thing to have.
+
+#### What that did to the anonymizer
+
+`expandPrivateStrings()` returns the list `redact()` searches for. `redact()`
+starts by spreading it:
+
+```js
+const ordered = [...REDACT_TERMS].sort((a, b) => b.length - a.length);
+```
+
+Spread on an array hands you its items. Spread on a string hands you its
+letters.
+
+```js
+[...['ab', 'cd']]   // ['ab', 'cd']            2 items
+[...'abcd']         // ['a', 'b', 'c', 'd']    4 items
+```
+
+The 81-character string became 81 single letters, and the search pattern became
+`P|h|i|l|...`. That matches most of the page:
+
+```
+'The Writing Chronicles by Kevin Szabo'  ->  'READERREADERREADER...'
+```
+
+#### How to join two arrays
+
+| You want | Write |
+| --- | --- |
+| a new array from two | `[...a, ...b]` |
+| the same, older style | `a.concat(b)` |
+| one more item on the end | `[...a, 'Phillip']` |
+| an item added in place | `a.push('Phillip')` |
+
+JavaScript has no `+` for arrays, so reach for the spread.
+
+#### The shape of this bug
+
+Four bugs in this spike so far, and none of them threw:
+
+| Written | Expected | Got |
+| --- | --- | --- |
+| `arr1 + arr2` | an array of terms | one string |
+| `new URL('some title')` | an error | a valid relative URL |
+| `ld.author.name` | the author name | `undefined` |
+| `grep -c` on the fixture | element count | line count |
+
+A crash stops you before you commit. A silent wrong answer ships a real name into
+git history, which is why the check runs against the output of the anonymizer and
+not against its code:
+
+```bash
+grep -Eic "phillip|lagoc" spike/fixtures/article-paywalled.html   # want 0
+```

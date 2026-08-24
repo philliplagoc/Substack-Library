@@ -36,18 +36,20 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-08-24
-**Phase:** Milestone 0, Part A, Task 3. Steps 1 to 5 done. Steps 6 to 9 open.
+**Phase:** Milestone 0, Part A, Task 3. Steps 1 to 6 done. Steps 7 to 9 open.
 **Code:** `spike/capture-fixture.js` (the DevTools capture snippet). It holds
-`redact()` for literal strings and a pass 3.5 (`scrubIdentifiers`, `cleanUrl`,
-`cleanEmbedded`) for identifiers that a literal match cannot reach. No
-extraction module yet.
+`redact()` for literal strings, `expandPrivateStrings()` for the name shapes a
+page prints that the reader never typed, and a pass 3.5 (`scrubIdentifiers`,
+`cleanUrl`, `cleanEmbedded`) for identifiers that a literal match cannot reach.
+No extraction module yet.
 **Build system:** Working. `spike/package.json` sets `type: "module"` and points
 `npm test` at `node --test`. `linkedom` 0.18.13 is installed.
 **Tests:** One smoke test in `spike/extract.test.mjs`. `cd spike; npm test`
 passes it. No fixture tests yet, because `extract.js` does not exist.
-**Fixtures:** `article-free.html` is captured, anonymized, and verified clean
-(100 KB, 1599 body words). `article-paywalled.html` holds only a URL, not a
-capture. `saved-list.html` does not exist. `manifest.json` is an empty list.
+**Fixtures:** `article-free.html` (100 KB, 1599 body words) and
+`article-paywalled.html` (32 KB, 684 preview words) are both captured,
+anonymized, and verified clean. `saved-list.html` does not exist.
+`manifest.json` is an empty list.
 **Anonymization contract:** The capture snippet removes every `data-attrs`
 attribute, every query string in `href`, `src`, `data-href`, and `action`, and
 zeroes any run of 6 or more digits in a URL path. Fixtures are therefore not
@@ -75,9 +77,9 @@ article body. The plan holds the detail under "Deferred to a later version".
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. It is a reference for the developer. No code reads it.
 
-**Next up:** Milestone 0, Part A, Task 3, Steps 1 to 5: pick the two articles,
-inspect the head of the free article, find the body selector, find the Save and
-Like controls, then capture `spike/fixtures/article-free.html`.
+**Next up:** Milestone 0, Part A, Task 3, Step 7: open the free article in a
+private window and record the signed-out state in `spike/README.md`. Then Step 8
+fills `manifest.json` and Step 9 commits.
 
 **Open questions:**
 
@@ -91,6 +93,39 @@ Like controls, then capture `spike/fixtures/article-free.html`.
 ---
 
 ## Entries
+
+### 2026-08-24 - Capture the paywalled article fixture and confirm the paywall check
+
+**What changed:** Captured `spike/fixtures/article-paywalled.html` (32 KB) from
+`kevinszabo.substack.com`, a publication the reader does not pay for. Recorded
+the paywall structure in `spike/README.md` under a new "Paywall block" section,
+updated the metadata and body rows with paywalled values, and added four risks.
+Added `expandPrivateStrings()` to `spike/capture-fixture.js`; `redact()` now
+reads its terms from that function and sorts them longest-first.
+**Why:** The capture leaked the reader's first name. The paywall greets the
+reader with `Hi <b>Phillip</b>`, and `PRIVATE_STRINGS` held only the full name
+`Phillip Lagoc`, which a literal match does not find inside a lone first name.
+The leak was redacted in the fixture by hand and the snippet was widened so the
+next capture catches it. The explicit term list was kept over deriving terms by
+splitting on whitespace and punctuation: splitting the email address would add
+`com` as a term and destroy every URL in the fixture.
+**Files:** `spike/fixtures/article-paywalled.html`, `spike/README.md`,
+`spike/capture-fixture.js`, `docs/superpowers/plans/2026-08-16-milestone-0.md`
+**Verification:** `grep -ic "phillip|lagoc" spike/fixtures/article-paywalled.html`
+returns 0. `node --check spike/capture-fixture.js` passes. `redact()` run over
+the leak cases turns `Hi Phillip` into `Hi READER` and leaves
+`The Writing Chronicles by Kevin Szabo` alone. `cd spike; npm test` passes.
+**State after:** Both article fixtures are captured and clean. The paywall read
+path is confirmed against both: JSON-LD `isAccessibleForFree` is `true` on the
+free fixture and `false` on the paywalled one, and `.paywall` matches 0 and 1.
+Word count cannot stand in for it: the paywalled preview holds 684 words, above
+the 500-word floor the manifest uses for a free article. `manifest.json` is
+still an empty list. Nothing is committed yet.
+**Next up:** Task 3 Step 7, the signed-out check in a private window. Then Step 8
+fills `manifest.json` from the values now recorded in `spike/README.md`, and
+Step 9 commits.
+**Open questions:** none
+
 
 ### 2026-08-24 - Capture the free article fixture and harden the anonymizer
 

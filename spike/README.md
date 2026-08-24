@@ -1,6 +1,6 @@
 # Substack compatibility spike
 
-Captured: 2026-08-21. Free article fixture re-captured 2026-08-24 to strip a share token. Substack UI is unversioned. Re-check this doc when a fixture test fails.
+Captured: 2026-08-21. Free article fixture re-captured 2026-08-24 to strip a share token. Paywalled article fixture captured 2026-08-24 from a publication the reader does not pay for. Substack UI is unversioned. Re-check this doc when a fixture test fails.
 
 ## Supported desktop pages
 
@@ -16,12 +16,12 @@ Out of scope for v1: a paid article read as a subscriber. The reader pays for no
 
 | Field                   | Primary path                | Fallback                                         | Notes                                                                                                                                                 |
 | ----------------------- | --------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| title                   | `meta[property="og:title"]` | JSON-LD `headline`, then `document.title`        | `og:title` holds the bare title. It does not append the publication name. `document.title` matched it character for character.                        |
-| author                  | `meta[name="author"]`       | JSON-LD `author[0].name`                         | JSON-LD `author` is an array, not an object. The extractor must handle both shapes.                                                                   |
-| publication             | JSON-LD `publisher.name`    | JSON-LD BreadcrumbList `itemListElement[0].name` | `og:site_name` not found. The only field of the four with no OG source. `publisher.identifier` (`pub:1778977`) is a stable ID that survives a rename. |
-| canonical url           | `link[rel="canonical"]`     | `meta[property="og:url"]`                        | Both were identical. JSON-LD `url` and `mainEntityOfPage` carry the same value, so four sources agree.                                                |
-| body word count         | `.body.markup`              | `.available-content`, then `article`             | 1599 words on the free fixture, and 1599 again after anonymization. `.available-content` wraps `.body.markup` and returns the same count. `article` over-counts by 41 words: it swallows the title and both UFI bars. Reading time is `wordCount / 250`. |
-| paywall / preview state | JSON-LD `isAccessibleForFree` | `.paywall`, then `[class*="paywall"]`          | Free fixture: `isAccessibleForFree` is `true` and every paywall selector matches 0. Unconfirmed against a paywalled page until Task 3 Step 6. Prefer the JSON-LD boolean. The page states its own access level there, so it does not break when Substack renames a class. |
+| title                   | `meta[property="og:title"]` | JSON-LD `headline`, then `document.title`        | `og:title` holds the bare title. It does not append the publication name. `document.title` matched it character for character. Same on the paywalled fixture.                        |
+| author                  | `meta[name="author"]`       | JSON-LD `author[0].name`                         | JSON-LD `author` is an array, not an object. The extractor must handle both shapes. `meta[name="author"]` read correctly on the paywalled fixture too.                                                                   |
+| publication             | JSON-LD `publisher.name`    | JSON-LD BreadcrumbList `itemListElement[0].name` | `og:site_name` not found. The only field of the four with no OG source. `publisher.identifier` (`pub:1778977` free, `pub:7127686` paywalled) is a stable ID that survives a rename. |
+| canonical url           | `link[rel="canonical"]`     | `meta[property="og:url"]`                        | Both were identical. JSON-LD `url` and `mainEntityOfPage` carry the same value, so four sources agree. Same on the paywalled fixture.                                                |
+| body word count         | `.body.markup`              | `.available-content`, then `article`             | Free fixture: 1599 words, and 1599 again after anonymization. Paywalled fixture: 684 words, which is the free preview only. The paywall does not remove the body element or truncate the DOM, so a parser that finds `.body.markup` cannot conclude the article is readable. `.available-content` wraps `.body.markup` and returns the same count. `article` over-counts by 41 words: it swallows the title and both UFI bars. Reading time is `wordCount / 250`. |
+| paywall / preview state | JSON-LD `isAccessibleForFree` | `.paywall`, then `[class*="paywall"]`          | Confirmed on both fixtures. Free: `true`, and every paywall selector matches 0. Paywalled: `false`, `.paywall` matches 1, `[class*="paywall"]` matches 5 (`paywall`, `paywall-intro`, `paywall-title`, `paywall-cta`, `paywall-login`). Prefer the JSON-LD boolean. The page states its own access level there, so it does not break when Substack renames a class. Word count is not a substitute: see the risk below. |
 
 ## Saved list read paths
 
@@ -39,9 +39,29 @@ Out of scope for v1: a paid article read as a subscriber. The reader pays for no
 | Save / Unsave | Two steps. **1.** Click the trigger: the unlabelled button in either UFI bar, `article .post-ufi-button.style-button:not([aria-label])`. **2.** Wait for the popover, then find the item by text inside `[data-radix-menu-content] button[role="menuitem"]`, matching `innerText.trim()` against `Save` or `Unsave`. | None. Read `innerText`. `Save` means **not saved**. `Unsave` means **saved**. | The label names the action, so it reads inverted. Absent from the DOM until the popover mounts. The item has no `aria-label`, no `id`, and hashed classes (`item-Npdq6R`, `priority_primary-eIAnBM`); `role="menuitem"` and `data-radix-collection-item` are the durable attributes. The popover `id` (`radix-P0-46`) is regenerated on every mount. The `...` trigger appears in both the top and the bottom UFI bar, and both open the same menu. |
 | Like | `article .post-ufi-button[aria-label^="Like"]`. Matches 2. Alternative with the same count: `.post-ufi-button.style-button[aria-label^="Like"]`. | `aria-pressed`, `"true"` or `"false"` | Present twice for this post, top and bottom UFI bar, both carrying the same state. Read either. Three more matches for `[aria-label^="Like"]` carry class `style-compressed` and belong to the recommended articles at the page foot; never read those. `aria-label` embeds the like count (`Like (4,160)`), so it changes on every click and an exact-match selector finds nothing. |
 
+## Paywall block
+
+Measured on `fixtures/article-paywalled.html`, a publication the reader does not pay for.
+
+| Question | Answer |
+| --- | --- |
+| What element marks the paywall? | `article .paywall`. One match. Inside it: `.paywall-intro` (greeting), `.paywall-title` ("This post is for paid subscribers"), `.paywall-cta` (the Subscribe button), `.paywall-login` ("Already a paid subscriber? Switch accounts"). |
+| Where does it sit? | Sibling of `.available-content` inside `<article>`, not a child of it. Chain: `div.paywall < div < article.typography.newsletter-post < div.pencraft < div.single-post < div.container`. |
+| Is the body element still present? | Yes. `.body.markup` and `.available-content` both match once, exactly as on the free page. |
+| Is it shorter? | Yes, but not short. 684 words against 1599 on the free fixture. The preview ends mid-argument, on "Now for those looking to learn how:". |
+| Does the metadata still read? | Yes. Title, author, publication, canonical URL, and `datePublished` all read from the same paths as the free page. Only `isAccessibleForFree` differs. |
+| Subscribe button | `article .paywall .paywall-cta button`. Its classes are build hashes (`buttonBase-GK1x3M`, `priority_primary-RfbeYt`). A second `Subscribe` button lives outside `.paywall` in the page header, so scope every read to `.paywall`. Match on `innerText`, not on class. |
+
 ## Signed-out state
 
-How to detect: (fill in)
+Checked 2026-08-24 in a private window on the free article. No fixture captured.
+
+| Question | Answer |
+| --- | --- |
+| Does the metadata still read? | Yes. The head inspection from Step 2 returned the same values as the signed-in page. Title, author, publication, and canonical URL do not depend on a session. |
+| What element shows the sign-in prompt? | A `Sign in` button in the top navigation bar, inside the right-aligned button container of `.mainMenuContent-DME8DR`. |
+| How to detect | Scope to the nav, then match on text: `[...document.querySelectorAll('#main [class*="mainMenuContent"] button')].find(b => b.innerText.trim() === 'Sign in')`. A match means signed out. `#main [class*="mainMenuContent"]` matches 1 container holding 5 buttons on both committed fixtures, and neither fixture contains the string `Sign in`. |
+| Full chain as inspected | `#main > div.pencraft.pc-display-contents.pc-reset.pubTheme-yiXxQA > div > div.mainMenuContent-DME8DR > div > div.pencraft.pc-display-flex.pc-justifyContent-flex-end.pc-alignItems-center.pc-reset.buttonsContainerContainer-ThaN_w > div > div > button.pencraft.pc-reset.pencraft.buttonBase-GK1x3M.buttonText-X0uSmG.buttonStyle-r7yGCK.priority_tertiary-rlke8z.size_md-gCDS3o` |
 
 ## Risks found
 
@@ -62,3 +82,10 @@ How to detect: (fill in)
 - A signed share token rides in the article body, inside a JSON blob in `data-attrs`: `{"url":"…?…&token=eyJ1c2VyX2lk…"}`. Its payload holds the reader's numeric `user_id`, a `post_id`, and an expiry roughly 30 days out. Base64 hides it from any literal string match, and JSON hides it from any URL parser, so two anonymization passes missed it before the third caught it. Re-check this whenever the capture snippet changes.
 - `new URL(value, base)` does not throw on plain text. It reads the text as a relative path and returns a valid URL, so a sanitizer guarded only by `try`/`catch` rewrote `og:title` to `/p/I%20Posted%20on%20Substack…` and raised nothing. Any code that cleans an attribute must first confirm the value looks like a URL.
 - `grep -c` counts matching lines, and this page ships its `<head>` on one line. It reported 1 JSON-LD block where `querySelectorAll` finds 2. Count fixture elements with a DOM parser, never with a line-based tool.
+- **The paywall prints the reader's first name.** `.paywall-intro` on the paywalled fixture read `Hi <b>Phillip</b>`. `PRIVATE_STRINGS` held the full name `Phillip Lagoc`, and a literal match on the full name does not match the first name on its own, so the 2026-08-24 capture leaked it and it was redacted by hand afterwards. A page prints the reader's name in whatever shape its own database holds, not the shape the reader typed into the snippet. Every capture needs a read of the fixture before it is committed.
+- **A paywalled preview is long.** 684 words on this fixture, against 1599 for the free article. That is above the 500-word floor the manifest uses for a free article, so any rule of the form "short body means paywalled" reports the wrong answer in both directions. Read `isAccessibleForFree`.
+- The paywall does not truncate the DOM. `.body.markup` and `.available-content` are both present on the paywalled page and both hold the preview text. Finding a body element proves nothing about whether the article is readable.
+- `Subscribe` matches two buttons on a paywalled page: one in `.paywall-cta` and one in the page header. Both carry hashed classes. Scope the read to `article .paywall` and match on `innerText`.
+- **The sign-in prompt has no durable attribute.** Its inspected chain is eight class hashes deep (`pubTheme-yiXxQA`, `mainMenuContent-DME8DR`, `buttonsContainerContainer-ThaN_w`, `buttonBase-GK1x3M`, `buttonText-X0uSmG`, `buttonStyle-r7yGCK`, `priority_tertiary-rlke8z`, `size_md-gCDS3o`) with no `id`, no `aria-label`, and no `data-testid`. `buttonBase-GK1x3M` is the same class the paywall Subscribe button carries, so these hashes name a component type, not one button. Detect signed-out state by scoping to `#main [class*="mainMenuContent"]` and matching `innerText`, the same way the Save menu item is read.
+- **Signed-out is not a capture blocker.** The metadata reads without a session, so the extension can build a card from a signed-out page. Only the native controls need a session: Save lives behind an account menu and Like posts as the reader. The sign-in prompt gates those two, not the capture.
+- **The nav button container is the session indicator.** On both signed-in fixtures `#main [class*="mainMenuContent"] button` matches 5 buttons, one of them `Subscribe`, and neither fixture contains the string `Sign in`. Signed out, the same container carries `Sign in`. Reading `Subscribe` text from the header therefore says nothing about the session, and nothing about the paywall either.

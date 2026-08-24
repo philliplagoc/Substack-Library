@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "file": "article-free.html",
+    "kind": "article",
+    "capturedAt": "2026-08-24",
+    "expected": {
+      "title": "I Posted on Substack Notes 365 Days Straight. Here are the only 3 types that brought subscribers.",
+      "author": "Wes Pearce",
+      "publication": "Escape the Cubicle",
+      "canonicalUrl": "https://escapethecubicle.substack.com/p/i-posted-on-substack-notes-365-days",
+      "bodyReadable": true,
+      "minWordCount": 800
+    }
+  },
+  {
+    "file": "article-paywalled.html",
+    "kind": "article",
+    "capturedAt": "2026-08-24",
+    "expected": {
+      "title": "How I grew 3,000+ Subs my first month on substack",
+      "author": "Kevin Szabo",
+      "publication": "The Writing Chronicles",
+      "canonicalUrl": "https://kevinszabo.substack.com/p/how-i-grew-3000-subs-my-first-month",
+      "bodyReadable": false,
+      "minWordCount": 600
+    }
+  }
+]
