@@ -24,5 +24,17 @@
       "bodyReadable": false,
       "minWordCount": 600
     }
+  },
+  {
+    "file": "saved-list.html",
+    "kind": "saved-list",
+    "capturedAt": "2026-08-25",
+    "expected": {
+      "minEntries": 50,
+      "firstEntry": {
+        "url": "https://thevideogamestoryteller.substack.com/p/most-iconic-games-developed-in-each",
+        "title": "Most Iconic Games Developed in Each State of Australia"
+      }
+    }
   }
 ]

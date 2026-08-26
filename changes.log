@@ -36,12 +36,15 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-08-25
-**Phase:** Milestone 0, Part A. Tasks 1 to 4 done. Task 5 open.
+**Phase:** Milestone 0, Part A. Tasks 1 to 5 done. Task 6 open.
 **Code:** `spike/capture-fixture.js` (the DevTools capture snippet). It holds
 `redact()` for literal strings, `expandPrivateStrings()` for the name shapes a
 page prints that the reader never typed, and a pass 3.5 (`scrubIdentifiers`,
 `cleanUrl`, `cleanEmbedded`) for identifiers that a literal match cannot reach.
-`spike/extract.js` holds `globalThis.spike.SELECTORS` and
+`expandPrivateStrings()` now adds `Lagoc` as well as `Phillip`, after the Saved
+list fixture's own subdomain concatenated the reader's first and last name with
+no separator (`philliplagoc.substack.com`) and the old term list left the last
+name exposed. `spike/extract.js` holds `globalThis.spike.SELECTORS` and
 `extractArticleMeta(doc)`. It reads title, author, publication, canonical URL,
 and word count, and returns a `sources` object naming the path that supplied
 each field. `extractSavedEntries` does not exist yet.
@@ -49,15 +52,27 @@ each field. `extractSavedEntries` does not exist yet.
 `npm test` at `node --test`. `linkedom` 0.18.13 is installed.
 **Tests:** `spike/extract.test.mjs` runs one test per article entry in
 `manifest.json` plus an empty-document test. `cd spike; npm test` passes 3 of 3.
+`extractSavedEntries` has no test yet; Task 6 adds it.
 **Fixtures:** `article-free.html` (100 KB, 1599 body words) and
 `article-paywalled.html` (32 KB, 684 preview words) are both captured,
-anonymized, and verified clean. `saved-list.html` does not exist.
-`manifest.json` holds one entry per article fixture with real expected values.
+anonymized, and verified clean. `saved-list.html` (60 saved entries) is also
+captured, anonymized, and verified clean of the reader's name and email; 4
+entries carry `READERREADER.substack.com`, the reader's own publication with
+`Phillip` and `Lagoc` each matched and blanked separately since they sit next
+to each other with no separator. Cosmetic, not a leak, and recorded in
+`spike/README.md`, "Risks found". `manifest.json` holds one entry per article
+fixture with real expected values, plus one `saved-list` entry (`minEntries:
+50`, first entry checked against the fixture's actual anonymized URL).
 **Anonymization contract:** The capture snippet removes every `data-attrs`
 attribute, every query string in `href`, `src`, `data-href`, and `action`, and
 zeroes any run of 6 or more digits in a URL path. Fixtures are therefore not
 byte-faithful. Do not write a test that asserts on a query parameter or a
 numeric profile id. `spike/README.md`, "Risks found", holds the detail.
+**Saved list behavior:** The list loads more entries on scroll (20 entries at
+the top of the page, 85 at the bottom) and does not virtualize: a count back at
+the top still read 85, so entries loaded once stay in the DOM. A parser must
+scroll to the bottom to see every entry, then can read the full list in one
+pass.
 **Known drift:** `AGENTS.md` still holds the old learning-note rules.
 `CLAUDE.md` dropped ASD-STE100 for those notes. The two files no longer match
 below their header lines.
@@ -80,8 +95,8 @@ article body. The plan holds the detail under "Deferred to a later version".
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. It is a reference for the developer. No code reads it.
 
-**Next up:** Milestone 0, Part A, Task 5, Step 1: find the Saved list URL and
-record it in `spike/README.md`, table "Supported desktop pages".
+**Next up:** Milestone 0, Part A, Task 6, Step 1: write the failing test for
+`extractSavedEntries` in `spike/extract.test.mjs`.
 
 **Open questions:**
 
@@ -98,6 +113,45 @@ record it in `spike/README.md`, table "Supported desktop pages".
 ---
 
 ## Entries
+
+### 2026-08-25 - Capture the Saved list fixture and record its read paths
+
+**What changed:** Captured `spike/fixtures/saved-list.html` (60 saved entries)
+and added its `manifest.json` entry. Recorded the Saved list read paths in
+`spike/README.md`: entry container `.visibility-check`, entry url
+`a[href*="/p/"]` scoped inside it, title `.reader2-post-title.reader2-clamp-lines`,
+publication `.pub-name`. Recorded the scroll-behavior risk: the list loads more
+entries on scroll and does not virtualize. Added `Lagoc` to
+`expandPrivateStrings()` in `capture-fixture.js` after the fixture's own
+subdomain concatenated the reader's first and last name with no separator.
+
+**Why:** The entry-url row first held the container selector, copied from the
+row above it by mistake. A DOM-parsed check of the fixture (`linkedom`, not
+`grep -c`, which undercounts on this page because its whole body ships on one
+line) confirmed the container, title, and publication selectors each match 60
+times, one per real entry, but the link needs its own selector. The manifest's
+first draft set `minEntries: 1` and a `firstEntry.url` carrying
+`?utm_source=...`; both would have failed Task 6's test, since
+`capture-fixture.js` strips query strings from every `href` and `minEntries`
+exists to catch a broken capture, not to be set to the smallest number that
+passes.
+
+**Files:** `spike/fixtures/saved-list.html` (new), `spike/fixtures/manifest.json`,
+`spike/README.md`, `spike/capture-fixture.js`,
+`docs/superpowers/plans/2026-08-16-milestone-0.md`, `changes.log`.
+
+**Verification:** `cd spike; npm test` passes 3 of 3 (unchanged;
+`extractSavedEntries` and its test do not exist until Task 6).
+
+**State after:** Task 5 done. The Saved list read paths and their risks are on
+record. Task 6 (`extractSavedEntries` and its fixture test) has not started.
+
+**Next up:** Milestone 0, Part A, Task 6, Step 1: write the failing test for
+`extractSavedEntries` in `spike/extract.test.mjs`.
+
+**Open questions:** none new. The two from the prior entry stand: `isPreview`'s
+primary path disagrees between code and doc, and Milestone 0 Part B has not
+started.
 
 ### 2026-08-25 - Add the article extraction module and its fixture tests (commit 3c69185)
 

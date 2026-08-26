@@ -3,7 +3,7 @@
         'Phillip Lagoc',
         '@philliplagoc',
         'lagocphillip13@gmail.com',
-        'phillip-lagoc'
+        'phillip-lagoc',
     ];
 
     // Adds the shapes a page prints that PRIVATE_STRINGS does not hold
@@ -12,7 +12,7 @@
     // is one a human decided is safe to blank out. redact() matches with the
     // `i` flag, so one casing of each term covers every casing.
     function expandPrivateStrings(strings) {
-        return [...strings, 'Phillip'];
+        return [...strings, 'Phillip', 'Lagoc'];
     }
 
     const REDACT_TERMS = expandPrivateStrings(PRIVATE_STRINGS);
