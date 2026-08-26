@@ -25,12 +25,12 @@ Out of scope for v1: a paid article read as a subscriber. The reader pays for no
 
 ## Saved list read paths
 
-| Field             | Path                                          | Notes |
-| ----------------- | --------------------------------------------- | ----- |
-| entry container   | `.visibility-check`                           |       |
-| entry url         | `a[href*="/p/"]` (inside the entry container) |       |
-| entry title       | `.reader2-post-title.reader2-clamp-lines`     |       |
-| entry publication | `.pub-name`                                   |       |
+| Field             | Path                                          | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| entry container   | `.visibility-check`                           | Matches exactly 60 elements on `fixtures/saved-list.html`, one per saved entry. Title, publication, and link counts below all agree at 60, so the selector neither misses an entry nor double-counts one.                                                                                                                                                                                                                                                                                                                                                                                           |
+| entry url         | `a[href*="/p/"]` (inside the entry container) | Each entry holds two anchors: the article link and a link to the publication's home page. Only the article link's `href` contains `/p/`, so scoping to the entry container and matching on `/p/` is unambiguous. 58 of 60 entries link to a `*.substack.com` subdomain; the other two use a custom domain (`theworkthatholds.com`, `freyaindia.co.uk`) and still resolve correctly, because the selector never hardcodes the `substack.com` host. First evidence that custom-domain publications work, at least for the Saved list link — contrast the "untested" caveat on article metadata below. |
+| entry title       | `.reader2-post-title.reader2-clamp-lines`     | Present and non-empty on all 60 entries, including the two custom-domain ones. `reader2-clamp-lines` looks like a CSS line-clamp class for on-screen truncation; the DOM node still holds the untruncated title text, so `.textContent` reads the full string.                                                                                                                                                                                                                                                                                                                                      |
+| entry publication | `.pub-name`                                   | Present and non-empty on all 60 entries. No entry in this fixture omitted a publication name.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ## Native controls
 
@@ -62,6 +62,14 @@ Checked 2026-08-24 in a private window on the free article. No fixture captured.
 | What element shows the sign-in prompt? | A `Sign in` button in the top navigation bar, inside the right-aligned button container of `.mainMenuContent-DME8DR`.                                                                                                                                                                                                                                                                |
 | How to detect                          | Scope to the nav, then match on text: `[...document.querySelectorAll('#main [class*="mainMenuContent"] button')].find(b => b.innerText.trim() === 'Sign in')`. A match means signed out. `#main [class*="mainMenuContent"]` matches 1 container holding 5 buttons on both committed fixtures, and neither fixture contains the string `Sign in`.                                     |
 | Full chain as inspected                | `#main > div.pencraft.pc-display-contents.pc-reset.pubTheme-yiXxQA > div > div.mainMenuContent-DME8DR > div > div.pencraft.pc-display-flex.pc-justifyContent-flex-end.pc-alignItems-center.pc-reset.buttonsContainerContainer-ThaN_w > div > div > button.pencraft.pc-reset.pencraft.buttonBase-GK1x3M.buttonText-X0uSmG.buttonStyle-r7yGCK.priority_tertiary-rlke8z.size_md-gCDS3o` |
+
+## How to refresh fixtures
+
+1. Open the page kind you need in a signed-in browser.
+2. Paste `spike/capture-fixture.js` in the console with your PRIVATE_STRINGS set.
+3. Paste the clipboard over the fixture file.
+4. Update `capturedAt` and `expected` in `fixtures/manifest.json`.
+5. Run `cd spike; npm test`.
 
 ## Risks found
 
