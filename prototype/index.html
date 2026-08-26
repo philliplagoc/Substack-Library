@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Substack Library — prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <h1>Substack Library <span class="badge">prototype</span></h1>
+    <input id="search" type="search" placeholder="Search title, author, publication" />
+    <label>Max minutes <input id="max-minutes" type="number" min="0" placeholder="any" /></label>
+    <button id="reset">Reset data</button>
+  </header>
+
+  <main class="layout">
+    <section class="board">
+      <div class="column" data-status="to_read"><h2>To Read <span class="count"></span></h2><div class="cards"></div></div>
+      <div class="column" data-status="reading"><h2>Reading <span class="count"></span></h2><div class="cards"></div></div>
+      <div class="column" data-status="processed"><h2>Processed <span class="count"></span></h2><div class="cards"></div></div>
+    </section>
+
+    <aside class="panel" id="panel" hidden>
+      <button class="close" id="panel-close" aria-label="Close panel">×</button>
+      <h2 id="panel-title"></h2>
+      <p class="meta" id="panel-meta"></p>
+      <label>Notes<textarea id="panel-notes" rows="8"></textarea></label>
+      <h3>Quotes</h3>
+      <ul id="panel-quotes"></ul>
+      <h3>Markdown preview</h3>
+      <pre id="panel-markdown"></pre>
+    </aside>
+  </main>
+
+  <template id="card-template">
+    <article class="card" draggable="true">
+      <h3 class="title"></h3>
+      <p class="pub"></p>
+      <p class="row"><span class="minutes"></span><span class="saved"></span></p>
+      <p class="status"></p>
+    </article>
+  </template>
+
+  <script src="sample-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

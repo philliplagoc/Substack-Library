@@ -1148,3 +1148,49 @@ not against its code:
 ```bash
 grep -Eic "phillip|lagoc" spike/fixtures/article-paywalled.html   # want 0
 ```
+
+## 2026-08-26 - Milestone 0, Task 8
+
+### Can you describe what prototype/app.js does? Like what does each function do?
+
+| Piece | What it does |
+|---|---|
+| `STORAGE_KEY` | A label for the drawer in `localStorage` where the board's cards live. |
+| `state = load()` | Loads the cards when the page starts. |
+| `selectedId` | Remembers which card was last clicked, so it can stay highlighted. |
+| `load()` | Reads the saved cards from `localStorage`. Empty drawer, falls back to `structuredClone(window.PROTO_CARDS)`, the built-in sample set. |
+| `save()` | Writes `state` back into `localStorage`. |
+| `statusLabel(card)` | Builds a short summary string for a card, `"notes . 3 quotes . exported v1"`, from whichever parts are true. |
+| `visibleCards()` | Filters `state` by the search box text and the max-minutes box, returns only matching cards. |
+| `render()` | Redraws the board. For each `.column`, filters cards into that column, clones the `<template id="card-template">` per card, fills in title, publication, minutes, saved date, and status, appends to the list. |
+| event listeners (bottom) | Search and max-minutes inputs re-run `render()` on every keystroke. The reset button clears `localStorage`, restores the sample cards, and re-renders. |
+
+`load()` copies the sample data with `structuredClone()` instead of assigning it.
+JS objects pass by reference. Skip the clone and editing `state` also edits
+`window.PROTO_CARDS`, with no error to catch it. "Reset data" would then reset
+to already-mutated data, not the real starting point.
+
+### Why did prototype/app.js have three bugs that would crash it?
+
+The file's own first line reads "Prototype only. Throwaway." A throwaway file
+gets wired up and eyeballed, not click-tested end to end, so a typo can sit in
+dead code and never run.
+
+Three lines threw before the fix:
+
+| Line | Written | Should be | Why it broke |
+|---|---|---|---|
+| `save()` | `localStoratge.setItem(...)` | `localStorage.setItem(...)` | Two letters swapped. `localStoratge` is not a global, so calling `save()` throws `ReferenceError`. |
+| `render()` | `column.CDATA_SECTION_NODE.status` | `column.dataset.status` | `CDATA_SECTION_NODE` is a numeric constant on every DOM node (used for a different, unrelated DOM feature), not a way to read a custom `data-status` attribute. |
+| `render()` | `template.contentEditable.firstElementChild.cloneNote(true)` | `template.content.firstElementChild.cloneNode(true)` | `contentEditable` is a boolean flag for editable text, not the special `.content` property that holds a `<template>`'s inert markup. `cloneNote` does not exist on any DOM object; the real method is `cloneNode`. |
+
+`render()` runs once at the bottom of the file, so the second and third bugs
+would throw the moment the page loaded. The first bug only shows up once
+something calls `save()`. Nothing in this file does that yet; Task 9 wires up
+the notes panel that calls it.
+
+Verified the fix against `prototype/index.html`: each `.column` carries a real
+`data-status="to_read"` attribute, and `#card-template`'s first child is a real
+`<article class="card">`, so `column.dataset.status` and
+`template.content.firstElementChild.cloneNode(true)` are the correct calls, not
+guesses.
