@@ -6,6 +6,7 @@ import './extract.js';
 
 const { extractArticleMeta } = globalThis.spike;
 const manifest = JSON.parse(await readFile(new URL('./fixtures/manifest.json', import.meta.url), 'utf8'));
+const { extractSavedEntries } = globalThis.spike;
 
 async function loadFixture(file) {
   const html = await readFile(new URL(`./fixtures/${file}`, import.meta.url), 'utf8');
@@ -29,9 +30,25 @@ for (const entry of manifest.filter((e) => e.kind === 'article')) {
   });
 }
 
+for (const entry of manifest.filter((e) => e.kind === 'saved-list')) {
+  test(`extractSavedEntries: ${entry.file}`, async() => {
+    const doc = await loadFixture(entry.file);
+    const entries = extractSavedEntries(doc);
+    assert.ok(entries.length >= entry.expected.minEntries, `found ${entries.length}`);
+    assert.equal(entries[0].url, entry.expected.firstEntry.url);
+    assert.equal(entries[0].title, entry.expected.firstEntry.title);
+    for (const e of entries) assert.ok(e.url.startsWith('http'), `bad url ${e.url}`);
+  })
+}
+
 test('extractArticleMeta never throws on an empty document', () => {
   const { document } = parseHTML('<html><head></head><body></body></html>');
   const meta = extractArticleMeta(document);
   assert.equal(meta.title, null);
   assert.equal(meta.wordCount, null);
 });
+
+test('extractSavedEntries returns [] on an empty document', () => {
+  const { document } = parseHTML('<html><body></body></html>');
+  assert.deepEqual(extractSavedEntries(document), []);
+})

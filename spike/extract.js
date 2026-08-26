@@ -13,6 +13,10 @@
     // clicked. This only finds the trigger. Reading the state needs the
     // popover open and a text match on "Save"/"Unsave" (see README, Native controls).
     saveButtonTrigger: 'article .post-ufi-button.style-button:not([aria-label])',
+    savedEntry: '.visibility-check',
+    savedEntryLink: 'a[href*="/p/"]',
+    savedEntryTitle: '.reader2-post-title.reader2-clamp-lines',
+    savedEntryPublication: '.pub-name'    
   };
 
   function meta(doc, selector) {
@@ -93,5 +97,32 @@
     };
   }
 
-  globalThis.spike = { SELECTORS, extractArticleMeta };
+  function text(el, selector) {
+    const found = el.querySelector(selector);
+    const value = found && found.textContent;
+    return value && value.trim() ? value.trim() : null;
+  }
+
+  function extractSavedEntries(doc) {
+    const out = [];
+    for (const el of doc.querySelectorAll(SELECTORS.savedEntry)) {
+      const link = el.querySelector(SELECTORS.savedEntryLink);
+      const href = link && link.getAttribute('href');
+      if (!href) continue;
+      let url;
+      try {
+        url = new URL(href, 'https://substack.com').href;
+      } catch (_) {
+        continue;
+      }
+      out.push({
+        url,
+        title: text(el, SELECTORS.savedEntryTitle),
+        publication: text(el, SELECTORS.savedEntryPublication)
+      });
+    }
+    return out;
+  }
+
+  globalThis.spike = { SELECTORS, extractArticleMeta, extractSavedEntries };
 })();

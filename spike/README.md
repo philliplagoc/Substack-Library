@@ -25,12 +25,12 @@ Out of scope for v1: a paid article read as a subscriber. The reader pays for no
 
 ## Saved list read paths
 
-| Field             | Path                                      | Notes |
-| ----------------- | ----------------------------------------- | ----- |
-| entry container   | `.visibility-check`                       |       |
+| Field             | Path                                          | Notes |
+| ----------------- | --------------------------------------------- | ----- |
+| entry container   | `.visibility-check`                           |       |
 | entry url         | `a[href*="/p/"]` (inside the entry container) |       |
-| entry title       | `.reader2-post-title.reader2-clamp-lines` |       |
-| entry publication | `.pub-name`                               |       |
+| entry title       | `.reader2-post-title.reader2-clamp-lines`     |       |
+| entry publication | `.pub-name`                                   |       |
 
 ## Native controls
 
@@ -89,4 +89,4 @@ Checked 2026-08-24 in a private window on the free article. No fixture captured.
 - **The sign-in prompt has no durable attribute.** Its inspected chain is eight class hashes deep (`pubTheme-yiXxQA`, `mainMenuContent-DME8DR`, `buttonsContainerContainer-ThaN_w`, `buttonBase-GK1x3M`, `buttonText-X0uSmG`, `buttonStyle-r7yGCK`, `priority_tertiary-rlke8z`, `size_md-gCDS3o`) with no `id`, no `aria-label`, and no `data-testid`. `buttonBase-GK1x3M` is the same class the paywall Subscribe button carries, so these hashes name a component type, not one button. Detect signed-out state by scoping to `#main [class*="mainMenuContent"]` and matching `innerText`, the same way the Save menu item is read.
 - **Signed-out is not a capture blocker.** The metadata reads without a session, so the extension can build a card from a signed-out page. Only the native controls need a session: Save lives behind an account menu and Like posts as the reader. The sign-in prompt gates those two, not the capture.
 - **The nav button container is the session indicator.** On both signed-in fixtures `#main [class*="mainMenuContent"] button` matches 5 buttons, one of them `Subscribe`, and neither fixture contains the string `Sign in`. Signed out, the same container carries `Sign in`. Reading `Subscribe` text from the header therefore says nothing about the session, and nothing about the paywall either.
-- **The Saved list loads more entries on scroll and does not virtualize.** A count at the top of the page read 20 entries. A count at the bottom read 85. A count back at the top still read 85: entries loaded once stay in the DOM, they do not unmount when they scroll out of view. The list only grows. A parser must scroll to the bottom to see every saved entry. It does not need to track entries disappearing while it scrolls, because none do.
+- **The Saved list loads more entries on scroll and does not virtualize.** A count at the top of the page read 20 entries. A count at the bottom read 85. A count back at the top still read 85: entries loaded once stay in the DOM, they do not unmount when they scroll out of view. The list only grows. A parser must scroll to the bottom to see every saved entry. It does not need to track entries disappearing while it scrolls, because none do. Note that `spike.extractSavedEntries(document)` counts 20. In other words, the page initially shows 20 entries, but this increases as the user scrolls through the Saved list.
