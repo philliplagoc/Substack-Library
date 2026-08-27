@@ -64,4 +64,91 @@ document.getElementById('reset').addEventListener('click', () => {
     render();
 });
 
+// Panel code
+const panel = document.getElementById('panel');
+const layout = document.querySelector('.layout');
+
+function findCard(id) {
+    return state.find((c) => c.id === id) || null;
+}
+
+function openPanel(cardId) {
+    const card = findCard(cardId);
+    if (!card) return;
+    selectedId = cardId;
+    panel.hidden = false;
+    layout.classList.add('with-panel');
+    document.getElementById('panel-title').textContent = card.title;
+    document.getElementById('panel-meta').textContent = `${card.publication} · ${card.author} · ${card.estimatedReadingMinutes ?? '—'} min · ${card.url}`;
+    document.getElementById('panel-notes').value = card.notes;
+    const quotes = document.getElementById('panel-quotes');
+    quotes.replaceChildren();
+    for (const q of card.quotes) {
+        const li = document.createElement('li');
+        li.textContent = `"${q.text}"`;
+        if (q.comment) li.append(` - ${q.comment}`);
+        if (q.locatorLost) {
+            const lost = document.createElement('span');
+            lost.className = 'lost';
+            lost.textContent = ' (location unavailable)';
+            li.append(lost);
+        }
+        quotes.appendChild(li);
+    }
+    refreshMarkdown(card);
+    render();
+}
+
+function closePanel() {
+    selectedId = null;
+    panel.hidden = true;
+    layout.classList.remove('with-panel');
+    render();
+}
+
+function refreshMarkdown(card) {
+    document.getElementById('panel-markdown').textContent = `# {exportFilename(card)}\n\n${buildMarkdown(card)}`;
+}
+
+function exportFilename(card) {
+  const safeTitle = card.title.replace(/[\\/:*?"<>|]/g, '').trim();
+  const version = card.exportVersion > 1 ? ` (v${card.exportVersion})` : '';
+  return `${card.savedAt} - ${safeTitle}${version}.md`;
+}
+
+function buildMarkdown(card) {
+  const lines = [
+    '---',
+    `title: "${card.title.replace(/"/g, '\\"')}"`,
+    `author: "${card.author}"`,
+    `publication: "${card.publication}"`,
+    `url: ${card.url}`,
+    `saved: ${card.savedAt}`,
+    `read: ${card.readAt ?? ''}`,
+    'tags: [substack, reading]',
+    '---',
+    '',
+  ];
+  for (const q of card.quotes) {
+    lines.push(`> ${q.text}`, '');
+    if (q.comment) lines.push(q.comment, '');
+  }
+  lines.push('## Notes', '', card.notes || '');
+  return lines.join('\n');
+}
+
+document.querySelector('.board').addEventListener('click', (event) => {
+  const cardEl = event.target.closest('.card');
+  if (cardEl) openPanel(cardEl.dataset.id);
+});
+document.getElementById('panel-close').addEventListener('click', closePanel);
+document.getElementById('panel-notes').addEventListener('input', (event) => {
+  const card = findCard(selectedId);
+  if (!card) return;
+  card.notes = event.target.value;
+  save();
+  refreshMarkdown(card);
+  render();
+});
+
 render();
