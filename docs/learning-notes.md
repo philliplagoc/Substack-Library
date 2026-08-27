@@ -1194,3 +1194,430 @@ Verified the fix against `prototype/index.html`: each `.column` carries a real
 `<article class="card">`, so `column.dataset.status` and
 `template.content.firstElementChild.cloneNode(true)` are the correct calls, not
 guesses.
+
+## 2026-08-26 - Milestone 1, planning
+
+### What does the extension directory have? Is it normal to create Google Chrome Extensions using that kind of directory?
+
+`extension/` is its own npm project, a sibling of `spike/` and `prototype/`.
+Four config files sit at its root. Everything else lives under `src/`.
+
+```
+extension/
+  package.json      # deps and scripts
+  tsconfig.json     # one line: extends ./.wxt/tsconfig.json
+  wxt.config.ts     # srcDir, React module, manifest keys
+  vitest.config.ts  # test runner
+  src/
+    entrypoints/    # the only folder Chrome knows about
+      background.ts       -> service worker
+      board/index.html    -> /board.html
+      board/main.tsx      -> React root
+    domain/         # pure functions. No Dexie, no React, no browser APIs.
+    db/             # Dexie schema, and the one module that touches the table
+    ui/             # React components
+    test-support/   # fake-indexeddb setup, test factories
+```
+
+Chrome never loads `extension/`. It loads `extension/.output/chrome-mv3/`, a
+folder the build writes. `extension/` is the source. `.output/chrome-mv3/` is
+the extension.
+
+No `manifest.json` exists in `src/`. WXT writes one at build time. It reads the
+file names under `src/entrypoints/` and merges the `manifest:` block from
+`wxt.config.ts`.
+
+The question splits in two.
+
+**Is a build-tool project normal for a Chrome extension?** Yes, for anything
+past a toy. The bare way is a folder holding a hand-written `manifest.json` and
+loose `.js` and `.html` files, loaded straight into `chrome://extensions`. That
+works. It stops working the moment you want TypeScript, JSX, or an npm package,
+because the browser runs none of those. Something has to compile them first.
+A compile step needs an output folder, and the source/output split follows from
+that.
+
+| Approach | Manifest | Source loaded by Chrome? |
+|---|---|---|
+| Vanilla | Hand-written | Yes, directly |
+| WXT / Plasmo / CRXJS | Generated at build | No, the build output is |
+
+`src/entrypoints/` with file-based routing is a WXT convention. Plasmo puts
+`background.ts` and `contents/` at the root instead.
+
+**Is `domain/ db/ ui/` normal?** That part is not a Chrome-extension convention.
+It is plain application layering, the same split a backend service uses. The
+plan states the rule: `domain/` imports nothing, `db/cards.ts` imports
+`domain/`, `ui/` imports `db/cards.ts`, `entrypoints/` import `ui/`. The arrows
+point one way. This project chose it. WXT does not ask for it.
+
+Layout note: `extension/` sits inside the repo rather than at the root because
+the repo holds three things, each with its own `package.json`. A repo holding
+the extension alone would put these files at the root.
+
+### Why do we need TypeScript 7 and Vite 8? What are they?
+
+You do not need them. The plan pins one major version below each, on purpose.
+
+```json
+"typescript": "~5.9.3",
+"vite": "^7.3.6",
+```
+
+Plan line 176 explains the refusal: TypeScript 7 and Vite 8 are both published,
+and WXT's peer ranges allow both. A range that allows a version says nothing
+about whether anyone has run that combination.
+
+#### What TypeScript is
+
+JavaScript plus labels on your data.
+
+```ts
+const card: Card = { id: 'a1', title: 'Hello', status: 'to_read' };
+card.titel;   // tsc: Property 'titel' does not exist on type 'Card'
+```
+
+The compiler catches that typo before Chrome loads the file. Compare the three
+bugs in `prototype/app.js`. `localStoratge` and `cloneNote` are the same mistake,
+and plain JavaScript let both sit in the file until the line ran.
+
+Chrome cannot run a `.ts` file. The labels come out, plain JavaScript goes in.
+`npm run compile` runs `tsc --noEmit`, which checks the labels and writes
+nothing.
+
+#### What Vite is
+
+The machine that strips the labels, and four other jobs beside.
+
+| Job | Without it |
+|---|---|
+| Turn `.ts` and `.tsx` into `.js` | Chrome throws on the first type annotation |
+| Turn JSX into function calls | Chrome throws on `<Board />` |
+| Resolve `import { nanoid } from 'nanoid'` | Chrome looks for a file named `nanoid` and gets a 404 |
+| Bundle many files into few | Every `import` becomes a network round trip |
+| Reload the page when you save | You click Reload in `chrome://extensions` all day |
+
+Nothing in `extension/` imports Vite. WXT runs on it. `npm run dev` calls `wxt`,
+`wxt` calls Vite, Vite writes `.output/chrome-mv3/`, and Chrome loads that
+folder.
+
+#### What the two range operators do
+
+| Written | Accepts | Refuses |
+|---|---|---|
+| `~5.9.3` | `5.9.4`, `5.9.7` | `5.10.0`, `7.0.0` |
+| `^7.3.6` | `7.4.0`, `7.9.2` | `8.0.0` |
+
+`~` takes patches. `^` takes minors too. Both stop at the next major.
+TypeScript gets the tighter one because its minor releases carry breaking
+changes, so `5.10` behaves like a major for the code that has to compile.
+
+#### Why the old majors
+
+TypeScript 7 is the compiler rewritten in Go. Every file in `src/` passes
+through it, and it is a from-scratch reimplementation of the thing that has been
+checking your types.
+
+Milestone 1 has to answer one question: does the board store a card, move it
+between columns, and show it again after a reload? A red build should mean your
+code broke. On an untested toolchain, a red build has a second suspect, and you
+have to rule it out before you can read the first one.
+
+Schedule the upgrade as its own task. Take it once the Vitest suite exists,
+one dependency at a time, and let the tests say whether it held.
+
+### What are alternatives to these? Just so I know different routes I can potentially take
+
+The stack has three slots. Each slot has real alternatives, and swapping one
+does not force a swap of the others.
+
+```
+slot 3   WXT            picks your framework conventions and entrypoint model
+slot 2   Vite           turns source files into files Chrome can load
+slot 1   TypeScript     checks your types before Chrome sees anything
+```
+
+#### Slot 1: the type checker
+
+| Route | What you write | Cost |
+|---|---|---|
+| TypeScript (current) | `const c: Card = ...` in a `.ts` file | A compile step, and `tsc` in the loop |
+| Plain JavaScript | What `prototype/app.js` is | `card.titel` fails at runtime with no warning |
+| JSDoc plus `checkJs` | `/** @type {Card} */` above a plain `const` | The same errors, longer syntax |
+
+The third route runs the same compiler over comments, so the file stays runnable
+`.js` with no build step. Node core and Svelte both took it. It buys this
+project nothing, because Vite already compiles `.tsx` for React.
+
+#### Slot 2: the bundler
+
+| Route | What it is | Fit here |
+|---|---|---|
+| Vite 7 (current) | Dev server, Rollup for builds, esbuild for deps | WXT's default |
+| Vite 8 | The same API over Rolldown | Its bundler sits at `1.0.0-rc.11` |
+| esbuild alone | One Go binary | No dev server, no reload, you wire it up |
+| webpack | The previous standard | Config-heavy and slow. Many MV3 templates still ship it |
+| Parcel | Zero config, has a web-extension mode | Smaller ecosystem |
+| No bundler | Plain `.js` ES modules, load the folder | Drops React, JSX, and every npm import |
+
+Check the dependency lists to see what changed between Vite 7 and Vite 8:
+
+```
+npm view vite@7.3.6 dependencies   # rollup ^4.43.0, esbuild ^0.27.0
+npm view vite@8 dependencies       # rolldown 1.0.0-rc.11
+```
+
+Vite 8 dropped Rollup and esbuild for Rolldown, a Rust rewrite. Read the version
+string. `rc` means release candidate, so Vite 8's bundler has not shipped a 1.0.
+That single line carries more weight than any changelog summary.
+
+#### Slot 3: the extension framework
+
+This slot decides the other two for you.
+
+| Route | Where the manifest comes from | Trade |
+|---|---|---|
+| WXT (current) | Generated from `src/entrypoints/` file names | Conventions and auto-imports to learn |
+| Plasmo | Generated from `package.json` | Was the popular pick. Maintenance has slowed |
+| CRXJS | You write it. A Vite plugin wires up reloading | The thinnest layer. You own more |
+| Vanilla | You write it | No build, no React, no npm |
+
+CRXJS is the honest fallback if WXT's conventions start to fight you. You keep
+Vite, React, Dexie, and Vitest, and you take back `manifest.json` as a file you
+can open.
+
+Vanilla is a longer fall than it looks. The board would go back to
+`document.createElement` calls, which is what `prototype/app.js` does and why it
+carried three bugs that no tool caught.
+
+#### Read the ranges yourself
+
+```
+npm view wxt@0.21.4 peerDependencies
+```
+
+```json
+{ "vite": "^6.3.4 || ^7.0.0 || ^8.0.0-0", "typescript": ">=5.4" }
+```
+
+That range confirms the plan's claim: WXT accepts Vite 8. The `-0` suffix on
+`^8.0.0-0` accepts Vite 8 **prereleases** as well. An author who writes that is
+saying "this should work", which is a smaller claim than "we run this in CI".
+Read a peer range as a forecast.
+
+One more line in that output is worth a look. WXT depends on `linkedom`, the
+package from the spike, for the same reason you installed it: parsing HTML where
+no browser exists.
+
+## 2026-08-27 - Milestone 1, Task 1
+
+### Why did `npm install` fail with "No entrypoints found"?
+
+The install worked. A separate command ran after it and failed.
+
+`package.json` holds this line:
+
+```json
+"postinstall": "wxt prepare"
+```
+
+npm treats a few script names as **lifecycle hooks**. It runs them on its own,
+with no one typing their name.
+
+| Script name | npm runs it |
+|---|---|
+| `preinstall` | Before it downloads anything |
+| `install`, `postinstall` | After the download finishes |
+| `prepare` | After install, and before `npm publish` |
+| `test`, `build`, `dev` | Only when you type `npm run <name>` |
+
+So one `npm install` did two jobs. Job one downloaded 400-odd packages. Job two
+ran `wxt prepare`, which reads your entrypoints and writes TypeScript types for
+them. Job one passed. Job two had nothing to read, because Steps 4 through 8
+create those files.
+
+npm reports the exit code of the last thing it ran, so a green install plus a red
+hook prints as one red command.
+
+#### The clue hiding in the error path
+
+```
+ERROR  No entrypoints found in ...\extension\entrypoints
+```
+
+Read that path twice. The plan puts entrypoints in `extension\src\entrypoints`.
+The error names `extension\entrypoints`, one folder shallower.
+
+`srcDir: 'src'` lives in `wxt.config.ts`, which Step 4 creates. With no config
+file on disk, `srcDir` holds its default of `.`, so WXT looked next to
+`package.json`. The missing `src` in that path is the config file announcing its
+own absence.
+
+An error message that names a path you never chose points at a default, and a
+default points at missing config.
+
+#### How to tell a failed install from a failed hook
+
+```powershell
+npm ls vite typescript wxt --depth=0
+```
+
+```
++-- typescript@5.9.3
++-- vite@7.3.6
+`-- wxt@0.21.4
+```
+
+Real versions mean the packages are on disk and the tree resolves. A broken
+install prints `UNMET DEPENDENCY` or `empty` instead. Ask the tree, rather than
+reading the exit code and guessing.
+
+#### Why not `npm install --ignore-scripts`
+
+That flag skips every lifecycle hook, and other packages need theirs:
+
+```powershell
+node -p "require('./node_modules/esbuild/package.json').scripts"
+```
+
+```
+{ postinstall: 'node install.js' }
+```
+
+esbuild ships a per-platform binary and links it in that hook. Skip it and Vite
+loses its compiler, which is a worse failure than the one you started with, and a
+stranger one to read.
+
+The fix is order. Let the hook fail at Step 3, create the entrypoints in Steps 4
+through 8, then run `npx wxt prepare` yourself. The plan now says so at both
+ends.
+
+### What's the difference between TypeScript and JavaScript?
+
+TypeScript is JavaScript plus a type checker. Every valid `.js` file is valid
+TypeScript. TypeScript adds annotations the compiler reads and then deletes.
+
+The browser cannot run `.ts`. Something strips the types first. Here that is
+Vite, inside WXT.
+
+```ts
+// TypeScript
+function pin(id: string, at: number): void { ... }
+
+// what the browser gets
+function pin(id, at) { ... }
+```
+
+| | JavaScript | TypeScript |
+|---|---|---|
+| Runs in a browser directly | Yes | No, compile first |
+| When you hear about a bug | When that line runs | While you type |
+| `user.nmae` typo | `undefined`, no warning | Red squiggle |
+| Extension here | `.js` | `.ts` / `.tsx` |
+| Runtime cost | none | none, types are erased |
+
+`extension/src/entrypoints/background.ts` shows the payoff:
+
+```ts
+const { boardTabId } = await browser.storage.session.get('boardTabId');
+if (typeof boardTabId === 'number') {
+```
+
+`browser.storage.session.get()` returns a bag of unknown values. TypeScript
+refuses to pass that into `browser.tabs.update()`, which wants a number. Same
+with `if (tab.id != null)`: Chrome's types say `tab.id` is `number | undefined`,
+because a devtools window has no tab id. The checker named both ways the code
+breaks and made you handle them.
+
+Three things follow:
+
+- `npm run compile` is a separate gate from `npm run build`. `tsc --noEmit`
+  checks and emits nothing. Vite strips types without checking them, so a build
+  can pass on code `compile` rejects. Run both.
+- `@types/react` holds types and no code. React ships as JS; the `@types/*`
+  packages describe shapes to the compiler and vanish from the bundle.
+- `extension/tsconfig.json` extends `.wxt/tsconfig.json`, which `wxt prepare`
+  generates. That is why `browser` and `defineBackground` are known globals with
+  no import.
+
+### What is a type checker? What is the benefit of TypeScript over JavaScript?
+
+A spellchecker reads your essay without you reading it aloud and underlines
+`recieve`. A type checker reads your code without running it and underlines
+where the shapes do not fit.
+
+You say what shape each thing is. The checker traces every path and asks one
+question at each step: does the shape going in match the shape expected?
+
+```ts
+type Status = 'to_read' | 'reading' | 'processed';
+
+card.status = 'in_progress';
+//            ~~~~~~~~~~~~~ not one of the three allowed strings
+```
+
+Nothing ran. No board opened, no card moved. The checker read the code and saw
+the wrong word.
+
+`Status` is not a variable holding three strings. At runtime the line is gone,
+and the browser sees `card.status = 'in_progress'`. The type lives during the
+check, the way a red squiggle lives in the editor and not on the printed page.
+
+#### What you get
+
+The plan defines `Card` with 20 fields. That is the payoff surface.
+
+1. **It remembers the shape.** Type `card.` and the editor lists all 20 fields
+   with their types. You stop reopening `types.ts` to check whether the field is
+   `savedAt` or `dateSaved`.
+
+2. **It catches typos at the keystroke.** In JavaScript `card.tittle` is
+   `undefined`, the card renders with a blank title, and you find it three days
+   later. In TypeScript it is a squiggle before you save.
+
+3. **It forces you to handle "might not be there."** The `?` marks say so:
+
+```ts
+estimatedReadingMinutes?: number;   // might be missing
+status: Status;                     // always there
+```
+
+`?` means `number | undefined`, so this fails to compile:
+
+```ts
+if (card.estimatedReadingMinutes > maxMinutes) return null;
+//       ~~~~~~~~~~~~~~~~~~~~~~ possibly 'undefined'
+```
+
+That is the checker pointing at a rule in the plan: a card with no reading-time
+estimate hides when a max-minutes filter is set. In JavaScript
+`undefined > 30` is `false`, so the card shows instead of hiding. The type
+system refuses to let you write that bug.
+
+4. **Refactoring stops being scary.** Rename `status` to `column` in
+   `types.ts`, run `npm run compile`, and you get every file that needs
+   updating. In JavaScript you grep for `"status"` and hope.
+
+5. **Writing all 20 fields now costs nothing.** The plan says it: types cost
+   nothing at runtime, and the whole shape written now stops Milestone 2 from
+   inventing a second, subtly different `Card`. The type file becomes the one
+   definition of a card, and the compiler holds every milestone to it.
+
+#### The cost
+
+You spend time convincing the checker of things you know are fine. `tab.id` is
+a number in your case, but Chrome's types say `number | undefined`, so you write
+the guard. That tax is real. It buys the five items above, and on a project you
+return to after two weeks away, that trades well.
+
+#### Three things to carry
+
+- `Status` as a union of three literal strings is the highest-value type here.
+  It turns "which strings are valid columns" from memory into a compiler rule,
+  and a `switch` over it reports a missing `processed` branch.
+- The `?` on `estimatedReadingMinutes` and `readAt` is a design statement. It
+  records which fields the extension might not know yet, the same line that
+  separates `Card` from `CardInput`.
+- Types are erased, so the checker cannot help at the IndexedDB boundary. Data
+  read back from Dexie is whatever got written, maybe by an older version of the
+  code. Types state intent there. They do not validate it.
