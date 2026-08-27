@@ -36,8 +36,8 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-08-26
-**Phase:** Milestone 0 complete. Milestone 1 design approved and committed. The
-Milestone 1 implementation plan is not written yet.
+**Phase:** Milestone 0 complete. The Milestone 1 design and implementation plan
+are both written and committed. Milestone 1 Task 1 has not started.
 **Code:** No product code exists. `spike/` and `prototype/` are both finished and
 both throwaway. `spike/` holds `capture-fixture.js`, `extract.js`
 (`extractArticleMeta`, `extractSavedEntries`, `SELECTORS`), and three fixtures.
@@ -79,6 +79,9 @@ article body.
 - `docs/superpowers/specs/2026-08-26-milestone-1-design.md` - the Milestone 1
   design. Decisions with their rejected alternatives, the module boundaries, the
   schema, and the eleven-task shape.
+- `docs/superpowers/plans/2026-08-26-milestone-1.md` - the task-by-task plan for
+  Milestone 1. Eleven tasks. Read its "Correction to the design doc" section
+  first; restore does not go through `ingestCard()`.
 - `docs/superpowers/plans/2026-08-16-milestone-0.md` - the finished Milestone 0
   plan, 12 tasks in two parts.
 - `spike/README.md` - the Substack compatibility doc. Milestones 2 and 3 read it
@@ -88,9 +91,8 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Write the Milestone 1 implementation plan to
-`docs/superpowers/plans/2026-08-26-milestone-1.md` from the approved design,
-using the writing-plans skill. Then Task 1: the WXT scaffold.
+**Next up:** Milestone 1, Task 1, Step 1. Add `.output/` and `.wxt/` to
+`.gitignore`, then scaffold the WXT project in `extension/`.
 
 **Open questions:**
 
@@ -106,6 +108,47 @@ using the writing-plans skill. Then Task 1: the WXT scaffold.
 ---
 
 ## Entries
+
+### 2026-08-26 - Write the Milestone 1 implementation plan
+
+**What changed:** Wrote `docs/superpowers/plans/2026-08-26-milestone-1.md`.
+Eleven tasks, each ending in a commit, with five `TODO(human)` contributions:
+`canonicalizeUrl`, `mergeCard`, `visibleCards`, `reorderCards`, and the
+validation inside `fromBackup`. Pinned the dependency versions after checking
+them against the registry.
+
+**Why:** Two things came out of writing it that the design did not have.
+
+First, restore cannot go through `ingestCard()`. `ingestCard` carries metadata
+only, so routing a backup file through it would drop every note and quote in
+the file. Restore gets its own repository function, `restoreCards()`, which
+writes whole cards, replaces by canonical URL, and never deletes. Task 11
+writes this correction back into the design doc.
+
+Second, the toolbar handler cannot use `browser.tabs.query({ url })` to find an
+open board tab. That filter needs the `tabs` permission, which grants reading
+every tab's URL, and the design commits to `storage` only. The handler now
+remembers the tab id in `browser.storage.session` instead.
+
+Pinned TypeScript to `~5.9.3` and Vite to `^7.3.6`. Latest are 7.0.2 and 8.2.2,
+and WXT's peer ranges allow both. A range that permits a version is not
+evidence anyone has run that combination, and TypeScript 7 is the Go compiler
+rewrite. Raise them later on purpose, with the test suite as the check.
+
+**Files:** `docs/superpowers/plans/2026-08-26-milestone-1.md` (new),
+`changes.log`.
+
+**Verification:** Not applicable. No code changed. `cd spike; npm test` still
+passes and is unaffected. The plan's own commands are unrun until Task 1.
+
+**State after:** The Milestone 1 design and plan both exist. No Milestone 1
+code exists. `extension/` has not been created.
+
+**Next up:** Milestone 1, Task 1, Step 1: add `.output/` and `.wxt/` to
+`.gitignore`, then scaffold the WXT project.
+
+**Open questions:** none new. The `isPreview` disagreement between
+`spike/extract.js` and `spike/README.md` still stands and binds Milestone 2.
 
 ### 2026-08-26 - Design Milestone 1 (commit bb59725)
 
