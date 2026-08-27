@@ -1,9 +1,3 @@
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    environment: 'node',
-    setupFiles: ['./src/test-support/setup.ts'],
-    include: ['src/**/*.test.ts'],
-  },
-});
+// Installs an in-memory IndexedDB onto globalThis before any test runs.
+// Dexie then opens a real-behaving database with no browser present.
+import 'fake-indexeddb/auto';

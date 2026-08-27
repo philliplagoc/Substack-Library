@@ -1884,8 +1884,195 @@ refuse to compile until the caller handles it.
 
 `canonicalizeUrl` lives in `src/domain/`, which imports nothing: no Dexie, no
 React, no browser APIs. A pure string-in, string-out function is the cheapest
-thing here to test, which is why it carries fourteen test cases.
+thing here to test, which is why it carries eleven test cases.
 
 Canonicalization throws information away on purpose. `utm_source` is gone for
 good. That suits a board that wants identity. A link shortener, which wants
 fidelity, would choose the opposite.
+
+### What does `export` in a .ts file do?
+
+Every `.ts` file is a module, which means a private box. Whatever you declare
+inside stays inside until you mark it with `export`.
+
+Both halves show up in `url.test.ts` line 2:
+
+```ts
+import { canonicalizeUrl } from './url';
+```
+
+That line works because `url.ts` says `export function canonicalizeUrl`. Drop
+the `export` and the function still exists and still runs, but no other file
+can reach it. TypeScript says `Module '"./url"' has no exported member
+'canonicalizeUrl'`. `export` offers, `import` takes.
+
+**Named export.** The default choice in this project, used by every file in
+`src/domain/`:
+
+```ts
+// domain/url.ts
+export function canonicalizeUrl(raw: string): string | null { ... }
+
+// anywhere else
+import { canonicalizeUrl } from './url';
+```
+
+The braces mean "pick these names out of that module." One file can export as
+many as it likes:
+
+```ts
+// domain/types.ts exports four things
+export type Status = ...
+export interface Quote { ... }
+export interface Card { ... }
+export interface CardInput { ... }
+
+// a caller takes what it needs
+import type { Card, Status } from '../domain/types';
+```
+
+**Default export.** One per file, imported with no braces and under any name
+the caller picks:
+
+```ts
+// vitest.config.ts
+export default defineConfig({ ... });
+```
+
+Vitest never learns what you would have called it. It loads the file and takes
+the default. Config files and framework entry points use this form because the
+tool wants the one thing the file is for.
+
+**`export type`.** A TypeScript-only variant:
+
+```ts
+import Dexie, { type EntityTable } from 'dexie';
+```
+
+The `type` keyword marks the name as a type and erases it at compile time.
+JavaScript has no idea what an `EntityTable` is, so the import has to vanish
+before the browser sees the file. Marking it lets the compiler strip it
+without analyzing how it gets used.
+
+Private-by-default is the mechanism behind the dependency rule.
+`db/cards.ts` exports `ingestCard` and `restoreCards`. It can hold ten
+unexported helpers, and no file in `src/ui/` can reach them by accident. The
+exported names are the file's contract. Everything else stays free to rename
+or delete, because nothing outside could depend on it. The plan's name list at
+line 3311 is the set of names that carry an `export`, which makes that list
+the architecture.
+
+A file with no `import` and no `export` is not a module. TypeScript treats it
+as a global script, and its top-level `const foo` can collide with another
+file's `const foo`. One `export` flips the file into module scope, which is
+why a lone `export {}` sometimes sits at the top of a file.
+
+`import { canonicalizeUrl } from './url'` carries no `.ts` on the end. Vite,
+running under WXT, resolves the extension. Writing `./url.ts` breaks under
+most TypeScript setups.
+
+Named exports win here because they are greppable. Search for
+`canonicalizeUrl` and you find every consumer. A default export gets renamed
+at each import site, so `import x from './url'` hides the connection.
+
+### What does `async` do?
+
+`async` in front of a function does two things:
+
+1. Wraps the return value in a Promise, always.
+2. Allows `await` inside the body.
+
+The reason takes longer than the rule.
+
+Some work does not finish right away. Reading from IndexedDB means asking the
+browser's storage engine and waiting. JavaScript runs on one thread, so it
+cannot sit and block: freezing that thread freezes the page and the UI with
+it.
+
+Callbacks were the old answer, which is the raw IndexedDB API:
+
+```js
+req.onsuccess = () => {
+  const tx = req.result.transaction('cards', 'readwrite');
+  tx.objectStore('cards').add(card);
+  tx.oncomplete = () => { /* now continue */ };
+};
+```
+
+Every "wait for this" nests one level deeper. Three steps in, nobody can read
+it.
+
+A Promise is an object standing for a value that has not arrived. `await`
+pauses the function until the Promise resolves, hands over the value, and
+carries on. The rest of the page keeps running during the pause.
+
+`ingestCard` from the plan, line 1245:
+
+```ts
+export async function ingestCard(input: CardInput): Promise<IngestOutcome> {
+  const url = canonicalizeUrl(input.url);          // instant, no await
+  if (url === null) {
+    return { kind: 'rejected', reason: `...` };
+  }
+
+  return db.transaction('rw', db.cards, async () => {
+    const existing = await db.cards.where('url').equals(url).first();  // pause
+
+    if (existing) {
+      const merged = mergeCard(existing, { ...input, url });
+      await db.cards.put(merged);                                      // pause
+      return { kind: 'updated', card: merged };
+    }
+    ...
+  });
+}
+```
+
+It reads top to bottom like sequential code while three lines pause. That is
+the payoff. `canonicalizeUrl` gets no `await` because pure string work
+finishes on the spot. Only the database calls need one.
+
+Two rules cause most of the trouble.
+
+`await` works only inside `async`. The callback on line 1251 carries the
+keyword for that reason: it contains `await db.cards.put(...)`, so it needs
+`async` even as an inline arrow function.
+
+The return type is always a Promise. The signature says
+`Promise<IngestOutcome>` while the body returns a plain
+`{ kind: 'added', card }`. `async` does the wrapping, so every caller unwraps:
+
+```ts
+const outcome = ingestCard(input);          // an unresolved Promise
+const outcome = await ingestCard(input);    // the IngestOutcome
+```
+
+A missing `await` is the most common bug in async code. `outcome.kind` on the
+first line is `undefined`, nothing throws, and the hunt takes twenty minutes.
+
+The tests show the same shape:
+
+```ts
+test('canonicalizes the url before it stores it', async () => {
+  await ingestCard({ url: 'https://Alpha.substack.com/p/questions?utm_source=post' });
+  ...
+});
+```
+
+The callback is `async` so it can `await`. Vitest sees the returned Promise
+and waits before marking the test done. Drop the `await` and the test passes
+while the write is still in flight, which is a green test proving nothing.
+
+`async` does not mean parallel or threaded. The function still runs on the one
+JavaScript thread. `await` yields control so other work can run during the
+wait, then resumes.
+
+The transaction on line 1251 makes the pauses safe. `db.transaction('rw', ...)`
+commits every read and write inside together or rolls them all back. Without
+it, two fast captures of the same URL could both `await` the lookup, both see
+nothing, and both insert, producing the duplicate canonicalization exists to
+prevent.
+
+Nothing in `src/domain/` is `async`. `canonicalizeUrl`, `mergeCard`, and
+`createCard` stay synchronous and pure. Async lives in `db/`, the only layer
+talking to something slow.
