@@ -2120,3 +2120,121 @@ adds a content script that captures the page you are reading, and Milestone 3
 adds sync. If each wrote to Dexie on its own, each would carry its own
 duplicate rules and the three would drift. Routing all of them through
 `ingestCard` keeps the dedupe rule and the merge rule in one file.
+
+---
+
+## 2026-08-27 - Milestone 1, Task 5
+
+### Why does `npm run compile` fail on JSX when `npm run build` works fine?
+
+Because they are two different programs reading two different configs.
+
+| Command | Program | Reads | Job |
+| --- | --- | --- | --- |
+| `npm run build` | Vite, through WXT | `wxt.config.ts` | Turn the code into files a browser runs |
+| `npm run compile` | `tsc --noEmit` | `tsconfig.json` | Check the types. Write nothing |
+
+Think of two people looking at the same recipe. One cooks it. One checks the
+spelling. Teaching the cook to read your handwriting does nothing for the
+speller.
+
+`wxt.config.ts` lists `modules: ['@wxt-dev/module-react']`. That module has one
+job, and the source says so:
+
+```js
+setup(wxt, options) {
+  addViteConfig(wxt, () => ({ plugins: [react(vite)] }));
+  addImportPreset(wxt, 'react');
+}
+```
+
+`addViteConfig` talks to Vite. Nothing there talks to TypeScript. So Vite learned
+to read `<App />` and `tsc` never did, and `tsc` said the same thing 26 times:
+
+```
+error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+```
+
+The fix is one option in `extension/tsconfig.json`:
+
+```json
+{
+  "extends": "./.wxt/tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
+}
+```
+
+`extends` means "start from that file, then apply mine on top". Mine wins where
+they overlap.
+
+The option cannot go in `.wxt/tsconfig.json`. WXT writes that file every time
+`wxt prepare` runs, and `.gitignore` excludes it. Anything you type there is
+gone on the next install. Running `wxt prepare` again does not help either; it
+regenerates the same file, still without `jsx`.
+
+Why this waited until Task 5: Tasks 1 through 4 wrote one placeholder component
+between them, so `tsc` had nothing much to object to. Task 5 wrote `Board.tsx`,
+`Column.tsx`, and `CardTile.tsx`, all markup. The option was missing from Task 1
+onward. Task 5 is where you noticed.
+
+### What is `noUncheckedIndexedAccess` and why is `card` possibly undefined?
+
+A flag that stops TypeScript from lying about arrays.
+
+Ask a shelf for the first book. TypeScript's default answer is "here is a book".
+It never checks whether the shelf is empty. `noUncheckedIndexedAccess: true`
+changes the answer to "here is a book, or nothing".
+
+```ts
+const cards: Card[] = [];
+
+// flag off: cards[0] is Card.        A lie. It is undefined.
+// flag on:  cards[0] is Card | undefined.   True.
+```
+
+It covers destructuring too, which is the same read with different syntax:
+
+```ts
+const [card] = await allCards();  // Card | undefined
+```
+
+WXT's generated tsconfig turns this on, which is why `cards.test.ts` broke in
+seven places at once.
+
+Three ways out, and they fail differently:
+
+| Way | Code | On an empty array |
+| --- | --- | --- |
+| Non-null assertion | `cards[0]!` | Crashes at the `expect` line, blaming the wrong line |
+| Assert, then assert | `expect(cards).toHaveLength(1); return cards[0]!;` | Fails at the check, naming the real problem |
+| Throw | `if (!card) throw new Error(...)` | Throws instead of failing an assertion |
+
+`!` means "trust me, this is not undefined". It changes the type and checks
+nothing. Get it wrong and the crash lands somewhere else.
+
+The helper in `cards.test.ts` takes the middle row:
+
+```ts
+async function onlyCard(): Promise<Card> {
+  const cards = await allCards();
+  expect(cards).toHaveLength(1);
+  return cards[0]!;
+}
+```
+
+Two lines, because they do two jobs. `expect` guards at run time, and `!`
+satisfies the compiler. `expect` cannot do both: a matcher returns nothing
+TypeScript can learn from. TypeScript does have a way to fuse them, an assertion
+signature:
+
+```ts
+function assertOne<T>(a: T[]): asserts a is [T] { ... }
+```
+
+Call that and the narrowing sticks, no `!` needed. At three call sites, it is
+more machinery than the problem is worth.
+
+One tsconfig caused both of these. The plan now carries both fixes, at Task 1
+Step 5 and Task 5 Step 5.

@@ -1,8 +1,20 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { db } from './schema';
+import type { Card } from '../domain/types';
 import { allCards, getCard, updateCard, deleteCard, nextSortOrder, ingestCard } from './cards';
 import { makeCard } from '../test-support/factory';
 
+/**
+ * The one card the board holds, for tests that have just written exactly one.
+ * `allCards()` returns `Card[]`, and `noUncheckedIndexedAccess` makes every
+ * index read `Card | undefined`, so the tests below need this narrowed once
+ * rather than at each `expect`.
+ */
+async function onlyCard(): Promise<Card> {
+  const cards = await allCards();
+  expect(cards).toHaveLength(1);
+  return cards[0]!;
+}
 
 beforeEach(async () => {
   await db.cards.clear();
@@ -86,7 +98,7 @@ describe('ingestCard', () => {
 
   test('canonicalizes the url before it stores it', async () => {
     await ingestCard({ url: 'https://Alpha.substack.com/p/questions?utm_source=post' });
-    const [card] = await allCards();
+    const card = await onlyCard();
     expect(card.url).toBe('https://alpha.substack.com/p/questions');
   });
 
@@ -102,12 +114,12 @@ describe('ingestCard', () => {
 
   test('keeps notes when it refreshes a known card', async () => {
     await ingestCard({ url: 'https://alpha.substack.com/p/questions', title: 'First' });
-    const [before] = await allCards();
+    const before = await onlyCard();
     await updateCard(before.id, { notes: 'my notes', status: 'reading' });
 
     await ingestCard({ url: 'https://alpha.substack.com/p/questions', title: 'Refreshed' });
 
-    const [after] = await allCards();
+    const after = await onlyCard();
     expect(after.title).toBe('Refreshed');
     expect(after.notes).toBe('my notes');
     expect(after.status).toBe('reading');
