@@ -1710,3 +1710,182 @@ sits next to no `wxt.config.ts` and no entrypoints. Hence "install wxt".
 Fix: `cd extension` first, every time. `npm run dev` and `npm run build`
 already do this for you; `npm run` always resolves against the
 `package.json` in the current directory. `npx` gives no such guardrail.
+
+### What is vitest?
+
+Vitest is the test runner. A test runner finds your test files, runs them,
+and prints which ones passed. You write the tests, it runs them.
+
+A test is a function that says "call this with X, expect Y back."
+
+```ts
+// src/board/cards.test.ts
+import { describe, it, expect } from 'vitest';
+import { sortByAddedDate } from './cards';
+
+describe('sortByAddedDate', () => {
+  it('puts the newest card first', () => {
+    const cards = [{ addedAt: 1 }, { addedAt: 5 }];
+    expect(sortByAddedDate(cards)[0].addedAt).toBe(5);
+  });
+});
+```
+
+`describe`, `it`, and `expect` come from Vitest. `npm test` in `extension/`
+runs every `it(...)` it finds and fails the run when an `expect` is wrong.
+
+Jest is the older, more common runner. Vitest wins here because WXT builds
+this extension with Vite, and Vitest runs on Vite. Test files pass through
+the same transform pipeline as shipped code: same TypeScript handling, same
+aliases, same plugins. Jest would mean a second build config kept in sync by
+hand.
+
+`extension/vitest.config.ts` makes three decisions:
+
+| Line | Meaning |
+|---|---|
+| `environment: 'node'` | Tests run in plain Node, no fake browser DOM. Fine for logic; UI component tests would need `'jsdom'`. |
+| `setupFiles: [...]` | `src/test-support/setup.ts` runs once before any test. The place to install `fake-indexeddb` so Dexie works with no browser. |
+| `include: [...]` | Only `.test.ts` files under `src/` count as tests. |
+
+`npm test` runs `vitest run`, which executes once and exits, the shape CI
+wants. `npm run test:watch` runs bare `vitest`, which stays alive and re-runs
+the tests affected by the file you just saved.
+
+`setupFiles` runs once per test environment, not per test file. Global
+installs like polyfills belong there. Per-test fixtures belong in
+`beforeEach`.
+
+### And what is Dexie?
+
+Dexie sits on top of IndexedDB. Keep the two apart in your head.
+
+**IndexedDB** is a database built into Chrome and every other browser. It lives on the user's
+machine, holds whole JavaScript objects rather than rows and columns, and
+survives closing the browser. It is what makes this project local-first: no
+server, no account.
+
+Its API predates Promises. Everything is event callbacks, version-upgrade
+transactions, and cursors. Saving one card takes about thirty lines.
+
+**Dexie** wraps that API in something worth writing.
+
+```ts
+// Raw IndexedDB, the short version
+const req = indexedDB.open('SubstackLibrary', 1);
+req.onupgradeneeded = (e) => { /* create stores by hand */ };
+req.onsuccess = () => {
+  const tx = req.result.transaction('cards', 'readwrite');
+  tx.objectStore('cards').add(card);
+  tx.oncomplete = () => { /* now continue */ };
+};
+
+// Dexie
+await db.cards.add(card);
+```
+
+Three pieces show up in this project.
+
+**The schema** (`src/db/schema.ts`, Task 3). Subclass Dexie, declare the
+table:
+
+```ts
+db.version(1).stores({
+  cards: 'id, status, [status+sortOrder], url'
+});
+```
+
+That string lists indexes. IndexedDB stores the whole object either way, so a
+field left out is still saved and read back. Listing it buys you fast queries
+and sorting on that field. `[status+sortOrder]` is a compound index, which is
+how the board pulls one column's cards already in order.
+
+**The repository** (`src/db/cards.ts`). One file imports `dexie` and touches
+the table. Everything above it calls named functions like `moveCard(...)` and
+`listCardsByStatus(...)`. Swapping the storage layer later changes one file.
+
+**`useLiveQuery`** from `dexie-react-hooks`:
+
+```tsx
+const cards = useLiveQuery(() => listCardsByStatus('inbox'));
+```
+
+The argument is a query. Dexie notes which tables it read, then re-runs it
+whenever a write touches one of them. Drop a card into another column and all
+three columns update, with no UI code asking for a refresh.
+
+This ties back to Vitest through `fake-indexeddb`: IndexedDB rewritten in
+plain JavaScript, in memory. Node has no `indexedDB`, so `setup.ts` installs
+the fake onto `globalThis` before any test runs. Dexie cannot tell the
+difference and opens a real-behaving database.
+
+Dexie adds no storage of its own. Data it writes shows up in Chrome DevTools
+under Application → IndexedDB like any other. `version(1)` is a migration
+marker: change the indexes later and you bump to `version(2)` with an upgrade
+function, which Dexie runs once on machines still holding v1 data.
+
+### What does it mean to canonicalize a URL?
+
+One article can be reached by many URLs.
+
+```
+https://alpha.substack.com/p/questions?utm_source=post
+https://alpha.substack.com/p/questions#comments
+https://alpha.substack.com/p/questions/
+https://Alpha.SubStack.COM/p/Great-Questions
+  https://alpha.substack.com/p/questions
+```
+
+Five strings. A computer comparing them with `===` sees five articles. You see
+one.
+
+Canonical means the official version. Canonicalizing picks one form as the
+real one and converts everything else to it before you compare or store.
+
+This project needs it because the spike found Substack's Saved list attaching
+`?utm_source=...` to its links. The same article captured from the Saved list
+and from the article page produces two URLs. Skip canonicalization and the
+board shows the article twice, with neither card aware of the other's notes.
+
+The URL is the identity of a card. `ingestCard` answers "have I seen this?" by
+comparing URLs, and `restoreCards` answers "replace or add?" the same way. An
+unreliable comparison breaks everything downstream.
+
+`src/domain/url.test.ts` pins the rules:
+
+| Rule | Before | After |
+|---|---|---|
+| Drop tracking params | `?utm_source=post` | removed |
+| Drop the fragment | `#comments` | removed |
+| Drop a trailing slash on a path | `/p/questions/` | `/p/questions` |
+| Add the slash on a bare host | `alpha.substack.com` | `alpha.substack.com/` |
+| Lowercase the host | `Alpha.SubStack.COM` | `alpha.substack.com` |
+| Trim surrounding whitespace | `␣␣https://…␣␣` | trimmed |
+| Reject garbage | `not a url`, `''`, `javascript:alert(1)` | `null` |
+
+Two rules deserve a second look.
+
+The host gets lowercased while the path keeps its case. DNS hostnames are
+case-insensitive by spec, so `EXAMPLE.com` and `example.com` reach the same
+server. Paths are case-sensitive on most servers, so `/Great-Questions` and
+`/great-questions` may be different pages. Lowercasing the path would merge
+distinct articles in silence.
+
+`javascript:alert(1)` returns `null` rather than a cleaned string, which is a
+security decision. A `javascript:` URL stored on a card and rendered as an
+`href` would run that code inside the extension's own page when clicked.
+Rejecting at the boundary lets the rest of the codebase trust that every
+stored URL is `http` or `https`.
+
+The signature is `(raw: string) => string | null` and it never throws.
+Returning `null` puts the bad-URL case into normal control flow. A thrown
+error is easy to forget to catch; a `null` in a typed return makes TypeScript
+refuse to compile until the caller handles it.
+
+`canonicalizeUrl` lives in `src/domain/`, which imports nothing: no Dexie, no
+React, no browser APIs. A pure string-in, string-out function is the cheapest
+thing here to test, which is why it carries fourteen test cases.
+
+Canonicalization throws information away on purpose. `utm_source` is gone for
+good. That suits a board that wants identity. A link shortener, which wants
+fidelity, would choose the opposite.
