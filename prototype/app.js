@@ -151,4 +151,44 @@ document.getElementById('panel-notes').addEventListener('input', (event) => {
   render();
 });
 
+// Drag and drop
+function moveCard(cardId, newStatus) {
+  const card = findCard(cardId);
+  if (!card || card.status === newStatus) return;
+  const last = Math.max(-1, ...state.filter((c) => c.status === newStatus).map((c) => c.sortOrder));
+  card.status = newStatus;
+  card.sortOrder = last + 1;
+  save();
+  render();
+}
+
+const board = document.querySelector('.board');
+board.addEventListener('dragstart', (event) => {
+  const cardEl = event.target.closest('.card');
+  if (!cardEl) return;
+  event.dataTransfer.setData('text/plain', cardEl.dataset.id);
+  event.dataTransfer.effectAllowed = 'move';
+  cardEl.classList.add('dragging');
+});
+board.addEventListener('dragend', (event) => {
+  event.target.closest('.card')?.classList.remove('dragging');
+});
+board.addEventListener('dragover', (event) => {
+  const column = event.target.closest('.column');
+  if (!column) return;
+  event.preventDefault(); // Required. Without this the browser refuses the drop.
+  event.dataTransfer.dropEffect = 'move';
+  column.classList.add('drop-target');
+});
+board.addEventListener('dragleave', (event) => {
+  event.target.closest('.column')?.classList.remove('drop-target');
+});
+board.addEventListener('drop', (event) => {
+  const column = event.target.closest('.column');
+  if (!column) return;
+  event.preventDefault();
+  column.classList.remove('drop-target');
+  moveCard(event.dataTransfer.getData('text/plain'), column.dataset.status);
+});
+
 render();
