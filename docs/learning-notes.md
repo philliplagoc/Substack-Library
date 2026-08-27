@@ -1621,3 +1621,92 @@ return to after two weeks away, that trades well.
 - Types are erased, so the checker cannot help at the IndexedDB boundary. Data
   read back from Dexie is whatever got written, maybe by an older version of the
   code. Types state intent there. They do not validate it.
+
+### What is the difference between a `.tsx` and a `.ts` file?
+
+Whether the file contains JSX, the `<Board />`-style markup.
+
+`extension/src/entrypoints/background.ts` is plain logic: it listens for a
+toolbar click and opens or focuses a tab. No markup, so `.ts`.
+`extension/src/entrypoints/board/main.tsx` renders the React board. It writes
+`<App />` to the page, so it needs `.tsx`.
+
+| | `.ts` | `.tsx` |
+|---|---|---|
+| Contains JSX (`<Foo />`) | No | Yes |
+| Compiler assumes `<T>` means | a generic type | a JSX tag |
+
+The rule of thumb: a file that ever writes `return <SomeComponent />` must be
+`.tsx`. A file of only functions, types, and logic stays `.ts`.
+
+The ambiguity is real. `<Foo>(bar)` reads as a generic-typed call in a `.ts`
+file and as a JSX element in a `.tsx` file. TypeScript decides by file
+extension alone. WXT keeps `background.ts` separate from `board/main.tsx` for
+that reason: background scripts render no UI, so they carry no JSX-parsing
+rules.
+
+### What is React and ReactDOM?
+
+Two separate libraries. `board/main.tsx` imports both:
+
+```tsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from '../../ui/App';
+```
+
+**React** describes the UI as components and works out what changed. `<App />`
+compiles to a tree of plain JavaScript objects, not real DOM markup. React
+builds that tree, compares it to the last one, and works out the smallest set
+of edits. It never touches an actual DOM element.
+
+**ReactDOM** applies that tree to the real browser DOM. `react-dom/client` is
+the entry point for a browser tab. `react-dom/server` renders on a server
+instead, and `react-native` renders to a phone UI instead of a browser DOM.
+Only ReactDOM touches an actual `<div>`.
+
+| Library | Job | Knows about the browser? |
+|---|---|---|
+| `react` | Describe the UI, diff the tree | No |
+| `react-dom` | Paint the tree into real DOM nodes | Yes |
+
+`package.json` pins both at `^19.2.8`, the same version. React 19 compiles
+JSX through the automatic runtime, which `@wxt-dev/module-react` sets up in
+`wxt.config.ts`. That runtime does not need `import React from 'react'` to
+compile `<App />`. Older React versions did. The import survives here as
+convention.
+
+The split holds across every React-based framework: React Native and Next.js
+both keep one library that describes the UI and a separate renderer that
+mounts it. `board/main.tsx` is the only file in this scaffold that imports
+`react-dom`, because it is the one place that calls
+`ReactDOM.createRoot(...).render(<App />)`. Every other React file describes
+components and leaves the mounting to this entry point.
+
+## 2026-08-27 - Milestone 1, Task 1
+
+### Why did `npx wxt prepare` from the repo root say I need to install `wxt`?
+
+Two separate problems, stacked.
+
+`extension/node_modules/` did not exist. `.gitignore` excludes it, so a fresh
+checkout keeps `package.json` and `package-lock.json` and drops everything
+`npm install` writes. Step 3's install never left a trace on this machine.
+`ls extension/node_modules` confirmed it: gone.
+
+The command also ran in the wrong place. `npx` looks for a locally installed
+binary by checking the current directory's `node_modules/.bin/`, then walking
+up through parent directories. It never walks down into `extension/`. `wxt`
+lives at `extension/node_modules/.bin/wxt`, and the repo has no root
+`package.json`, so `npx wxt` from the root can never find it, installed or
+not. `npx` falls back to a throwaway copy from the registry, and that copy
+sits next to no `wxt.config.ts` and no entrypoints. Hence "install wxt".
+
+| Where you run it | `npx` checks | Finds `wxt`? |
+|---|---|---|
+| repo root | root `node_modules/.bin` (does not exist) | No |
+| `extension/` | `extension/node_modules/.bin` | Yes, once installed |
+
+Fix: `cd extension` first, every time. `npm run dev` and `npm run build`
+already do this for you; `npm run` always resolves against the
+`package.json` in the current directory. `npx` gives no such guardrail.
