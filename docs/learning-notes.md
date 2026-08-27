@@ -2076,3 +2076,47 @@ prevent.
 Nothing in `src/domain/` is `async`. `canonicalizeUrl`, `mergeCard`, and
 `createCard` stay synchronous and pure. Async lives in `db/`, the only layer
 talking to something slow.
+
+### What does ingesting a card mean?
+
+Ingesting is the one door every article walks through to reach the board.
+
+Picture a hotel front desk. A guest arrives. The clerk checks the guest book,
+then either hands over a new room key or updates the record of somebody already
+staying, and turns away anyone who is not a guest at all. `ingestCard` in
+`src/db/cards.ts` is that clerk.
+
+Four steps:
+
+| Step | What happens |
+|------|--------------|
+| Normalize | `canonicalizeUrl` strips tracking junk, so `.../p/essay?utm_source=twitter` and `.../p/essay` count as one article |
+| Reject | A non-http URL returns `{ kind: 'rejected' }` and never reaches the database |
+| Look up | Search by canonical URL. The URL is the identity of an article, not the title |
+| Branch | No match calls `createCard`. A match calls `mergeCard` |
+
+`createCard` builds a fresh card with status `to_read` at the end of that
+column. `mergeCard` folds new metadata into the card you already have.
+
+The rule that makes the merge safe: `mergeCard` refreshes only what the
+publisher owns, which is title, author, publication, and reading estimate. It
+leaves alone what you wrote, which is notes, quotes, tags, status, sortOrder,
+`exportVersion`, and `liked`. Capture the same article a second time and an
+evening of note-taking survives. One test carries that name: "never touches
+what the reader wrote."
+
+```ts
+export type IngestOutcome =
+  | { kind: 'added'; card: Card }
+  | { kind: 'updated'; card: Card }
+  | { kind: 'rejected'; reason: string };
+```
+
+Rejection is a return value, not a thrown error. A bad URL is expected input,
+so the UI switches on `kind` and shows one of three messages.
+
+Why one door and not three: Milestone 1 has the add-by-URL form, Milestone 2
+adds a content script that captures the page you are reading, and Milestone 3
+adds sync. If each wrote to Dexie on its own, each would carry its own
+duplicate rules and the three would drift. Routing all of them through
+`ingestCard` keeps the dedupe rule and the merge rule in one file.

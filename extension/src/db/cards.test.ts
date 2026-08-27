@@ -1,7 +1,8 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { db } from './schema';
-import { allCards, getCard, updateCard, deleteCard, nextSortOrder } from './cards';
+import { allCards, getCard, updateCard, deleteCard, nextSortOrder, ingestCard } from './cards';
 import { makeCard } from '../test-support/factory';
+
 
 beforeEach(async () => {
   await db.cards.clear();
@@ -69,5 +70,60 @@ describe('nextSortOrder', () => {
       makeCard({ id: 'c', status: 'reading', sortOrder: 9 }),
     ]);
     expect(await nextSortOrder('to_read')).toBe(5);
+  });
+});
+
+
+describe('ingestCard', () => {
+  test('adds a card the board does not have', async () => {
+    const result = await ingestCard({
+      url: 'https://alpha.substack.com/p/questions',
+      title: 'Questions',
+    });
+    expect(result.kind).toBe('added');
+    expect(await db.cards.count()).toBe(1);
+  });
+
+  test('canonicalizes the url before it stores it', async () => {
+    await ingestCard({ url: 'https://Alpha.substack.com/p/questions?utm_source=post' });
+    const [card] = await allCards();
+    expect(card.url).toBe('https://alpha.substack.com/p/questions');
+  });
+
+  test('treats two routes to one article as one card', async () => {
+    await ingestCard({ url: 'https://alpha.substack.com/p/questions', title: 'First' });
+    const second = await ingestCard({
+      url: 'https://alpha.substack.com/p/questions?utm_source=share#top',
+      title: 'Second',
+    });
+    expect(second.kind).toBe('updated');
+    expect(await db.cards.count()).toBe(1);
+  });
+
+  test('keeps notes when it refreshes a known card', async () => {
+    await ingestCard({ url: 'https://alpha.substack.com/p/questions', title: 'First' });
+    const [before] = await allCards();
+    await updateCard(before.id, { notes: 'my notes', status: 'reading' });
+
+    await ingestCard({ url: 'https://alpha.substack.com/p/questions', title: 'Refreshed' });
+
+    const [after] = await allCards();
+    expect(after.title).toBe('Refreshed');
+    expect(after.notes).toBe('my notes');
+    expect(after.status).toBe('reading');
+    expect(after.id).toBe(before.id);
+  });
+
+  test('rejects text that is not a url and stores nothing', async () => {
+    const result = await ingestCard({ url: 'not a url' });
+    expect(result.kind).toBe('rejected');
+    expect(await db.cards.count()).toBe(0);
+  });
+
+  test('puts a new card at the end of To Read', async () => {
+    await db.cards.add(makeCard({ id: 'existing', status: 'to_read', sortOrder: 0 }));
+    const result = await ingestCard({ url: 'https://alpha.substack.com/p/new' });
+    expect(result.kind).toBe('added');
+    if (result.kind === 'added') expect(result.card.sortOrder).toBe(1);
   });
 });
