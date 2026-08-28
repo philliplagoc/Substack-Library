@@ -4,6 +4,7 @@ import type { Card } from '../domain/types';
 import { allCards, getCard, updateCard, deleteCard, nextSortOrder, ingestCard } from './cards';
 import { makeCard } from '../test-support/factory';
 import { applyOrder } from './cards';
+import { restoreCards } from './cards';
 
 /**
  * The one card the board holds, for tests that have just written exactly one.
@@ -166,6 +167,59 @@ describe('applyOrder', () => {
 
   test('skips a change for a card that is gone', async () => {
     await applyOrder([{ id: 'missing', status: 'reading', sortOrder: 0 }]);
+    expect(await db.cards.count()).toBe(0);
+  });
+});
+
+describe('restoreCards', () => {
+  test('adds cards the board does not have', async () => {
+    const result = await restoreCards([
+      makeCard({ id: 'a', url: 'https://alpha.substack.com/p/one' }),
+      makeCard({ id: 'b', url: 'https://alpha.substack.com/p/two' }),
+    ]);
+    expect(result).toEqual({ added: 2, replaced: 0 });
+    expect(await db.cards.count()).toBe(2);
+  });
+
+  test('restores the notes and quotes a backup holds', async () => {
+    await restoreCards([
+      makeCard({
+        id: 'a',
+        url: 'https://alpha.substack.com/p/one',
+        notes: 'notes from the backup',
+        quotes: [{ text: 'q', locatorLost: false, capturedAt: '2026-08-01' }],
+      }),
+    ]);
+    const card = await onlyCard();
+    expect(card.notes).toBe('notes from the backup');
+    expect(card.quotes).toHaveLength(1);
+  });
+
+  test('replaces a card with the same url and keeps the local id', async () => {
+    await db.cards.add(
+      makeCard({ id: 'local', url: 'https://alpha.substack.com/p/one', notes: 'local notes' }),
+    );
+
+    const result = await restoreCards([
+      makeCard({ id: 'from-file', url: 'https://alpha.substack.com/p/one', notes: 'file notes' }),
+    ]);
+
+    expect(result).toEqual({ added: 0, replaced: 1 });
+    expect(await db.cards.count()).toBe(1);
+    const card = await onlyCard();
+    expect(card.id).toBe('local');
+    expect(card.notes).toBe('file notes');
+  });
+
+  test('leaves a local card the file does not mention', async () => {
+    await db.cards.add(makeCard({ id: 'keep', url: 'https://alpha.substack.com/p/keep' }));
+    await restoreCards([makeCard({ id: 'new', url: 'https://alpha.substack.com/p/new' })]);
+    expect(await getCard('keep')).toBeDefined();
+  });
+
+  test('skips a record whose url cannot be canonicalized', async () => {
+    const result = await restoreCards([makeCard({ id: 'a', url: 'not a url' })]);
+    expect(result).toEqual({ added: 0, replaced: 0 });
     expect(await db.cards.count()).toBe(0);
   });
 });

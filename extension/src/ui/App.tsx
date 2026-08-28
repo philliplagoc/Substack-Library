@@ -6,6 +6,7 @@ import Board from './Board';
 import Toolbar from './Toolbar';
 import DetailPanel from './DetailPanel';
 import AddByUrlForm from './AddByUrlForm';
+import BackupControls from './BackupControls';
 
 export default function App() {
   const cards = useLiveQuery(() => allCards(), []);
@@ -19,6 +20,7 @@ export default function App() {
     <>
       <Toolbar filter={filter} onFilterChange={setFilter}>
         <AddByUrlForm />
+        <BackupControls />
       </Toolbar>
       <main className={`layout${selected ? ' with-panel' : ''}`}>
         {cards === undefined ? (

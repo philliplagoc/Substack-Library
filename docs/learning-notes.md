@@ -2304,3 +2304,65 @@ command:
 `tsc` is the TypeScript compiler. `--noEmit` tells it to check the types and
 write no output files. WXT and Vite build the shipped JavaScript, so `tsc` here
 does one job: answer "do the types hold together?" Silence means yes.
+
+## 2026-08-28 - Milestone 1, Task 10
+
+### Why does `npm run compile` fail when `npm test` passes?
+
+They run different tools.
+
+| Command | Tool | What it does |
+| --- | --- | --- |
+| `npm test` | Vitest | Strips the types, runs the code |
+| `npm run compile` | `tsc --noEmit` | Checks the types, runs nothing |
+
+Vitest hands your TypeScript to esbuild. esbuild deletes the type annotations
+and never checks them. A file with a real type error runs fine under Vitest and
+still fails `tsc`.
+
+Run both. Vitest answers "does it behave?" `tsc` answers "do the types hold?"
+
+### What is `noUncheckedIndexedAccess`?
+
+A TypeScript setting that admits an array index might find nothing.
+
+Without it:
+
+```ts
+const cards: Card[] = [];
+const first = cards[0];   // type: Card       <- a lie, it is undefined
+first.notes;              // crashes at runtime, silent at compile time
+```
+
+With it:
+
+```ts
+const first = cards[0];   // type: Card | undefined
+first.notes;              // error TS18048: 'first' is possibly 'undefined'
+```
+
+The array says it holds `Card` values. It does not say how many. Ask for slot 0
+of an empty array and you get `undefined`. The flag makes the type tell the
+truth.
+
+Array destructuring counts as an index read:
+
+```ts
+const [card] = await allCards();   // same as cards[0], so Card | undefined
+```
+
+WXT turns this flag on in the tsconfig it generates, at
+`extension/.wxt/tsconfig.json`. `extension/tsconfig.json` extends that file.
+
+Three ways to satisfy it:
+
+```ts
+const [card] = await allCards();
+if (!card) throw new Error('no card');   // 1. check, then use
+expect(card!.notes).toBe('x');           // 2. `!` says "trust me"
+const card = await onlyCard();           // 3. a helper that narrows once
+```
+
+`extension/src/db/cards.test.ts` uses the third. `onlyCard()` asserts the table
+holds exactly one card and returns it as a plain `Card`. One narrowing that every
+test reuses, instead of a `!` on every line.

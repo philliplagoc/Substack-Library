@@ -84,3 +84,37 @@ export async function applyOrder(changes: OrderChange[]): Promise<void> {
     }
   })
 }
+
+/**
+ * Write whole cards from a backup file.
+ *
+ * A card with the same canonical URL is replaced, keeping the id already on
+ * the board so the unique url index stays satisfied. A card the board does not
+ * have is added. A local card the file does not mention is left alone: restore
+ * never deletes.
+ *
+ * This does not go through ingestCard(). ingestCard carries metadata only, and
+ * routing a backup through it would drop every note and quote in the file.
+ */
+export async function restoreCards(cards: Card[]): Promise<{ added: number; replaced: number }> {
+  let added = 0;
+  let replaced = 0;
+
+  await db.transaction('rw', db.cards, async () => {
+    for (const card of cards) {
+      const url = canonicalizeUrl(card.url);
+      if (url === null) continue;
+
+      const existing = await db.cards.where('url').equals(url).first();
+      if (existing) {
+        await db.cards.put({ ...card, id: existing.id, url });
+        replaced += 1;
+      } else {
+        await db.cards.put({ ...card, url });
+        added += 1;
+      }
+    }
+  });
+
+  return { added, replaced };
+}
