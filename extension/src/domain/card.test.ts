@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { createCard } from './card';
 import { visibleCards } from './card';
 import { makeCard } from '../test-support/factory';
+import { reorderCards } from './card';
 
 const SEED = { id: 'fixed-id', savedAt: '2026-08-26T12:00:00.000Z', sortOrder: 3 };
 
@@ -135,5 +136,76 @@ describe('visibleCards', () => {
       makeCard({ id: 'c', sortOrder: 2 }),
     ];
     expect(visibleCards(cards, noFilter).map((c) => c.id)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+const NOW = '2026-08-26T12:00:00.000Z';
+
+function column(status: 'to_read' | 'reading' | 'processed', ids: string[]) {
+  return ids.map((id, i) => makeCard({ id, status, sortOrder: i }));
+}
+
+describe('reorderCards', () => {
+  test('moves a card down inside its own column', () => {
+    const cards = column('to_read', ['a', 'b', 'c']);
+    const changes = reorderCards(cards, { cardId: 'a', toStatus: 'to_read', toIndex: 2 }, NOW);
+    expect(changes).toEqual([
+      { id: 'b', status: 'to_read', sortOrder: 0 },
+      { id: 'c', status: 'to_read', sortOrder: 1 },
+      { id: 'a', status: 'to_read', sortOrder: 2 },
+    ]);
+  });
+
+  test('moves a card up inside its own column', () => {
+    const cards = column('to_read', ['a', 'b', 'c']);
+    const changes = reorderCards(cards, { cardId: 'c', toStatus: 'to_read', toIndex: 0 }, NOW);
+    expect(changes.map((c) => c.id)).toEqual(['c', 'a', 'b']);
+    expect(changes.map((c) => c.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  test('moves a card between columns and renumbers both', () => {
+    const cards = [...column('to_read', ['a', 'b']), ...column('reading', ['x', 'y'])];
+    const changes = reorderCards(cards, { cardId: 'a', toStatus: 'reading', toIndex: 1 }, NOW);
+
+    const reading = changes.filter((c) => c.status === 'reading');
+    const toRead = changes.filter((c) => c.status === 'to_read');
+
+    expect(reading.map((c) => c.id)).toEqual(['x', 'a', 'y']);
+    expect(reading.map((c) => c.sortOrder)).toEqual([0, 1, 2]);
+    expect(toRead).toEqual([{ id: 'b', status: 'to_read', sortOrder: 0 }]);
+  });
+
+  test('drops at the end when the index is past the end', () => {
+    const cards = column('to_read', ['a', 'b']);
+    const changes = reorderCards(cards, { cardId: 'a', toStatus: 'to_read', toIndex: 99 }, NOW);
+    expect(changes.map((c) => c.id)).toEqual(['b', 'a']);
+  });
+
+  test('produces a dense sequence with no gaps', () => {
+    const cards = column('to_read', ['a', 'b', 'c', 'd']);
+    const changes = reorderCards(cards, { cardId: 'd', toStatus: 'to_read', toIndex: 1 }, NOW);
+    expect(changes.map((c) => c.sortOrder)).toEqual([0, 1, 2, 3]);
+  });
+
+  test('stamps readAt when a card first enters Reading', () => {
+    const cards = column('to_read', ['a']);
+    const changes = reorderCards(cards, { cardId: 'a', toStatus: 'reading', toIndex: 0 }, NOW);
+    expect(changes.find((c) => c.id === 'a')?.readAt).toBe(NOW);
+  });
+
+  test('never rewrites a readAt the card already has', () => {
+    const cards = [makeCard({ id: 'a', status: 'processed', sortOrder: 0, readAt: '2026-01-01T00:00:00.000Z' })];
+    const changes = reorderCards(cards, { cardId: 'a', toStatus: 'reading', toIndex: 0 }, NOW);
+    expect(changes.find((c) => c.id === 'a')?.readAt).toBeUndefined();
+  });
+
+  test('leaves readAt alone on a move that is not into Reading', () => {
+    const cards = column('to_read', ['a']);
+    const changes = reorderCards(cards, { cardId: 'a', toStatus: 'processed', toIndex: 0 }, NOW);
+    expect(changes.find((c) => c.id === 'a')?.readAt).toBeUndefined();
+  });
+
+  test('returns an empty array when the card is unknown', () => {
+    expect(reorderCards(column('to_read', ['a']), { cardId: 'zz', toStatus: 'reading', toIndex: 0 }, NOW)).toEqual([]);
   });
 });

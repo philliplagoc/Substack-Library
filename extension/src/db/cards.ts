@@ -5,6 +5,7 @@ import { mergeCard } from '../domain/ingest';
 import { db } from './schema';
 import Dexie from 'dexie';
 import type { Card, CardInput, Status } from '../domain/types';
+import type { OrderChange } from '../domain/card';
 
 
 /** Every card, ordered by status then sortOrder */
@@ -69,4 +70,17 @@ export async function ingestCard(input: CardInput): Promise<IngestOutcome> {
     await db.cards.add(card);
     return { kind: 'added', card };
   });
+}
+
+/** Write a whole reordering in one transaction. */
+export async function applyOrder(changes: OrderChange[]): Promise<void> {
+  if (changes.length === 0) return;
+
+  await db.transaction('rw', db.cards, async() => {
+    for (const change of changes) {
+      const patch: Partial<Card> = { status: change.status, sortOrder: change.sortOrder };
+      if (change.readAt) patch.readAt = change.readAt;
+      await db.cards.update(change.id, patch);
+    }
+  })
 }

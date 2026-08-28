@@ -1,3 +1,5 @@
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Card } from '../domain/types';
 
 /** The one-line summary under the title. Empty when there is nothing to say. */
@@ -16,10 +18,18 @@ interface Props {
 }
 
 export default function CardTile({ card, selected, onSelect }: Props) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: card.id,
+  });
+
   return (
     <article
-      className={`card${selected ? ' selected' : ''}`}
+      ref={setNodeRef}
+      className={`card${selected ? ' selected' : ''}${isDragging ? ' dragging' : ''}`}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
       onClick={() => onSelect(card.id)}
+      {...attributes}
+      {...listeners}
     >
       <h3 className="title">{card.title}</h3>
       <p className="pub">

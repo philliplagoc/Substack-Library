@@ -3,6 +3,7 @@ import { db } from './schema';
 import type { Card } from '../domain/types';
 import { allCards, getCard, updateCard, deleteCard, nextSortOrder, ingestCard } from './cards';
 import { makeCard } from '../test-support/factory';
+import { applyOrder } from './cards';
 
 /**
  * The one card the board holds, for tests that have just written exactly one.
@@ -137,5 +138,34 @@ describe('ingestCard', () => {
     const result = await ingestCard({ url: 'https://alpha.substack.com/p/new' });
     expect(result.kind).toBe('added');
     if (result.kind === 'added') expect(result.card.sortOrder).toBe(1);
+  });
+});
+
+describe('applyOrder', () => {
+  test('writes every change', async () => {
+    await db.cards.bulkAdd([
+      makeCard({ id: 'a', status: 'to_read', sortOrder: 0 }),
+      makeCard({ id: 'b', status: 'to_read', sortOrder: 1 }),
+    ]);
+
+    await applyOrder([
+      { id: 'b', status: 'reading', sortOrder: 0, readAt: '2026-08-26T12:00:00.000Z' },
+      { id: 'a', status: 'to_read', sortOrder: 0 },
+    ]);
+
+    expect((await getCard('b'))?.status).toBe('reading');
+    expect((await getCard('b'))?.readAt).toBe('2026-08-26T12:00:00.000Z');
+    expect((await getCard('a'))?.sortOrder).toBe(0);
+  });
+
+  test('does nothing on an empty list', async () => {
+    await db.cards.add(makeCard({ id: 'a', sortOrder: 5 }));
+    await applyOrder([]);
+    expect((await getCard('a'))?.sortOrder).toBe(5);
+  });
+
+  test('skips a change for a card that is gone', async () => {
+    await applyOrder([{ id: 'missing', status: 'reading', sortOrder: 0 }]);
+    expect(await db.cards.count()).toBe(0);
   });
 });

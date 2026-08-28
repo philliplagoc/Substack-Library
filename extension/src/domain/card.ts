@@ -1,4 +1,4 @@
-import type { Card, CardInput } from './types';
+import type { Card, CardInput, Status } from './types';
 
 export interface CardSeed {
   id: string;
@@ -56,4 +56,56 @@ export function createCard(input: CardInput & { url: string }, seed: CardSeed): 
     unsavedFromSubstack: false,
     sortOrder: seed.sortOrder,
   };
+}
+
+export interface CardMove {
+  cardId: string;
+  toStatus: Status;
+  /** Position inside target column, counting the moved card itself */
+  toIndex: number;
+}
+
+export interface OrderChange {
+  id: string;
+  status: Status;
+  sortOrder: number;
+  /** Set only when this move is the card's first entry into Reading. */
+  readAt?: string;
+}
+
+/** Work out the whole new ordering after one drop. */
+export function reorderCards(cards: Card[], move: CardMove, now: string): OrderChange[] {
+  const moved = cards.find((c) => c.id === move.cardId);
+  if (!moved) return [];
+
+  const fromStatus = moved.status;
+  const byOrder = (a: Card, b: Card) => a.sortOrder - b.sortOrder;
+
+  const target = cards
+    .filter((c) => c.status === move.toStatus && c.id !== moved.id)
+    .sort(byOrder);
+  const index = Math.max(0, Math.min(move.toIndex, target.length));
+  target.splice(index, 0, moved);
+
+  const changes: OrderChange[] = target.map((card, i) => ({
+    id: card.id,
+    status: move.toStatus,
+    sortOrder: i,
+  }));
+
+  if (fromStatus !== move.toStatus) {
+    cards
+      .filter((c) => c.status === fromStatus && c.id !== moved.id)
+      .sort(byOrder)
+      .forEach((card, i) => {
+        changes.push({ id: card.id, status: fromStatus, sortOrder: i });
+      });
+  }
+
+  if (move.toStatus === 'reading' && !moved.readAt) {
+    const entry = changes.find((c) => c.id === moved.id);
+    if (entry) entry.readAt = now;
+  }
+
+  return changes;
 }
