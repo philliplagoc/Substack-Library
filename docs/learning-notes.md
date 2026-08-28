@@ -2238,3 +2238,69 @@ more machinery than the problem is worth.
 
 One tsconfig caused both of these. The plan now carries both fixes, at Task 1
 Step 5 and Task 5 Step 5.
+
+## 2026-08-28 - Milestone 1, Task 6
+
+### Why can't I run `npm run compile`?
+
+Because of where you stood when you ran it.
+
+`npm run <name>` looks for a `package.json` in the current folder. If it finds
+none, it walks up to the parent, then that parent's parent, until it hits the
+drive root. It never looks *down* into subfolders.
+
+This repo has one `package.json`, and it lives in `extension/`:
+
+```
+Substack-Library/          <- no package.json
+├── docs/
+├── prototype/
+├── spike/
+└── extension/
+    └── package.json       <- the only one
+```
+
+Run it from the repo root and npm searches root, then `Desktop`, then
+`C:\Users\phill`, then `C:\`, finds nothing, and stops:
+
+```
+npm error code ENOENT
+npm error path C:\Users\phill\Desktop\Substack-Library\package.json
+npm error enoent Could not read package.json
+```
+
+`ENOENT` means "Error: NO ENTry". The file is not there.
+
+The fix is to stand in `extension/` first:
+
+```powershell
+cd extension
+npm run compile
+```
+
+This is why every command in the plan reads `cd extension; npm run ...`. The
+`cd` is part of the command.
+
+| Where you are | `npm run compile` |
+|---|---|
+| `Substack-Library/` | ENOENT, no `package.json` above it |
+| `Substack-Library/extension/` | runs `tsc --noEmit` |
+| `Substack-Library/extension/src/` | runs it too, npm walks up one level |
+
+The third row is worth knowing. npm walking *up* means a command run from deep
+inside `src/` still works. Only running from above `extension/` fails.
+
+#### The script itself
+
+`compile` is a name this project made up. `package.json` maps it to a real
+command:
+
+```json
+"scripts": {
+  "compile": "tsc --noEmit"
+}
+```
+
+`tsc` is the TypeScript compiler. `--noEmit` tells it to check the types and
+write no output files. WXT and Vite build the shipped JavaScript, so `tsc` here
+does one job: answer "do the types hold together?" Silence means yes.

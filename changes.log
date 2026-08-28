@@ -35,9 +35,9 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-08-27
-**Phase:** Milestone 0 complete. Milestone 1 Tasks 1 through 5 are done. Task 6
-is not started.
+**Date:** 2026-08-28
+**Phase:** Milestone 0 complete. Milestone 1 Tasks 1 through 6 are done and
+verified. Task 6 is not committed yet. Task 7, drag and drop, is not started.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -48,15 +48,21 @@ focuses the board tab, tracked in `browser.storage.session`),
 with `canonicalizeUrl`), `src/db/` (`schema.ts`, `cards.ts` with `allCards`,
 `getCard`, `updateCard`, `deleteCard`, `nextSortOrder`, and the single-door
 `ingestCard`), and `src/ui/` (`App.tsx`, `Board.tsx` which also exports
-`COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports `statusLabel`). The
-board reads Dexie directly through `useLiveQuery` and renders three columns.
-Nothing writes to it from the UI yet: no add-by-URL form, no drag and drop, no
-detail pane.
+`COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports `statusLabel`, and
+`Toolbar.tsx`). The board reads Dexie directly through `useLiveQuery` and renders
+three columns. `domain/card.ts` now also exports `CardFilter` and `visibleCards`,
+and `App.tsx` holds the filter state and passes the narrowed list to the board.
+Nothing writes to the table from the UI yet: no add-by-URL form, no drag and
+drop, no detail pane.
 **Build system:** `spike/` still runs on `node --test` with `linkedom`.
 `extension/` runs on WXT `0.21.4`, React `19.2.8`, TypeScript `~5.9.3` (pinned
 below 7), Vite `^7.3.6` (pinned below 8). `npm run build` succeeds and writes
 `.output/chrome-mv3/`, with a standing warning that `package.json` carries no
-`version` field.
+`version` field. The Vite 7 pin forces a matching pin on
+`@vitejs/plugin-react`: `package.json` carries `overrides` holding it at
+`^5.0.0`, because version 6 peer-requires Vite `^8` and imports `vite/internal`,
+a subpath Vite 7 does not export. If `wxt prepare` ever crashes on that subpath,
+run `npm ls @vitejs/plugin-react`, then `npm install` to re-apply the override.
 **tsconfig:** `extension/tsconfig.json` extends `./.wxt/tsconfig.json`, which
 WXT regenerates on `wxt prepare` and `.gitignore` excludes. It must set
 `"jsx": "react-jsx"` itself. `@wxt-dev/module-react` only configures Vite and
@@ -144,6 +150,36 @@ asked for; worth a cleanup pass before Task 2.
 ---
 
 ## Entries
+
+### 2026-08-28 - Repair the `@vitejs/plugin-react` drift that broke `wxt prepare`
+
+**What changed:** Ran `npm install` in `extension/`. That re-resolved the tree
+against the `overrides` block already in `package.json` and replaced the nested
+`@wxt-dev/module-react/node_modules/@vitejs/plugin-react@6.1.0` with `5.2.0`. No
+source file and no config file was edited. Ticked Task 6 Step 7 in the Milestone
+1 plan.
+**Why:** `npm run compile` reported about 200 type errors, all inside
+`node_modules`, all of the form "Cannot find name `Set`" and "Cannot find global
+value `Promise`". Those are the ES5 defaults, so `tsc` was running with no
+config. The chain: the installed `@vitejs/plugin-react` was `6.1.0`, which
+peer-requires Vite `^8` and imports `vite/internal`; this project pins Vite
+`7.3.6`, which does not export that subpath; so `wxt prepare` crashed while
+resolving user modules; so `.wxt/tsconfig.json` was never generated and stayed at
+its `{}` placeholder; so `extends "./.wxt/tsconfig.json"` resolved to an empty
+config. `npm ls @vitejs/plugin-react` already flagged the copy as `invalid`.
+Editing `tsconfig.json` to spell out `lib`, `target`, and `moduleResolution` was
+rejected: it would have hidden a broken install behind a duplicated config.
+**Files:** `extension/package-lock.json` (regenerated),
+`extension/node_modules/`, `docs/superpowers/plans/2026-08-26-milestone-1.md`.
+**Verification:** `npm run compile` exits 0. `npm run build` exits 0 and writes
+`.output/chrome-mv3/`. `npm test` passes 47 tests across 4 files.
+**State after:** Milestone 1 Task 6 is code-complete and verified. The search box
+and the max-minutes filter work through `visibleCards` in `domain/card.ts` and
+`Toolbar.tsx`. Task 6 Step 8, the commit, is not done.
+**Next up:** Commit Task 6, then start Task 7, drag and drop.
+**Open questions:** Where the `6.1.0` copy came from. The lockfile recorded
+`5.2.0` and the working tree was clean, so an install outside this repo's history
+wrote it. If it returns, run `npm ls @vitejs/plugin-react` first.
 
 ### 2026-08-27 - Unblock `npm run compile` and finish Task 5
 

@@ -6,6 +6,32 @@ export interface CardSeed {
   sortOrder: number;
 }
 
+export interface CardFilter {
+  query: string;
+  /** null means no maximum. */
+  maxMinutes: number | null;
+}
+
+/**
+ * Narrow the board to what the reader asked for. Keeps the input order
+ */
+export function visibleCards(cards: Card[], filter: CardFilter): Card[] {
+ const query = filter.query.trim().toLowerCase();
+ const max = filter.maxMinutes;
+
+ return cards.filter((card) => {
+  if (query) {
+    const haystack = `${card.title} ${card.author} ${card.publication}`.toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+  if (max != null) {
+    if (card.estimatedReadingMinutes == null) return false;
+    if (card.estimatedReadingMinutes > max) return false;
+  }
+  return true;
+ });
+}
+
 /**
  * Build a new card. Pure: the id, the timestamp, and the position come in
  * through `seed`, so the same arguments always give the same card.
