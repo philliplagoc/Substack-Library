@@ -5,6 +5,7 @@ import { visibleCards, type CardFilter } from '../domain/card';
 import Board from './Board';
 import Toolbar from './Toolbar';
 import DetailPanel from './DetailPanel';
+import AddByUrlForm from './AddByUrlForm';
 
 export default function App() {
   const cards = useLiveQuery(() => allCards(), []);
@@ -16,7 +17,9 @@ export default function App() {
 
   return (
     <>
-      <Toolbar filter={filter} onFilterChange={setFilter} />
+      <Toolbar filter={filter} onFilterChange={setFilter}>
+        <AddByUrlForm />
+      </Toolbar>
       <main className={`layout${selected ? ' with-panel' : ''}`}>
         {cards === undefined ? (
           <section className="board">
