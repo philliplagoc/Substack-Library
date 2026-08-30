@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { parseHTML } from 'linkedom';
-import { extractArticleMeta } from './extract';
+import { detectSignedOut, extractArticleMeta, readReaderArticle } from './extract';
 
 /**
  * The fixtures live in `spike/`, which this project does not import code from.
@@ -122,4 +122,91 @@ describe('extractArticleMeta JSON-LD handling', () => {
       </script></head><body></body></html>`);
     expect(extractArticleMeta(document as unknown as Document).publication).toBe('Breadcrumb Pub');
   });
+});
+
+describe('detectSignedOut', () => {
+  test('reports signed in on both committed fixtures', () => {
+    // spike/README.md: the nav container holds 5 buttons on both fixtures and
+    // neither file contains the string "Sign in".
+    expect(detectSignedOut(fixture('article-free.html'))).toBe(false);
+    expect(detectSignedOut(fixture('article-paywalled.html'))).toBe(false);
+  });
+
+  test('reports signed out when the nav offers Sign in', () => {
+    const { document } = parseHTML(`<html><body><div id="main">
+      <div class="mainMenuContent-DME8DR"><button>Sign in</button></div>
+    </div></body></html>`);
+    expect(detectSignedOut(document as unknown as Document)).toBe(true);
+  });
+
+  test('is not fooled by a Subscribe button in the same nav', () => {
+    const { document } = parseHTML(`<html><body><div id="main">
+      <div class="mainMenuContent-DME8DR"><button>Subscribe</button></div>
+    </div></body></html>`);
+    expect(detectSignedOut(document as unknown as Document)).toBe(false);
+  });
+
+  test('reports signed in when the nav is absent entirely', () => {
+    const { document } = parseHTML('<html><body></body></html>');
+    expect(detectSignedOut(document as unknown as Document)).toBe(false);
+  });
+});
+
+describe('readReaderArticle', () => {
+  /**
+   * The inbox reader reduced to the shape that matters: the post's own link
+   * sits in an ancestor of `.body.markup`, and the inbox list rendered behind
+   * it holds links to other publications and no body of its own.
+   *
+   * Synthetic, not captured. There is no reader-route fixture in `spike/`, so
+   * these cases prove the walk against a model of the page. Task 6 Step 17
+   * check 6, against the live route, is what proves the model.
+   */
+  function readerPage(): Document {
+    const { document } = parseHTML(`<html><body>
+      <nav>
+        <a href="https://other.substack.com/p/one?source=%2Finbox%2Fpost%2F999">One</a>
+        <a href="https://another.substack.com/p/two?source=%2Finbox%2Fpost%2F999">Two</a>
+      </nav>
+      <div class="post">
+        <a href="https://alpha.substack.com/p/be-delusional?utm_medium=reader2">Be Delusional</a>
+        <div class="body markup"><p>The article text.</p></div>
+      </div>
+    </body></html>`);
+    return document as unknown as Document;
+  }
+
+  test('reads the open post url, not the first link on the page', () => {
+    expect(readReaderArticle(readerPage())?.url).toBe(
+      'https://alpha.substack.com/p/be-delusional?utm_medium=reader2',
+    );
+  });
+
+  test('reads the title from the link text', () => {
+    expect(readReaderArticle(readerPage())?.title).toBe('Be Delusional');
+  });
+
+  test('returns null when the page has no article body', () => {
+    const { document } = parseHTML('<html><body><a href="/p/x">x</a></body></html>');
+    expect(readReaderArticle(document as unknown as Document)).toBe(null);
+  });
+
+  test('returns null when no ancestor of the body names the article', () => {
+    const { document } = parseHTML(
+      '<html><body><div class="body markup"><p>text</p></div></body></html>',
+    );
+    expect(readReaderArticle(document as unknown as Document)).toBe(null);
+  });
+
+  test('ignores a link whose href is not article-shaped', () => {
+    // A comment permalink lives under /p/<slug>/comment/<id>. Matching a bare
+    // "/p/" substring would take it and key the card on a comment.
+    const { document } = parseHTML(`<html><body><div class="post">
+      <a href="https://alpha.substack.com/p/slug/comment/12345">A comment</a>
+      <div class="body markup"><p>text</p></div>
+    </div></body></html>`);
+    expect(readReaderArticle(document as unknown as Document)).toBe(null);
+  });
+
+  test.todo('decide: what this returns on an article page, where capture() never calls it');
 });

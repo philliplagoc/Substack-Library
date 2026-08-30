@@ -42,17 +42,42 @@ Three things the spec got slightly wrong. Implement what this plan says.
 
 **3. Tasks 4, 5, and 6 are reordered.** The spec listed the click wiring before the panel it opens. Building it that way means writing a throwaway panel in one task and replacing its body two tasks later. This plan builds `CardEditor`, then `ReadingPanel`, then wires the click into the panel that already exists. Same eight tasks, same deliverables, no rework.
 
+**4. The inbox reader route is a fourth capture shape, and it breaks the head-first assumption.** Added 2026-08-30, after `https://substack.com/inbox/post/213391431` opened the board instead of the panel. Neither the spec nor the spike covered `substack.com/inbox/post/<id>`, the route the Substack app serves when a reader opens a post from their inbox. Measured on a live page:
+
+| Read path                         | What it returns on the reader route           |
+| --------------------------------- | --------------------------------------------- |
+| `link[rel="canonical"]`           | `https://substack.com/inbox`                  |
+| `og:title`                        | the shell's title, not the post's             |
+| `application/ld+json`             | no blocks at all                              |
+| `document.title`                  | `<post title> - by <handle>`                  |
+| `.body.markup`                    | present, exactly one, and it is the open post |
+| `a[href*="/p/"]` (whole document) | 8 links, all to *other* publications          |
+
+The server renders a shell for `/inbox` and the browser draws the post into it afterwards, so `<head>` describes a different page than `<body>` does. Every head-first read path in `extract.ts` returns a wrong answer, and returns it without a null to signal the miss. `og:title` is the dangerous one: it is non-empty, so the "couldn't read this page's details" notice never fires.
+
+Two things make the route capturable anyway. `.body.markup` is present and unique, so word count, `bodyText`, and Task 7's quote capture need no change. And walking up from `.body.markup` to the nearest `/p/` anchor yields the article's own URL, whose text is the post title:
+
+```
+https://improvebypathsofstoicism.substack.com/p/be-delusional-about-what-you-can
+```
+
+`articleKey()` already reduces that to `improvebypathsofstoicism/p/be-delusional-about-what-you-can`, the same key the article gets on its own domain. So one article read from both places stays one card, which is the property `cardByArticleKey` depends on.
+
+The unscoped selector must not be used. `a[href*="/p/"]` across the document returns the inbox list, which is still mounted behind the post, and every one of those hrefs carries `source=%2Finbox%2Fpost%2F213391431` — the *current* post id stamped onto links pointing away from it. Scoping the walk to `.body.markup`'s ancestors is what makes the answer unambiguous, the same technique `detectSignedOut` uses to disambiguate a class the Subscribe button shares.
+
+Task 6 absorbs this. `shouldCaptureFrom` gains the route, `domain/url.ts` gains `isReaderRoute()`, `substack/extract.ts` gains `readReaderArticle()`, and `capture()` prefers the reader result over `meta.canonicalUrl` for both url and title.
+
 ---
 
 ## File structure
 
 | File                                            | Responsibility                                                                    |
 | ----------------------------------------------- | --------------------------------------------------------------------------------- |
-| `src/domain/url.ts` (modify)                    | add `shouldCaptureFrom()`; export `publicationFromHost()`                         |
+| `src/domain/url.ts` (modify)                    | add `shouldCaptureFrom()`, `isReaderRoute()`; export `publicationFromHost()`      |
 | `src/domain/article.ts` (create)                | `readingMinutes()` — turn a word count into an estimate, or nothing               |
 | `src/domain/quote.ts` (create)                  | `createQuote()`, `resolveQuote()` — build a quote, find it again later            |
 | `src/messages.ts` (create)                      | the message and session-state types both sides share. Types only, no runtime code |
-| `src/substack/extract.ts` (create)              | the two self-contained injected functions and every Substack selector             |
+| `src/substack/extract.ts` (create)              | the self-contained injected functions and every Substack selector                 |
 | `src/db/cards.ts` (modify)                      | add `cardByArticleKey()`, `addQuote()`, `updateQuote()`                           |
 | `src/ui/CardEditor.tsx` (create)                | shared panel core: title, meta, notes, quotes, then a footer slot                 |
 | `src/ui/DetailPanel.tsx` (modify)               | `CardEditor` plus the board's footer (flags, delete)                              |
@@ -1317,13 +1342,24 @@ git commit -m "feat(extension): add the reading side panel with status controls"
 
 - Modify: `extension/src/entrypoints/background.ts`
 - Modify: `extension/src/substack/extract.ts`
+- Modify: `extension/src/domain/url.ts`
+- Test: `extension/src/substack/extract.test.ts`, `extension/src/domain/url.test.ts`
 
 **Interfaces:**
 
 - Consumes: `shouldCaptureFrom`, `publicationFromHost`, `canonicalizeUrl`, `articleKey` (Task 1); `extractArticleMeta` (Task 2); `readingMinutes` (Task 3); `PanelState`, `PANEL_STATE_KEY` (Task 5); `ingestCard` from `db/cards.ts`.
-- Produces: a populated `PanelState` in session storage, and `detectSignedOut(doc?: Document): boolean` in `substack/extract.ts`.
+- Produces: a populated `PanelState` in session storage, plus three functions:
 
-- [ ] **Step 1: Write the failing test for signed-out detection**
+```ts
+// substack/extract.ts — both self-contained, same injection rule as the rest of the file
+detectSignedOut(doc?: Document): boolean
+readReaderArticle(doc?: Document): { url: string; title: string } | null
+
+// domain/url.ts
+isReaderRoute(rawUrl: string | undefined | null): boolean
+```
+
+- [x] **Step 1: Write the failing test for signed-out detection**
 
 Append to `extension/src/substack/extract.test.ts`:
 
@@ -1359,12 +1395,12 @@ describe('detectSignedOut', () => {
 
 Add `detectSignedOut` to the import from `./extract`.
 
-- [ ] **Step 2: Run the test and watch it fail**
+- [x] **Step 2: Run the test and watch it fail**
 
 Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
 Expected: FAIL. `detectSignedOut is not a function`.
 
-- [ ] **Step 3: Implement `detectSignedOut**`
+- [x] **Step 3: Implement `detectSignedOut**`
 
 Append to `extension/src/substack/extract.ts`. Self-contained, same rule as the rest of the file.
 
@@ -1390,20 +1426,242 @@ export function detectSignedOut(doc: Document = document): boolean {
 }
 ```
 
-- [ ] **Step 4: Run the test and watch it pass**
+- [x] **Step 4: Run the test and watch it pass**
 
 Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
 Expected: PASS, all 20 tests.
 
-- [ ] **Step 5: Wire the background**
+- [x] **Step 5: Write the failing test for the inbox reader route**
+
+Append to `extension/src/domain/url.test.ts`, and add `isReaderRoute` to the import from `./url`:
+
+```ts
+describe('the inbox reader route', () => {
+  const READER = 'https://substack.com/inbox/post/213391431';
+
+  test('captures a post opened from the inbox', () => {
+    expect(shouldCaptureFrom(READER)).toBe(true);
+  });
+
+  test('survives the query string the inbox appends', () => {
+    // canonicalizeUrl strips `search`, so utm_medium=reader2 changes nothing.
+    expect(shouldCaptureFrom(`${READER}?utm_medium=reader2`)).toBe(true);
+  });
+
+  test('still ignores the Saved list beside it', () => {
+    expect(shouldCaptureFrom('https://substack.com/inbox/saved')).toBe(false);
+  });
+
+  test('ignores the inbox itself', () => {
+    expect(shouldCaptureFrom('https://substack.com/inbox')).toBe(false);
+  });
+
+  test('ignores a post segment that is not an id', () => {
+    expect(shouldCaptureFrom('https://substack.com/inbox/post/settings')).toBe(false);
+  });
+
+  test('names the route, so the caller knows the head is untrustworthy', () => {
+    expect(isReaderRoute(READER)).toBe(true);
+  });
+
+  test('does not call an ordinary article a reader route', () => {
+    expect(isReaderRoute('https://alpha.substack.com/p/questions')).toBe(false);
+    expect(isReaderRoute('https://substack.com/inbox/saved')).toBe(false);
+    expect(isReaderRoute(undefined)).toBe(false);
+  });
+});
+```
+
+- [x] **Step 6: Run the test and watch it fail**
+
+Run: `cd extension; npx vitest run src/domain/url.test.ts`  
+Expected: FAIL. `isReaderRoute is not a function`, and the first two cases fail on the current `shouldCaptureFrom`.
+
+- [x] **Step 7: Add `isReaderRoute` and widen `shouldCaptureFrom**`
+
+Append to `extension/src/domain/url.ts`:
+
+```ts
+/**
+ * Is this the Substack app's inbox reader rather than an article's own page?
+ *
+ * `substack.com/inbox/post/<id>` draws a post inside the app shell. The server
+ * matched `/inbox`, so `<head>` describes the shell and every head-first read
+ * path in `extract.ts` answers for the wrong page. A caller that sees true must
+ * read the article's identity out of the body instead.
+ *
+ * The host is part of the rule. No publication serves `/inbox/post/<id>` from
+ * its own domain, so matching the path alone would widen this for nothing.
+ */
+export function isReaderRoute(rawUrl: string | undefined | null): boolean {
+  if (typeof rawUrl !== 'string') return false;
+
+  const canonical = canonicalizeUrl(rawUrl);
+  if (canonical === null) return false;
+
+  const { hostname, pathname } = new URL(canonical);
+  return hostname === 'substack.com' && /^\/inbox\/post\/\d+$/.test(pathname);
+}
+```
+
+Then change the last line of `shouldCaptureFrom` to:
+
+```ts
+  return direct.test(pathname) || shared.test(pathname) || isReaderRoute(canonical);
+```
+
+And amend that function's doc comment. Its standing claim, "a false positive is cheap", was true for the two path shapes it was written against, where a miss yields no metadata and says so. The reader route is the exception: it returns a real `og:title` belonging to the app shell, so a wrong answer arrives looking like a right one. Add:
+
+```
+ * The inbox reader route is the exception to "a false positive is cheap". It
+ * serves a real og:title belonging to the app shell, so a wrong answer arrives
+ * looking like a right one. `capture()` carries the guard: when the article's
+ * own URL cannot be read out of the body, it refuses out loud.
+```
+
+- [x] **Step 8: Run the test and watch it pass**
+
+Run: `cd extension; npx vitest run src/domain/url.test.ts`  
+Expected: PASS.
+
+- [x] **Step 9: Write the failing test for `readReaderArticle**`
+
+Append to `extension/src/substack/extract.test.ts`, and add `readReaderArticle` to the import from `./extract`:
+
+```ts
+describe('readReaderArticle', () => {
+  /**
+   * The inbox reader reduced to the shape that matters: the post's own link
+   * sits in an ancestor of `.body.markup`, and the inbox list rendered behind
+   * it holds links to other publications and no body of its own.
+   *
+   * Synthetic, not captured. There is no reader-route fixture in `spike/`, so
+   * these cases prove the walk against a model of the page. Step 17's manual
+   * check against the live route is what proves the model.
+   */
+  function readerPage(): Document {
+    const { document } = parseHTML(`<html><body>
+      <nav>
+        <a href="https://other.substack.com/p/one?source=%2Finbox%2Fpost%2F999">One</a>
+        <a href="https://another.substack.com/p/two?source=%2Finbox%2Fpost%2F999">Two</a>
+      </nav>
+      <div class="post">
+        <a href="https://alpha.substack.com/p/be-delusional?utm_medium=reader2">Be Delusional</a>
+        <div class="body markup"><p>The article text.</p></div>
+      </div>
+    </body></html>`);
+    return document as unknown as Document;
+  }
+
+  test('reads the open post url, not the first link on the page', () => {
+    expect(readReaderArticle(readerPage())?.url).toBe(
+      'https://alpha.substack.com/p/be-delusional?utm_medium=reader2',
+    );
+  });
+
+  test('reads the title from the link text', () => {
+    expect(readReaderArticle(readerPage())?.title).toBe('Be Delusional');
+  });
+
+  test('returns null when the page has no article body', () => {
+    const { document } = parseHTML('<html><body><a href="/p/x">x</a></body></html>');
+    expect(readReaderArticle(document as unknown as Document)).toBe(null);
+  });
+
+  test('returns null when no ancestor of the body names the article', () => {
+    const { document } = parseHTML(
+      '<html><body><div class="body markup"><p>text</p></div></body></html>',
+    );
+    expect(readReaderArticle(document as unknown as Document)).toBe(null);
+  });
+
+  test.todo('decide: what this returns on an article page, where capture() never calls it');
+});
+```
+
+The `test.todo` is a real open question, not a placeholder. `article-free.html` has a `.body.markup` and ancestors carrying `/p/` links of their own, so an unguarded walk finds one there too. `capture()` only calls this behind `isReaderRoute`, so nothing depends on the answer today. Write the assertion once you have decided what the walk should do.
+
+- [x] **Step 10: Run the test and watch it fail**
+
+Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
+Expected: FAIL. `readReaderArticle is not a function`.
+
+- [x] **Step 11: Add the `readReaderArticle` TODO(human) stub**
+
+Append to `extension/src/substack/extract.ts`. Self-contained, same rule as the rest of the file.
+
+```ts
+/**
+ * The article a reader-route page is showing, or nothing.
+ *
+ * `substack.com/inbox/post/<id>` draws a post inside the app shell. The shell's
+ * head describes `/inbox`, so canonical, og:title, and JSON-LD all answer for
+ * the wrong page. The body is the only honest source on this route.
+ *
+ * What to walk to: the post's own link, the one whose href is article-shaped
+ * and which sits in an ancestor of `.body.markup`. Its text is the post title.
+ * Measured on a live page, `.body.markup` is unique and belongs to the open
+ * post; the inbox list behind it carries no body.
+ *
+ * DO NOT match `a[href*="/p/"]` across the document. That returns the inbox
+ * list — eight links to eight other publications, each stamped with the
+ * CURRENT post's id in a `source` parameter — and taking the first is a coin
+ * flip that produces a card for someone else's article.
+ *
+ * Three decisions live in here:
+ *
+ *  - How far up do you walk? Stopping at the first ancestor holding an
+ *    article-shaped link is the tight read. Walking as far as `body` always
+ *    finds something, which is the problem.
+ *  - What counts as article-shaped? An href containing `/p/` also matches a
+ *    comment permalink. Anchoring on `/p/<slug>` is tighter.
+ *  - An anchor with empty text still yields a usable url. Is a url with no
+ *    title worth returning, or is that a null?
+ *
+ * Returning null is a real answer, not a failure to answer. `capture()` turns
+ * it into a refusal the reader can see, rather than keying the card on the
+ * inbox URL and making a second card for an article the board already holds.
+ */
+export function readReaderArticle(
+  doc: Document = document,
+): { url: string; title: string } | null {
+  // TODO(human)
+  return null;
+}
+```
+
+> **Correction, found during execution.** This step was written as the  
+> developer's, with a TODO(human) stub and a Learn-by-Doing request. On  
+> 2026-08-30 the developer handed it back for lack of time, so it was  
+> implemented directly. The three decisions in the comment above were resolved  
+> as: stop the walk before `<body>`; skip anchors inside `.body.markup`, so an  
+> article linking to another Substack post cannot hand back that post's URL;  
+> and treat `/p/<slug>` with nothing after it as article-shaped, so a  
+> `/p/<slug>/comment/<id>` permalink cannot key the card on a comment. An empty  
+> link text returns an empty title rather than a null, because `createCard`  
+> already falls back to the URL for a blank title and the URL is the part that  
+> cannot be recovered later. All four are reversible; the tests in Step 9 pin  
+> each one.
+
+- [x] **Step 12: Run the test and watch it pass**
+
+Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
+Expected: PASS, with one todo.
+
+- [x] **Step 13: Wire the background**
 
 Replace `extension/src/entrypoints/background.ts` entirely:
 
 ```ts
-import { articleKey, canonicalizeUrl, publicationFromHost, shouldCaptureFrom } from '../domain/url';
+import {
+  canonicalizeUrl,
+  isReaderRoute,
+  publicationFromHost,
+  shouldCaptureFrom,
+} from '../domain/url';
 import { readingMinutes } from '../domain/article';
 import { ingestCard } from '../db/cards';
-import { detectSignedOut, extractArticleMeta } from '../substack/extract';
+import { detectSignedOut, extractArticleMeta, readReaderArticle } from '../substack/extract';
 import { PANEL_STATE_KEY, type PanelState } from '../messages';
 
 export default defineBackground({
@@ -1462,11 +1720,48 @@ export default defineBackground({
         return;
       }
 
-      // The canonical link is more trustworthy than the address bar, which may
-      // carry a share token or a tracking parameter.
-      const url = meta.canonicalUrl ?? tabUrl;
+      // On the inbox reader route the head belongs to the app shell, so
+      // meta.canonicalUrl is `https://substack.com/inbox` and meta.title is the
+      // shell's. Read this article's own url and title out of the body instead.
+      let reader: { url: string; title: string } | null = null;
 
-      if (!meta.title) {
+      if (isReaderRoute(tabUrl)) {
+        try {
+          const [result] = await browser.scripting.executeScript({
+            target: { tabId },
+            func: readReaderArticle,
+          });
+          reader = result?.result ?? null;
+        } catch {
+          // Same refusal as above, and no more retryable.
+        }
+
+        // Without the article's own url there is no honest key for this card.
+        // Keying on the inbox url would make a second card for an article the
+        // board may already hold, so refuse and say why.
+        if (!reader) {
+          await browser.storage.session.set({
+            [PANEL_STATE_KEY]: {
+              articleKey: '',
+              tabId,
+              outcome: 'rejected',
+              notices: [
+                "Couldn't tell which article this is. Open it on the publication's own page and click again.",
+              ],
+              bodyText: '',
+            } satisfies PanelState,
+          });
+          return;
+        }
+      }
+
+      // The canonical link is more trustworthy than the address bar, which may
+      // carry a share token or a tracking parameter. The reader result outranks
+      // both: on that route it is the only one describing this article.
+      const url = reader?.url ?? meta.canonicalUrl ?? tabUrl;
+      const title = reader?.title ?? meta.title;
+
+      if (!title) {
         notices.push(
           "Couldn't read this page's details. Card created from the URL — edit the title below.",
         );
@@ -1488,7 +1783,7 @@ export default defineBackground({
 
       const outcome = await ingestCard({
         url,
-        title: meta.title ?? undefined,
+        title: title ?? undefined,
         author: meta.author ?? undefined,
         publication: publication || undefined,
         estimatedReadingMinutes: readingMinutes(meta.wordCount, meta.readable),
@@ -1522,33 +1817,57 @@ export default defineBackground({
 
 Note the ordering in the listener. `sidePanel.open()` must be the first `await` in the chain: Chrome ties it to the user gesture, and the gesture is spent once an unrelated async operation resolves. Capturing first and opening second fails with "sidePanel.open() may only be called in response to a user gesture" — a real bug that only appears at runtime.
 
-- [ ] **Step 6: Verify the types and the build**
+- [x] **Step 14: Verify the types and the build**
 
 Run: `cd extension; npm run compile; npm run build`  
 Expected: `compile` silent, `build` succeeds.
 
-- [ ] **Step 7: Verify the layering held**
+- [x] **Step 15: Verify the layering held**
 
-Run: `cd extension; grep -rn "import" src/substack/extract.ts || echo "OK: substack/ imports nothing"`  
-Expected: `OK: substack/ imports nothing`.
+Run: `cd extension; node -e "const s=require('fs').readFileSync('src/substack/extract.ts','utf8'); console.log(/^\s*import /m.test(s) ? 'FAIL: has imports' : 'OK: no import statements')"`  
+Expected: `OK: no import statements`.
 
-- [ ] **Step 8: Verify by hand against a free article**
+> **Correction, found during execution.** This step originally ran  
+> `grep -rn "import" src/substack/extract.ts`, which always reports a match:  
+> the file's own header comment contains the word "imported". The check is for  
+> import *statements*, so it is the anchored test from Task 2 Step 6, not a  
+> substring grep.
+
+Then confirm the injected functions survived the bundler, which is the failure the file's header warns about and which no type check catches:
+
+```bash
+cd extension; node -e "
+const src = require('fs').readFileSync('.output/chrome-mv3/background.js','utf8');
+let i = -1;
+while ((i = src.indexOf('.body.markup', i + 1)) !== -1) {
+  const slice = src.slice(src.lastIndexOf('function', i), i + 600);
+  const helpers = slice.match(/__[a-zA-Z]+/g);
+  console.log(helpers ? 'FAIL: closes over ' + [...new Set(helpers)].join(',') : 'OK: self-contained');
+}"
+```
+
+Expected: `OK: self-contained` twice, once for `extractArticleMeta` and once for `readReaderArticle`. A downlevel helper appearing here means the function references something outside its own body, which compiles, type-checks, and then throws a bare `ReferenceError` inside Substack's document.
+
+- [x] **Step 16: Verify by hand against a free article**
 
 Reload the unpacked extension. Open a free Substack article and click the toolbar button. Expected: the panel opens, says "Added to To Read.", and shows the real title, publication, author, and a reading estimate. Open the board in another tab and confirm the card is in To Read.
 
-- [ ] **Step 9: Verify by hand against the other five paths**
+- [x] **Step 17: Verify by hand against the other paths**
 
 1. Click again on the same article. Expected: "Already on your board. Metadata refreshed."
 2. Open a paywalled article from a publication you do not pay for and click. Expected: the card is created, "Preview only — reading time unavailable." appears, and the card face shows no minutes.
 3. Open an article on a custom-domain publication (`https://www.theworkthatholds.com/` has articles under `/p/`) and click. Expected: a card with a real title and publication. **If this fails, stop and record it — the remedy is a fourth fixture, and the spec names it as a known contingency.**
+  - DONE, 2026-08-30, and the contingency was wrong. The check failed on the URL, not the title: the card was keyed on `https://www.theworkthatholds.com/`. Substack is a React SPA and `<link rel="canonical">` is server-rendered rather than react-helmet managed, so navigating into the article from the publication's home page left the home page's canonical in the head. A fourth fixture would have proved nothing, because the fixture copies the SERVER's HTML and the server's canonical is correct. Fixed by `resolveArticleUrl` in `domain/url.ts`, which takes the canonical only when it names the same article as the address bar. See `changes.log`.
 4. Open `chrome://extensions` and click. Expected: the board opens, because the URL is not article-shaped.
 5. Sign out of Substack in a private window, open an article, and click. Expected: the card is created and the signed-out notice appears.
+6. **The inbox reader route.** Open a post from your Substack inbox, so the address bar reads `https://substack.com/inbox/post/<id>`, and click. Expected: a card with the post's real title and publication, not "Subscriptions | Substack". This is the step that proves the synthetic fixture in Step 9 modelled the real page. **If the title is the shell's, `readReaderArticle` returned null or matched the wrong anchor — stop and re-run the DevTools walk from the 2026-08-30 learning note before changing anything.**
+7. **The same article, twice, by two routes.** Note the card from the previous check, then open that same article on the publication's own domain and click. Expected: "Already on your board. Metadata refreshed." and still one card. Two cards means the reader route is keying on something other than `<publication>/p/<slug>`, which is the failure this whole branch exists to prevent.
 
-- [ ] **Step 10: Verify the status buttons**
+- [x] **Step 18: Verify the status buttons**
 
 With the panel open on an article, click **Reading**. Expected: the button disables, and on the board the card is at the top of the Reading column. Open the card's detail panel on the board and confirm `readAt` was stamped by checking the card survives a reload in Reading.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 19: Commit**
 
 ```bash
 git add extension/src

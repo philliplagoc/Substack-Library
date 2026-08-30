@@ -1,5 +1,11 @@
 import { describe, test, expect } from 'vitest';
-import { articleKey, canonicalizeUrl, shouldCaptureFrom } from './url';
+import {
+  articleKey,
+  canonicalizeUrl,
+  isReaderRoute,
+  resolveArticleUrl,
+  shouldCaptureFrom,
+} from './url';
 
 describe('canonicalizeUrl', () => {
   test('strips the query string', () => {
@@ -143,5 +149,100 @@ describe('shouldCaptureFrom', () => {
     expect(shouldCaptureFrom(undefined)).toBe(false);
     expect(shouldCaptureFrom(null)).toBe(false);
     expect(shouldCaptureFrom('')).toBe(false);
+  });
+});
+
+describe('resolveArticleUrl', () => {
+  /**
+   * Measured on a live page, 2026-08-30. Substack is a React SPA and
+   * `<link rel="canonical">` is server-rendered rather than helmet-managed, so
+   * a client-side navigation into an article leaves the PREVIOUS page's
+   * canonical sitting in the head. The address bar had the article; the
+   * canonical and og:url both still read the publication's home page.
+   */
+  test('ignores a canonical left behind by a client-side navigation', () => {
+    expect(
+      resolveArticleUrl(
+        'https://www.theworkthatholds.com/p/stop-posting-random-thoughts',
+        'https://www.theworkthatholds.com/',
+      ),
+    ).toBe('https://www.theworkthatholds.com/p/stop-posting-random-thoughts');
+  });
+
+  test('ignores a canonical naming a different article', () => {
+    expect(
+      resolveArticleUrl(
+        'https://alpha.substack.com/p/questions',
+        'https://alpha.substack.com/p/some-other-post',
+      ),
+    ).toBe('https://alpha.substack.com/p/questions');
+  });
+
+  test('keeps a fresh canonical', () => {
+    expect(
+      resolveArticleUrl(
+        'https://alpha.substack.com/p/questions?utm_source=post',
+        'https://alpha.substack.com/p/questions',
+      ),
+    ).toBe('https://alpha.substack.com/p/questions');
+  });
+
+  test('lets a fresh canonical replace the share route with the publication', () => {
+    expect(
+      resolveArticleUrl(
+        'https://open.substack.com/pub/alpha/p/questions',
+        'https://alpha.substack.com/p/questions',
+      ),
+    ).toBe('https://alpha.substack.com/p/questions');
+  });
+
+  test('falls back to the tab url when the page offers no canonical', () => {
+    expect(resolveArticleUrl('https://alpha.substack.com/p/questions', null)).toBe(
+      'https://alpha.substack.com/p/questions',
+    );
+    expect(resolveArticleUrl('https://alpha.substack.com/p/questions', undefined)).toBe(
+      'https://alpha.substack.com/p/questions',
+    );
+  });
+
+  test('falls back to the tab url when the canonical is not a url', () => {
+    expect(resolveArticleUrl('https://alpha.substack.com/p/questions', '/p/questions')).toBe(
+      'https://alpha.substack.com/p/questions',
+    );
+  });
+});
+
+describe('the inbox reader route', () => {
+  const READER = 'https://substack.com/inbox/post/213391431';
+
+  test('captures a post opened from the inbox', () => {
+    expect(shouldCaptureFrom(READER)).toBe(true);
+  });
+
+  test('survives the query string the inbox appends', () => {
+    // canonicalizeUrl strips `search`, so utm_medium=reader2 changes nothing.
+    expect(shouldCaptureFrom(`${READER}?utm_medium=reader2`)).toBe(true);
+  });
+
+  test('still ignores the Saved list beside it', () => {
+    expect(shouldCaptureFrom('https://substack.com/inbox/saved')).toBe(false);
+  });
+
+  test('ignores the inbox itself', () => {
+    expect(shouldCaptureFrom('https://substack.com/inbox')).toBe(false);
+  });
+
+  test('ignores a post segment that is not an id', () => {
+    expect(shouldCaptureFrom('https://substack.com/inbox/post/settings')).toBe(false);
+  });
+
+  test('names the route, so the caller knows the head is untrustworthy', () => {
+    expect(isReaderRoute(READER)).toBe(true);
+  });
+
+  test('does not call an ordinary article a reader route', () => {
+    expect(isReaderRoute('https://alpha.substack.com/p/questions')).toBe(false);
+    expect(isReaderRoute('https://substack.com/inbox/saved')).toBe(false);
+    expect(isReaderRoute(undefined)).toBe(false);
   });
 });

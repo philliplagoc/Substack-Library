@@ -2570,3 +2570,73 @@ The flag earns its place on a rename. If React drops `componentDidCatch` in a
 later version, the plain method would stay in the class, never run again, and
 say nothing. With `override`, the day the base member disappears the build
 stops.
+
+## 2026-08-29 - Milestone 2A
+
+### Why do you want to create a worktree?
+
+A worktree is a separate checkout of the same Git repository. It has its own
+branch and working files. It lets Task 5 change code, run tests, and create a
+commit without changing the current `main` checkout.
+
+This repository already has unrelated changes to the plan and an untracked
+`.claude/` folder. A worktree keeps those files separate from Task 5. It also
+makes review and rollback simpler because the task has one branch.
+
+## 2026-08-30 - Milestone 2A, the inbox reader route
+
+### Is there a reason why the panel doesn't open for a link like `https://substack.com/inbox/post/213391431`?
+
+`shouldCaptureFrom` matches two path shapes, and this is neither of them.
+
+```
+/p/<slug>              direct
+/pub/<pub>/p/<slug>    share route
+```
+
+`/inbox/post/213391431` matches no rule, so the click opens the board.
+
+That is one of three problems. The other two stay hidden until you loosen the
+rule.
+
+**The head belongs to a different page.** `substack.com/inbox/post/<id>` is one
+screen inside a Substack app. The server sends a shell for `/inbox`, and the
+browser draws the post into it after the page loads. So the tags in `<head>`
+describe the shell:
+
+| Read path                | What it gives                 |
+| ------------------------ | ----------------------------- |
+| `link[rel="canonical"]`  | `https://substack.com/inbox`  |
+| `og:title`               | `Subscriptions \| Substack`   |
+| `application/ld+json`    | nothing                       |
+
+`extractArticleMeta` reads `<head>` first. On this route it returns a title that
+looks fine and belongs to the wrong page.
+
+**A number is not a name.** Every other route keys on `<publication>/p/<slug>`,
+which reads out of the URL string. `213391431` is a row id in Substack's
+database, and nothing in the extension can turn it into a slug without asking
+Substack. `articleKey` has no rule for it and falls through to the raw URL, so
+one article read twice, once here and once on its own site, becomes two cards.
+
+**The body holds the answer.** Walk up from `.body.markup` to the nearest link
+containing `/p/`:
+
+```js
+https://improvebypathsofstoicism.substack.com/p/be-delusional-about-what-you-can
+```
+
+That link carries the article URL, and its text is the title. `articleKey` turns
+it into the same key the article gets on its own domain, so one article stays
+one card.
+
+Two rules for reading a page built this way:
+
+- `<head>` is written once by the server, for the route the server matched. The
+  body is drawn by the browser, for whatever the app chose to show. When the two
+  disagree, an extractor that trusts the head reports the wrong page and reports
+  it with confidence.
+- Scope to a subtree before you match. `a[href*="/p/"]` across the whole page
+  returns eight links to eight other publications, because the inbox list is
+  still in the DOM behind the post. Starting the walk at `.body.markup` returns
+  one.

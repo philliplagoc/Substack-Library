@@ -84,6 +84,45 @@ export function articleKey(raw: string): string | null {
 }
 
 /**
+ * The URL to store for an article, given the address bar and the canonical
+ * link the page declares.
+ *
+ * A fresh canonical is worth preferring. On the `open.substack.com/pub/...`
+ * share route it names the publication's own address instead, which is the one
+ * a reader wants to open later.
+ *
+ * A canonical cannot be assumed fresh. Substack is a React SPA, and
+ * `<link rel="canonical">` is server-rendered rather than react-helmet managed
+ * — `og:title` carries `data-rh="true"` and the canonical does not. A
+ * client-side navigation into an article therefore swaps the title and leaves
+ * the PREVIOUS page's canonical in the head. Measured on
+ * `www.theworkthatholds.com` on 2026-08-30: the address bar read
+ * `/p/stop-posting-random-thoughts` while canonical and og:url both still read
+ * `https://www.theworkthatholds.com/`.
+ *
+ * The address bar cannot go stale, because the browser owns it and the page
+ * does not. So it is the floor: the canonical only wins when it agrees with
+ * the address bar about which article this is.
+ */
+export function resolveArticleUrl(
+  tabUrl: string,
+  canonicalUrl: string | null | undefined,
+): string {
+  if (typeof canonicalUrl !== 'string') return tabUrl;
+
+  const canonical = canonicalizeUrl(canonicalUrl);
+  if (canonical === null) return tabUrl;
+
+  // Same publication and same slug, or the address bar wins. `articleKey`
+  // reads the publication out of the host, so a canonical pointing at the
+  // publication's OTHER domain counts as a different article and loses. That
+  // costs the nicer host in a case Substack already makes rare, because a
+  // publication with a custom domain redirects its `*.substack.com` address to
+  // it. Storing a URL from the wrong publication is the expensive mistake.
+  return articleKey(canonical) === articleKey(tabUrl) ? canonical : tabUrl;
+}
+
+/**
  * Does this URL name a Substack article the extension should capture?
  *
  * The board wins every other URL: the toolbar button opens it instead.
@@ -91,6 +130,11 @@ export function articleKey(raw: string): string | null {
  * A false positive is cheap. A non-Substack page with a `/p/` path gets
  * injected, yields no Substack metadata, and says so. A false NEGATIVE is
  * expensive: the reader clicks on a real article and gets the board.
+ *
+ * The inbox reader route is the exception to "a false positive is cheap". It
+ * serves a real og:title belonging to the app shell, so a wrong answer arrives
+ * looking like a right one. `capture()` carries the guard: when the article's
+ * own URL cannot be read out of the body, it refuses out loud.
  */
 export function shouldCaptureFrom(rawUrl: string | undefined | null): boolean {
   // Narrow the type so canonicalizeUrl, which takes a plain string, accepts it.
@@ -107,5 +151,26 @@ export function shouldCaptureFrom(rawUrl: string | undefined | null): boolean {
   const direct = /^\/p\/[^/]+$/;
   const shared = /^\/pub\/[^/]+\/p\/[^/]+$/;
 
-  return direct.test(pathname) || shared.test(pathname);
+  return direct.test(pathname) || shared.test(pathname) || isReaderRoute(canonical);
+}
+
+/**
+ * Is this the Substack app's inbox reader rather than an article's own page?
+ *
+ * `substack.com/inbox/post/<id>` draws a post inside the app shell. The server
+ * matched `/inbox`, so `<head>` describes the shell and every head-first read
+ * path in `extract.ts` answers for the wrong page. A caller that sees true must
+ * read the article's identity out of the body instead.
+ *
+ * The host is part of the rule. No publication serves `/inbox/post/<id>` from
+ * its own domain, so matching the path alone would widen this for nothing.
+ */
+export function isReaderRoute(rawUrl: string | undefined | null): boolean {
+  if (typeof rawUrl !== 'string') return false;
+
+  const canonical = canonicalizeUrl(rawUrl);
+  if (canonical === null) return false;
+
+  const { hostname, pathname } = new URL(canonical);
+  return hostname === 'substack.com' && /^\/inbox\/post\/\d+$/.test(pathname);
 }

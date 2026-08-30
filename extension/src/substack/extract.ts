@@ -113,3 +113,84 @@ export function extractArticleMeta(doc: Document = document): ArticleMeta {
 
   return { title, author, publication, canonicalUrl, wordCount, readable, bodyText };
 }
+
+/**
+ * Is the reader signed out of Substack?
+ *
+ * spike/README.md, "Signed-out state": the sign-in prompt has no id, no
+ * aria-label, and no data-testid. Its class chain is eight build hashes deep,
+ * and `buttonBase-GK1x3M` is shared with the paywall's Subscribe button, so
+ * the hashes name a component type rather than one button. Scope to the nav
+ * container and match on text, the same way the Save menu item is read.
+ *
+ * Signed out is NOT a capture blocker. Metadata reads without a session. Only
+ * the native controls need one, and Milestone 2A invokes none.
+ */
+export function detectSignedOut(doc: Document = document): boolean {
+  const nav = doc.querySelector('#main [class*="mainMenuContent"]');
+  if (!nav) return false;
+  return Array.from(nav.querySelectorAll('button')).some(
+    (b) => (b.textContent || '').trim() === 'Sign in',
+  );
+}
+
+/**
+ * The article a reader-route page is showing, or nothing.
+ *
+ * `substack.com/inbox/post/<id>` draws a post inside the app shell. The shell's
+ * head describes `/inbox`, so canonical, og:title, and JSON-LD all answer for
+ * the wrong page. The body is the only honest source on this route.
+ *
+ * The target is the post's own link: article-shaped href, sitting in an
+ * ancestor of `.body.markup`. Its text is the post title. Measured on a live
+ * page, `.body.markup` is unique and belongs to the open post; the inbox list
+ * rendered behind it carries no body of its own.
+ *
+ * DO NOT match `a[href*="/p/"]` across the document. That returns the inbox
+ * list - eight links to eight other publications, each stamped with the
+ * CURRENT post's id in a `source` parameter - and taking the first is a coin
+ * flip that produces a card for someone else's article.
+ *
+ * Three decisions, all reversible:
+ *
+ *  - The walk stops before <body>. Reaching <body> would always find a link,
+ *    because the inbox list lives there, and always finding one is the failure
+ *    this function exists to avoid.
+ *  - Anchors inside `.body.markup` are skipped. An article that links to
+ *    another Substack post would otherwise hand back that post's URL.
+ *  - Article-shaped means `/p/<slug>` and nothing after it. A bare "/p/"
+ *    substring also matches `/p/<slug>/comment/<id>`, which would key the card
+ *    on a comment.
+ *
+ * An empty title is returned as an empty string rather than a null result. The
+ * URL is the part that cannot be recovered later; `createCard` already falls
+ * back to the URL for a blank title, and the panel says so.
+ *
+ * Returning null is a real answer, not a failure to answer. `capture()` turns
+ * it into a refusal the reader can see, rather than keying the card on the
+ * inbox URL and making a second card for an article the board already holds.
+ */
+export function readReaderArticle(
+  doc: Document = document,
+): { url: string; title: string } | null {
+  const ARTICLE_HREF = /\/p\/[^/?#]+(?:[?#].*)?$/;
+
+  const body = doc.querySelector('.body.markup');
+  if (!body) return null;
+
+  let node: Element | null = body.parentElement;
+
+  while (node && node !== doc.body) {
+    for (const anchor of Array.from(node.querySelectorAll('a[href]'))) {
+      if (body.contains(anchor)) continue;
+
+      const href = anchor.getAttribute('href');
+      if (href && ARTICLE_HREF.test(href)) {
+        return { url: href, title: (anchor.textContent || '').trim() };
+      }
+    }
+    node = node.parentElement;
+  }
+
+  return null;
+}

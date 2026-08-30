@@ -43,21 +43,28 @@ design-doc wrap-up edits all landed in one commit on top of `b1a4e44`, titled
 `feat(extension): add the error boundary and complete Milestone 1`. Milestone 2
 is split into 2A (capture and the companion panel) and 2B (Markdown export and
 the vault write). The 2A design and its eight-task plan are both written. Tasks
-1 through 4 are done and committed. Task 5 code and automated verification are
-complete; its browser reload check (Step 10) remains. Task 6 follows after that
-check.
+1 through 4 are done and committed. Task 5 is committed. Task 6 grew from 11
+steps to 19 to absorb the inbox reader route, and all 19 are now done and
+committed. Its Steps 16 to 18 are browser checks and passed by hand on
+2026-08-30. Step 17 check 3 failed on its first run and was fixed by
+`resolveArticleUrl`; every check then passed, including check 7, the one that
+proves two routes to one article make one card. Tasks 7 and 8 are next.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
 plain HTML/CSS/JS board that settled the layout. `extension/` holds the real
-extension: `src/entrypoints/background.ts` (the toolbar handler that opens or
-focuses the board tab, tracked in `browser.storage.session`, and routes an
-article-shaped URL to `sidePanel.open`), `src/entrypoints/board/` (the board
+extension: `src/entrypoints/background.ts` (the toolbar handler: it opens or
+focuses the board tab, tracked in `browser.storage.session`, and on an
+article-shaped URL opens the side panel, injects the extractors, resolves the
+article, calls `ingestCard()`, and writes `PanelState`), `src/entrypoints/board/` (the board
 page), `src/entrypoints/sidepanel/` (the reading panel document and React
 root), `src/domain/` (`types.ts`, `url.ts` with `canonicalizeUrl`,
-`articleKey`, `shouldCaptureFrom`, `publicationFromHost`; `article.ts` with
-`readingMinutes`), `src/substack/` (`extract.ts`, holding `ArticleMeta` and
-`extractArticleMeta`), `src/messages.ts` (types only: `PanelState`,
+`articleKey`, `resolveArticleUrl`, `shouldCaptureFrom`, `isReaderRoute`,
+`publicationFromHost`;
+`article.ts` with `readingMinutes`), `src/substack/` (`extract.ts`, holding
+`ArticleMeta`, `extractArticleMeta`, `detectSignedOut`, and
+`readReaderArticle` - every one of them self-contained, because
+`executeScript` ships them by `Function.prototype.toString()`), `src/messages.ts` (types only: `PanelState`,
 `PANEL_STATE_KEY`, `PanelMessage`, `CaptureSelectionReply` — belongs to no
 layer), `src/db/` (`schema.ts` at version 2, `cards.ts` with `allCards`,
 `getCard`, `updateCard`, `deleteCard`, `nextSortOrder`, `applyOrder`,
@@ -72,8 +79,8 @@ board reads Dexie directly through `useLiveQuery` and renders three columns.
 fields. `DetailPanel.tsx` supplies its Substack flags and delete button through
 the editor footer. `ReadingPanel.tsx` supplies three status buttons through the
 same footer and follows the `PanelState` the background writes on each toolbar
-click; nothing writes that state yet, so it stays on its empty-state message
-until Task 6. The UI writes through the add-by-URL form, dnd-kit drag and drop,
+click. Task 6 now writes that state, so the panel has something to show; no
+browser check has confirmed it. The UI writes through the add-by-URL form, dnd-kit drag and drop,
 the card detail panel, and JSON backup and restore.
 **Card identity:** A card carries `url` and `articleKey`. `url` is the address
 the card was added with and links to. `articleKey` is what dedup compares, so
@@ -104,8 +111,11 @@ imports a Node builtin needs `@types/node`, now a dev dependency.
 `src/substack/extract.test.ts` reads `node:fs` and is the only such file.
 `npm test` will not catch a missing type; Vite strips types without reading
 them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 129
-tests across 8 files, on Vitest with `fake-indexeddb` and `linkedom`. `npm run compile` reports
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 151
+tests and 1 todo across 8 files, on Vitest with `fake-indexeddb` and `linkedom`.
+Run it from `extension/`. Running Vitest from the repository root also sweeps
+`.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
+`npm run compile` reports
 nothing and `npm run build` is clean. The React layer has no tests by design.
 `extension/MANUAL-CHECKS.md` covers that layer; its Milestone 1 boxes are ticked
 against a loaded build, and Milestone 2A adds boxes in Task 8 that are not yet
@@ -153,8 +163,9 @@ article body.
   three decisions in `implementation-plan.md` and the Milestone 1 design.
 - `docs/superpowers/plans/2026-08-29-milestone-2a.md` - the task-by-task plan for
   Milestone 2A. Eight tasks. Read its "Corrections to the design doc" section
-  first; the spec's `substack/selectors.ts` does not exist, and tasks 4 to 6 are
-  reordered.
+  first; the spec's `substack/selectors.ts` does not exist, tasks 4 to 6 are
+  reordered, and correction 4 holds the inbox reader route, a fourth capture
+  shape whose `<head>` describes a different page than its `<body>` does.
 - `docs/superpowers/plans/2026-08-16-milestone-0.md` - the finished Milestone 0
   plan, 12 tasks in two parts.
 - `spike/README.md` - the Substack compatibility doc. Milestones 2 and 3 read it
@@ -164,10 +175,13 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Reload the unpacked extension and perform Task 5 Step 10: the panel
-opens on a Substack article and reads its empty-state message. Then execute
-Task 6, which wires the toolbar click through extraction, ingest, and
-`PanelState`.
+**Next up:** Task 6 Steps 1 to 15 are done and uncommitted. What remains is all
+browser work. Reload the unpacked extension, then run Task 6 Steps 16, 17, and
+18. Step 17 check 6 opens a post from the inbox, at
+`https://substack.com/inbox/post/<id>`, and check 7 opens that same article on
+its publication's domain and demands one card, not two. Commit at Step 19 once
+those pass. Task 5 Step 10 is now moot: Task 6 writes the `PanelState` whose
+absence that step was checking for, so Step 16 supersedes it.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -192,6 +206,10 @@ asked for; worth a cleanup pass before Task 2.
   manual pass is the first real check; a fourth fixture is the remedy if it fails.
 - Milestone 2A's panel follows deliberate toolbar clicks, not tab focus. Whether
   that is right is a question only real use answers. Revisit after two weeks.
+- The inbox reader route has no fixture. Task 6 tests `readReaderArticle`
+  against synthetic HTML, so the unit tests prove the walk against a model of
+  the page rather than the page. Task 6 Step 17 check 6 is the first real check.
+  A fourth fixture is the remedy if it fails.
 
 Both open questions carried in the 2026-08-29 state are now closed. `isPreview`
 reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
@@ -202,6 +220,155 @@ reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
 ---
 
 ## Entries
+
+### 2026-08-30 - Task 6 verified by hand and committed
+
+**What changed:** No code. Steps 16, 17, and 18 of Task 6 were run against a
+loaded build and all passed, and the whole of Task 6 was committed and pushed to
+`origin/main` in one commit.
+**Why:** Task 6 was written across two sessions and sat uncommitted the whole
+time. Steps 16 to 18 are the only checks that touch a real browser, so nothing
+before them proved the panel showed anything.
+**Files:** `changes.log`, `docs/superpowers/plans/2026-08-29-milestone-2a.md`.
+The commit itself also carries the uncommitted Task 6 code from Steps 1 to 15
+and the `resolveArticleUrl` fix from the entry below.
+**Verification:** `cd extension; npx vitest run` passes, 151 tests and 1 todo
+across 8 files. `npx tsc --noEmit` and `npx wxt build` are both clean. Steps 16
+to 18 passed by hand, including Step 17 check 7, which proves the same article
+reached by two routes makes one card.
+**State after:** Milestone 2A Tasks 1 through 6 are all done and committed. The
+toolbar click captures an article, ingests it, and opens the reading panel with
+its status buttons working.
+**Next up:** Task 7.
+**Open questions:** The staleness that broke Step 17 check 3 may also reach
+`meta.publication`, which is read from JSON-LD and is not react-helmet managed.
+It read correctly during the checks, but both pages in that test name the same
+publication, so the check did not distinguish. Carried forward from the entry
+below.
+
+### 2026-08-30 - Stop trusting a stale canonical link (2A Task 6, Step 17 fix)
+
+**What changed:** `domain/url.ts` gained `resolveArticleUrl(tabUrl,
+canonicalUrl)`, and `background.ts` now calls it instead of taking
+`meta.canonicalUrl ?? tabUrl`. The canonical link only wins when
+`articleKey(canonical) === articleKey(tabUrl)`; otherwise the address bar wins.
+**Why:** Step 17 check 3 failed. On `www.theworkthatholds.com` the card came
+back with the right title and publication but the URL
+`https://www.theworkthatholds.com/`. Substack is a React SPA and
+`<link rel="canonical">` is server-rendered rather than react-helmet managed -
+`og:title` carries `data-rh="true"`, the canonical does not. A client-side
+navigation into an article swaps the helmet tags and leaves the previous page's
+canonical in the head. Confirmed in the console (`location.href` on the article,
+canonical and og:url on the home page) and by a hard reload producing a correct
+card. The plan named a fourth fixture as the remedy for this check failing;
+that was wrong and is not what landed. A fixture is a copy of the SERVER's HTML,
+and the server's canonical is correct - I fetched both pages to confirm. The
+fixture would pass and prove nothing. Slug-only comparison was the rejected
+alternative: it would keep a fresh canonical that points at a publication's
+other domain, which helps dedup, but it can also accept a stale canonical from a
+different publication that happens to share a slug. Storing a URL from the wrong
+publication is the expensive mistake, and Substack redirects a publication's
+`*.substack.com` address to its custom domain, so the case slug-comparison would
+have won is already rare.
+**Files:** `extension/src/domain/url.ts`, `extension/src/domain/url.test.ts`,
+`extension/src/entrypoints/background.ts`, `changes.log`.
+**Verification:** `cd extension; npx vitest run` passes, 151 tests and 1 todo
+across 8 files. `npx tsc --noEmit` reports nothing. `npx wxt build` is clean and
+the injected-function check still prints `OK: self-contained` twice. Re-checked
+by hand on the live custom-domain article: a card with the correct URL. NOTE:
+running `npx vitest run` from the REPOSITORY root instead of `extension/` sweeps
+`.worktrees/task-5-reading-panel/` and reports 76 failures that belong to that
+stale worktree, not to this code.
+**State after:** Step 17 checks 2 and 3 pass. Checks 1 and 4 through 7 have not
+been run in this session.
+**Next up:** Finish Step 17 checks 1 and 4 through 7, then Step 18, then commit
+all of Task 6.
+**Open questions:** The same staleness can hit `meta.title`, `meta.author`, and
+`meta.publication` on a client-side navigation. `og:title` is helmet-managed and
+did update, but JSON-LD carries no `data-rh` either, so `publication` may have
+been read off the previous page and happened to match. Not investigated.
+
+### 2026-08-30 - Wire the toolbar click through capture (2A Task 6, code only)
+
+**What changed:** Task 6 steps 1 to 15. `substack/extract.ts` gained
+`detectSignedOut()` and `readReaderArticle()`. `domain/url.ts` gained
+`isReaderRoute()`, and `shouldCaptureFrom` now accepts
+`substack.com/inbox/post/<id>`. `background.ts` was rewritten: the toolbar click
+opens the side panel, injects the extractors, resolves the article, calls
+`ingestCard()`, and writes `PanelState` into session storage. A `reject()` helper
+holds the three refusal paths so each one writes the same shape.
+**Why:** Task 6 is the task that makes the panel show anything. The reader-route
+work is folded in per correction 4, decided in the previous entry.
+`readReaderArticle` was planned as a TODO(human) and the developer handed it
+back for lack of time, so it was implemented directly; the plan's Step 11 now
+records which way each of its decisions went. Rejected inside it: walking as far
+as `<body>` (always finds a link, because the inbox list lives there), matching a
+bare `/p/` substring (also matches `/p/<slug>/comment/<id>`), and searching
+anchors inside `.body.markup` (an article linking to another Substack post would
+hand back that post's URL).
+**Files:** `extension/src/substack/extract.ts`,
+`extension/src/substack/extract.test.ts`, `extension/src/domain/url.ts`,
+`extension/src/domain/url.test.ts`, `extension/src/entrypoints/background.ts`,
+`docs/superpowers/plans/2026-08-29-milestone-2a.md`.
+**Verification:** `npm test` passes, 145 tests and 1 todo across 8 files, up from
+129. `npm run compile` reports nothing. `npm run build` is clean. The bundled
+`background.js` was read back to confirm both injected functions compiled
+self-contained, with no closure references and no downlevel helpers: that is the
+failure the extractor's header warns about and neither the type check nor the
+test suite catches it. Steps 16, 17, and 18 are browser checks and are NOT run.
+**State after:** The code is complete and unverified in a browser. Nothing is
+committed.
+**Next up:** Task 5 Step 10, then Task 6 Steps 16 to 18 in a loaded build, then
+the Step 19 commit. Step 17 check 6 is the one that matters most: it is the first
+time `readReaderArticle` meets a real reader page rather than the synthetic HTML
+its unit tests use.
+**Open questions:** The Step 9 fixture is synthetic, so the unit tests pin the
+decisions rather than prove the selectors. Step 17 check 6 is the real proof.
+The `test.todo` in that describe block is a real open question: what
+`readReaderArticle` should return on an ordinary article page, where
+`capture()` never calls it because `isReaderRoute` guards the call.
+
+### 2026-08-30 - The inbox reader route, and what it breaks
+
+**What changed:** No code. Investigated why the toolbar click opens the board on
+`https://substack.com/inbox/post/213391431`, then amended the Milestone 2A plan.
+Task 6 grew from 11 steps to 19: `domain/url.ts` gains `isReaderRoute()`,
+`shouldCaptureFrom` gains the route, `substack/extract.ts` gains
+`readReaderArticle()` as a TODO(human), and `capture()` prefers that result over
+`meta.canonicalUrl` for both url and title. The plan's "Corrections to the design
+doc" section gained a fourth correction holding the measurements.
+**Why:** Three separate failures, only the first of which is the matcher.
+`shouldCaptureFrom` matches `/p/<slug>` and `/pub/<pub>/p/<slug>` and this is
+neither. Loosening it alone would have made things worse: the route is an app
+shell, so `<head>` describes `/inbox` while `<body>` holds the post, and every
+head-first read path in `extract.ts` returns a wrong answer without a null to
+signal it. `og:title` is the dangerous one, non-empty and wrong, so the
+"couldn't read this page's details" notice never fires. Third, `213391431` is a
+Substack row id, not a slug, so `articleKey` falls through to the raw URL and the
+same article read twice becomes two cards. Rejected: reading
+`link[rel="canonical"]` after hydration, which was the obvious fix and is dead —
+measured on the live page, it stays `https://substack.com/inbox`. Rejected:
+documenting the route as an exclusion, because the article IS reachable from the
+body. Rejected: a separate task ahead of Task 6, which would have meant writing
+`capture()` twice.
+**Files:** `docs/superpowers/plans/2026-08-29-milestone-2a.md`,
+`docs/learning-notes.md`.
+**Verification:** Four DevTools probes against the live route. `.body.markup` is
+present and unique and belongs to the open post, so word count, `bodyText`, and
+Task 7's quote capture need no change. Walking up from `.body.markup` to the
+nearest `/p/` anchor gives the article's own URL, whose link text is the post
+title. The unscoped `a[href*="/p/"]` gives 8 links to 8 other publications, the
+inbox list still mounted behind the post, so scoping the walk is load-bearing.
+No tests run; no code changed.
+**State after:** The plan is ready to execute. Nothing in `extension/` moved, so
+the route still opens the board.
+**Next up:** Unchanged. Task 5 Step 10's browser reload check, then Task 6.
+**Open questions:** No reader-route fixture exists in `spike/`. Task 6 Step 9
+tests `readReaderArticle` against synthetic HTML, so the unit tests prove the
+walk against a model of the page and Step 17 check 6 is what proves the model.
+Capturing a real fixture is the fix if that check fails; note that
+`spike/README.md` "Risks found" records a signed share token hiding in
+`data-attrs` that took three anonymization passes to catch.
 
 ### 2026-08-30 - Build the reading side panel (2A Task 5)
 
