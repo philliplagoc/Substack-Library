@@ -44,8 +44,11 @@ tasks are done, committed, and pushed to `origin/main`, the last of them at
 30 added for 2A. Two long-open questions closed in that pass: a custom-domain
 publication captures a real title and publication, so the fourth fixture the
 plan named as its remedy is not needed; and the home feed's reader shell reads
-like the inbox's, so one `readReaderArticle` handles both. No 2B design exists
-yet, and writing it is the next step.
+like the inbox's, so one `readReaderArticle` handles both. The 2B design is
+written and approved and no 2B code exists. 2B was cut from four items to
+three: the Obsidian vault write left it for a spec of its own, so 2B is
+Markdown serialization, the versioned download, and the offer to move a card to
+Processed.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -166,6 +169,11 @@ article body.
   first; the spec's `substack/selectors.ts` does not exist, tasks 4 to 6 are
   reordered, and correction 4 holds the inbox reader route, a fourth capture
   shape whose `<head>` describes a different page than its `<body>` does.
+- `docs/superpowers/specs/2026-08-30-milestone-2b-design.md` - the Milestone 2B
+  design. Markdown serialization, the versioned download, and the Processed
+  offer. Read its "Amendments to earlier documents" section first: the vault
+  write leaves Milestone 2 for a spec of its own, and the frontmatter grows to
+  eight keys.
 - `docs/superpowers/plans/2026-08-16-milestone-0.md` - the finished Milestone 0
   plan, 12 tasks in two parts.
 - `spike/README.md` - the Substack compatibility doc. Milestones 2 and 3 read it
@@ -175,12 +183,11 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Commit Task 7 and the reader-route fix, as two commits. Then click
-the toolbar button on a home-feed post, `substack.com/home/post/p-<id>`: the
-route now reaches `capture()`, but whether `readReaderArticle` can read an
-article out of that shell has never been checked. Then Task 8, the manual
-checks and the wrap-up. Task 5 Step 10 is moot: Task 6 writes the `PanelState`
-whose absence that step was checking for, so Task 6 Step 16 superseded it.
+**Next up:** Write the Milestone 2B implementation plan, four tasks, into
+`docs/superpowers/plans/`. The design names them: `toMarkdown`;
+`exportFilename`; `recordExport` and `moveCardTo`; then the button, both
+footers, the failure notices, and the wrap-up. Task 1 and task 2 each carry a
+`TODO(human)`.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -224,6 +231,72 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-08-30 - Write the Milestone 2B design, and cut the vault out of it
+
+**What changed:** Wrote
+`docs/superpowers/specs/2026-08-30-milestone-2b-design.md`. No code changed.
+2B is now three things, not four: Markdown serialization, the versioned
+download, and the offer to move a card to Processed.
+**Why:** The vault write was in the scope until the brainstorm reached its first
+real question — whether a re-export into an Obsidian vault should overwrite the
+note or sit beside it as a `(v2)`. Both answers are defensible and neither is
+answerable from a document. The vault also drags in the File System Access API,
+a persisted directory handle, a write permission that lapses between browser
+sessions, and a settings surface, none of which is needed to get a note out of
+the extension. It moves to its own spec, to be written once real exported notes
+exist in a real vault and the overwrite question is a question about files the
+developer can see.
+
+The rest of the design, in short:
+
+`domain/markdown.ts` holds `toMarkdown` and `exportFilename`, both pure and
+importing types only, sibling to `domain/backup.ts`. `db/cards.ts` gains
+`recordExport`. `ui/exportCard.ts` is the fifteen lines of glue and
+`ui/ExportButton.tsx` is the one component both editors mount, because `src/ui/`
+has no tests and writing the blob-and-anchor sequence twice would put two
+untested copies of the same error handling in two files that drift.
+
+`chrome.downloads` was rejected. It offers real filename control and costs a new
+permission, a message round trip, and a collision: `conflictAction: 'uniquify'`
+appends its own ` (1)` on top of this design's ` (v2)`.
+
+**The export is recorded after the file is written, not before.** A counter
+bumped ahead of a failed download leaves a version number for a file that does
+not exist. In the chosen order the worst case is a duplicate file, which is
+recoverable. Order the steps so the irreversible one runs first.
+
+`exportVersion` counts exports, not files on disk. Delete a `(v2)` by hand and
+the next export is still `(v3)`. The extension has no read access to Downloads
+and asks for none, so the number is an honest history rather than a confident
+wrong inventory.
+
+`ReadingPanel`'s private `moveTo` moves into `db/cards.ts` as `moveCardTo`,
+because the Processed offer needs the same move from two components and `src/ui/`
+has no tests. That converts a manual check into an automated one.
+
+**The three amendments to `implementation-plan.md`**, each recorded in the
+spec's "Amendments to earlier documents" section: the vault write leaves
+Milestone 2; the frontmatter grows from seven keys to eight, gaining
+`reading_minutes`, because reading time is what the board triages on; and the
+exported file labels a lost quote locator with an italic marker line, where the
+reliability rule had described only the panel doing it.
+
+**Files:** `docs/superpowers/specs/2026-08-30-milestone-2b-design.md` (new),
+`changes.log`.
+**Verification:** Not run. No code changed. Every claim the spec makes about the
+existing code was read out of it first: `exportVersion`, `lastExportedAt`, and
+`tags` are already on `Card` in `domain/types.ts` and already validated by
+`describeProblem` in `domain/backup.ts`, so Dexie stays at version 2; and
+`BackupControls.tsx` already ships the blob-and-anchor download this design
+reuses.
+**State after:** Milestone 2A complete, tree otherwise clean, no 2B code.
+**Next up:** Write the Milestone 2B implementation plan, four tasks, into
+`docs/superpowers/plans/`. Task 1 carries a `TODO(human)` on the quote block of
+`toMarkdown`; task 2 carries one on `exportFilename`.
+**Open questions:** The vault write and its overwrite-versus-version rule, now
+its own milestone. The Markdown preview toggle from `prototype/DECISIONS.md`,
+cheap once `toMarkdown` exists and deliberately not in 2B.
 
 ### 2026-08-30 - Milestone 2A complete
 
