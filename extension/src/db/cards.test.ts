@@ -9,6 +9,7 @@ import {
   nextSortOrder,
   ingestCard,
   updateQuote,
+  addQuote,
   cardByArticleKey,
 } from './cards';
 import { makeCard } from '../test-support/factory';
@@ -374,5 +375,40 @@ describe('cardByArticleKey', () => {
 
   test('returns undefined for a key no card holds', async () => {
     expect(await cardByArticleKey('alpha/p/nothing')).toBeUndefined();
+  });
+});
+
+describe('addQuote', () => {
+  const q = (text: string): Quote => ({
+    text,
+    locatorLost: false,
+    capturedAt: '2026-08-29T00:00:00.000Z',
+  });
+
+  test('appends to the end, so indexes stay stable', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('first')] }));
+
+    await addQuote('a', q('second'));
+
+    const card = await getCard('a');
+    expect(card?.quotes.map((x) => x.text)).toEqual(['first', 'second']);
+  });
+
+  test('adds the first quote to a card that has none', async () => {
+    await db.cards.add(makeCard({ id: 'a' }));
+    await addQuote('a', q('only'));
+    expect((await getCard('a'))?.quotes).toHaveLength(1);
+  });
+
+  test('leaves the notes and the status alone', async () => {
+    await db.cards.add(makeCard({ id: 'a', notes: 'kept', status: 'reading' }));
+    await addQuote('a', q('x'));
+    const card = await getCard('a');
+    expect(card?.notes).toBe('kept');
+    expect(card?.status).toBe('reading');
+  });
+
+  test('does nothing when the card is gone', async () => {
+    await expect(addQuote('missing', q('x'))).resolves.toBeUndefined();
   });
 });

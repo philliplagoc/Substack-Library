@@ -160,3 +160,18 @@ export async function updateQuote(
 export async function cardByArticleKey(key: string): Promise<Card | undefined> {
   return db.cards.where('articleKey').equals(key).first();
 }
+
+/**
+ * Append a quote to a card.
+ *
+ * Read, append, write, in one transaction. Quotes are only ever appended, so
+ * the index of an existing quote never moves, which is what lets updateQuote
+ * address one by position.
+ */
+export async function addQuote(cardId: string, quote: Quote): Promise<void> {
+  await db.transaction('rw', db.cards, async () => {
+    const card = await db.cards.get(cardId);
+    if (!card) return;
+    await db.cards.update(cardId, { quotes: [...card.quotes, quote] });
+  });
+}

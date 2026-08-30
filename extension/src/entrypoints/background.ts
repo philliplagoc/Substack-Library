@@ -10,8 +10,18 @@ import {
 } from '../domain/url';
 import { readingMinutes } from '../domain/article';
 import { ingestCard } from '../db/cards';
-import { detectSignedOut, extractArticleMeta, readReaderArticle } from '../substack/extract';
-import { PANEL_STATE_KEY, type PanelState } from '../messages';
+import {
+  detectSignedOut,
+  extractArticleMeta,
+  readReaderArticle,
+  readSelection,
+} from '../substack/extract';
+import {
+  PANEL_STATE_KEY,
+  type CaptureSelectionReply,
+  type PanelMessage,
+  type PanelState,
+} from '../messages';
 
 export default defineBackground({
   main() {
@@ -157,6 +167,43 @@ export default defineBackground({
       // gesture expires while the awaits below run.
       await browser.sidePanel.open({ tabId: tab.id });
       await capture(tab.id, tab.url);
+    });
+
+    browser.runtime.onMessage.addListener((message: PanelMessage, _sender, sendResponse) => {
+      if (message?.type !== 'capture-selection') return false;
+
+      void (async () => {
+        const stored = await browser.storage.session.get(PANEL_STATE_KEY);
+        const panel = stored[PANEL_STATE_KEY] as PanelState | undefined;
+
+        if (!panel) {
+          sendResponse({ ok: false, reason: 'No article open.' } satisfies CaptureSelectionReply);
+          return;
+        }
+
+        try {
+          const results = await browser.scripting.executeScript({
+            target: { tabId: panel.tabId },
+            func: readSelection,
+          });
+          const found = results[0]?.result;
+
+          sendResponse(
+            found
+              ? { ok: true, text: found.text, prefix: found.prefix }
+              : { ok: false, reason: 'Select some text in the article first.' },
+          );
+        } catch {
+          // The tab navigated away, so the activeTab grant is gone with it.
+          sendResponse({
+            ok: false,
+            reason: 'Lost access to the article. Click the toolbar button again.',
+          });
+        }
+      })();
+
+      // Keep the message channel open for the async sendResponse above.
+      return true;
     });
   },
 });

@@ -194,3 +194,43 @@ export function readReaderArticle(
 
   return null;
 }
+
+/**
+ * What the reader has selected in the article, plus the text just before it.
+ *
+ * The prefix exists to break ties when the same passage appears twice. It is
+ * read with a Range rather than by searching the body text, because searching
+ * for the selection in order to find the text before the selection is circular
+ * and fails on exactly the repeated passages the prefix exists to handle.
+ *
+ * Returns null when nothing is selected. Self-contained: see the header.
+ */
+export function readSelection(
+  win: Window = window,
+): { text: string; prefix: string } | null {
+  const selection = win.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) return null;
+
+  const text = selection.toString().trim();
+  if (!text) return null;
+
+  let prefix = '';
+  const range = selection.getRangeAt(0);
+  const body =
+    win.document.querySelector('.body.markup') ??
+    win.document.querySelector('.available-content');
+
+  if (body) {
+    try {
+      const before = range.cloneRange();
+      before.selectNodeContents(body);
+      before.setEnd(range.startContainer, range.startOffset);
+      prefix = before.toString().slice(-40);
+    } catch {
+      // The selection started outside the article body. No prefix, and the
+      // quote text alone still resolves whenever it is unique.
+    }
+  }
+
+  return { text, prefix };
+}

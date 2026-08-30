@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { browser } from 'wxt/browser';
-import { allCards, applyOrder, cardByArticleKey } from '../db/cards';
+import { addQuote, allCards, applyOrder, cardByArticleKey, updateQuote } from '../db/cards';
 import { reorderCards } from '../domain/card';
-import { PANEL_STATE_KEY, type PanelState } from '../messages';
+import { createQuote, resolveQuote } from '../domain/quote';
+import {
+  PANEL_STATE_KEY,
+  type CaptureSelectionReply,
+  type PanelMessage,
+  type PanelState,
+} from '../messages';
 import CardEditor from './CardEditor';
 import type { Status } from '../domain/types';
 
@@ -63,6 +69,27 @@ export default function ReadingPanel() {
     () => (panel ? cardByArticleKey(panel.articleKey) : Promise.resolve(undefined)),
     [panel?.articleKey],
   );
+  const [captureError, setCaptureError] = useState<string | null>(null);
+
+  // Re-check every quote against the article as it stands now. Persisted
+  // rather than derived, because the BOARD has no article text: if this flag
+  // were computed on render, the board's detail panel could never show the
+  // "location unavailable" label it already renders.
+  //
+  // This hook sits ABOVE the early returns below, not beside the handlers. The
+  // plan put it after `moveTo`, which is past three conditional returns, and a
+  // hook that runs on some renders and not others is the "rendered fewer hooks
+  // than expected" crash.
+  useEffect(() => {
+    if (!card || !panel?.bodyText) return;
+
+    card.quotes.forEach((quote, i) => {
+      const lost = resolveQuote(panel.bodyText, quote) === null;
+      if (lost !== quote.locatorLost) {
+        void updateQuote(card.id, i, { locatorLost: lost });
+      }
+    });
+  }, [card?.id, card?.quotes.length, panel?.bodyText]);
 
   if (panel === undefined) return <p className="notice">Loading…</p>;
 
@@ -100,6 +127,28 @@ export default function ReadingPanel() {
     await applyOrder(changes);
   }
 
+  async function captureQuote() {
+    if (!card) return;
+    setCaptureError(null);
+
+    const reply: CaptureSelectionReply = await browser.runtime.sendMessage({
+      type: 'capture-selection',
+    } satisfies PanelMessage);
+
+    if (!reply.ok) {
+      setCaptureError(reply.reason);
+      return;
+    }
+
+    await addQuote(
+      card.id,
+      createQuote(
+        { text: reply.text, prefix: reply.prefix },
+        { capturedAt: new Date().toISOString() },
+      ),
+    );
+  }
+
   return (
     <div className="reading">
       <p className="notice">{OUTCOME_TEXT[panel.outcome]}</p>
@@ -112,17 +161,23 @@ export default function ReadingPanel() {
       <CardEditor
         card={card}
         footer={
-          <p className="statuses">
-            {(Object.keys(COLUMN_LABELS) as Status[]).map((status) => (
-              <button
-                key={status}
-                disabled={card.status === status}
-                onClick={() => void moveTo(status)}
-              >
-                {COLUMN_LABELS[status]}
-              </button>
-            ))}
-          </p>
+          <>
+            <p>
+              <button onClick={() => void captureQuote()}>Capture quote</button>
+            </p>
+            {captureError ? <p className="notice error">{captureError}</p> : null}
+            <p className="statuses">
+              {(Object.keys(COLUMN_LABELS) as Status[]).map((status) => (
+                <button
+                  key={status}
+                  disabled={card.status === status}
+                  onClick={() => void moveTo(status)}
+                >
+                  {COLUMN_LABELS[status]}
+                </button>
+              ))}
+            </p>
+          </>
         }
       />
     </div>
