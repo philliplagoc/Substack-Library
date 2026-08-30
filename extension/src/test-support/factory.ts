@@ -1,3 +1,4 @@
+import { articleKey } from '../domain/url';
 import type { Card } from '../domain/types';
 
 let counter = 0;
@@ -5,7 +6,8 @@ let counter = 0;
 /** Build a whole Card for a test. Override any field through `overrides`. */
 export function makeCard(overrides: Partial<Card> = {}): Card {
   counter += 1;
-  return {
+  const card: Card = {
+    articleKey: '',
     id: `card-${counter}`,
     url: `https://alpha.substack.com/p/post-${counter}`,
     title: `Post ${counter}`,
@@ -24,4 +26,10 @@ export function makeCard(overrides: Partial<Card> = {}): Card {
     sortOrder: 0,
     ...overrides,
   };
+
+  // Derive the key from whatever url the test asked for, so a card built here
+  // is never internally inconsistent. An explicit override still wins.
+  return overrides.articleKey
+    ? card
+    : { ...card, articleKey: articleKey(card.url) ?? card.url };
 }

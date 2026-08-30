@@ -1,3 +1,4 @@
+import { articleKey } from './url';
 import type { Card, CardInput, Status } from './types';
 
 export interface CardSeed {
@@ -40,6 +41,9 @@ export function createCard(input: CardInput & { url: string }, seed: CardSeed): 
   return {
     id: seed.id,
     url: input.url,
+    // input.url is already canonical here, so this cannot fail. Fall back to
+    // the url anyway: a card without a key could never be found again.
+    articleKey: articleKey(input.url) ?? input.url,
     // A bare URL still has to show something readable on a card face.
     title: input.title?.trim() || input.url,
     author: input.author?.trim() ?? '',

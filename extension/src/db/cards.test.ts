@@ -223,3 +223,84 @@ describe('restoreCards', () => {
     expect(await db.cards.count()).toBe(0);
   });
 });
+describe('ingestCard and the routes to one article', () => {
+  const CUSTOM = 'https://www.pokgaigamer.com/p/steamanimegames';
+  const SHARE = 'https://open.substack.com/pub/pokgaigamer/p/steamanimegames';
+  const SUBDOMAIN = 'https://pokgaigamer.substack.com/p/steamanimegames';
+
+  test('treats the share route as the card already on the board', async () => {
+    await ingestCard({ url: CUSTOM });
+    const second = await ingestCard({ url: SHARE, title: 'Anime Into Games' });
+
+    expect(second.kind).toBe('updated');
+    expect(await db.cards.count()).toBe(1);
+  });
+
+  test('treats the substack subdomain as the card already on the board', async () => {
+    await ingestCard({ url: CUSTOM });
+    const second = await ingestCard({ url: SUBDOMAIN });
+
+    expect(second.kind).toBe('updated');
+    expect(await db.cards.count()).toBe(1);
+  });
+
+  test('keeps the url the card was added with', async () => {
+    await ingestCard({ url: CUSTOM });
+    await ingestCard({ url: SHARE, title: 'Anime Into Games' });
+
+    const card = await onlyCard();
+    expect(card.url).toBe(CUSTOM);
+    expect(card.title).toBe('Anime Into Games');
+  });
+
+  test('stores the article key on a new card', async () => {
+    await ingestCard({ url: SHARE });
+    expect((await onlyCard()).articleKey).toBe('pokgaigamer/p/steamanimegames');
+  });
+
+  test('still separates the same slug in two publications', async () => {
+    await ingestCard({ url: 'https://alpha.substack.com/p/welcome' });
+    const second = await ingestCard({ url: 'https://beta.substack.com/p/welcome' });
+
+    expect(second.kind).toBe('added');
+    expect(await db.cards.count()).toBe(2);
+  });
+});
+
+describe('restoreCards and the routes to one article', () => {
+  test('replaces a card the file reached by another route', async () => {
+    await db.cards.add(
+      makeCard({
+        id: 'local',
+        url: 'https://www.pokgaigamer.com/p/steamanimegames',
+        articleKey: 'pokgaigamer/p/steamanimegames',
+        notes: 'local notes',
+      }),
+    );
+
+    const result = await restoreCards([
+      makeCard({
+        id: 'from-file',
+        url: 'https://open.substack.com/pub/pokgaigamer/p/steamanimegames',
+        articleKey: 'pokgaigamer/p/steamanimegames',
+        notes: 'file notes',
+      }),
+    ]);
+
+    expect(result).toEqual({ added: 0, replaced: 1 });
+    expect(await db.cards.count()).toBe(1);
+    const card = await onlyCard();
+    expect(card.id).toBe('local');
+    expect(card.notes).toBe('file notes');
+  });
+
+  test('computes the article key for a card from an older backup', async () => {
+    const { articleKey: _dropped, ...older } = makeCard({
+      id: 'a',
+      url: 'https://open.substack.com/pub/pokgaigamer/p/steamanimegames',
+    });
+
+    await restoreCards([older as Card]);
+    expect((await onlyCard()).articleKey).toBe('pokgaigamer/p/steamanimegames');
+  });
+});

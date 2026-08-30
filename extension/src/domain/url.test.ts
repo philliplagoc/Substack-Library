@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { canonicalizeUrl } from './url';
+import { articleKey, canonicalizeUrl } from './url';
 
 describe('canonicalizeUrl', () => {
   test('strips the query string', () => {
@@ -56,5 +56,56 @@ describe('canonicalizeUrl', () => {
 
   test('does not throw on undefined', () => {
     expect(canonicalizeUrl(undefined as unknown as string)).toBeNull();
+  });
+});
+describe('articleKey', () => {
+  test('reads the publication from the open.substack.com share route', () => {
+    expect(articleKey('https://open.substack.com/pub/pokgaigamer/p/steamanimegames')).toBe(
+      'pokgaigamer/p/steamanimegames',
+    );
+  });
+
+  test('reads the publication from a custom domain', () => {
+    expect(articleKey('https://www.pokgaigamer.com/p/steamanimegames')).toBe(
+      'pokgaigamer/p/steamanimegames',
+    );
+  });
+
+  test('reads the publication from a substack subdomain', () => {
+    expect(articleKey('https://pokgaigamer.substack.com/p/steamanimegames')).toBe(
+      'pokgaigamer/p/steamanimegames',
+    );
+  });
+
+  test('strips a generic subdomain from a custom domain', () => {
+    expect(articleKey('https://newsletter.pragmaticengineer.com/p/the-scoop')).toBe(
+      'pragmaticengineer/p/the-scoop',
+    );
+  });
+
+  test('keeps a generic word as the publication on a substack.com host', () => {
+    expect(articleKey('https://news.substack.com/p/weekly')).toBe('news/p/weekly');
+  });
+
+  test('separates the same slug in two publications', () => {
+    expect(articleKey('https://alpha.substack.com/p/welcome')).not.toBe(
+      articleKey('https://beta.substack.com/p/welcome'),
+    );
+  });
+
+  test('lowercases the slug', () => {
+    expect(articleKey('https://alpha.substack.com/p/Great-Questions')).toBe(
+      'alpha/p/great-questions',
+    );
+  });
+
+  test('falls back to the canonical url when the path is not an article', () => {
+    expect(articleKey('https://example.com/blog/2026/thing')).toBe(
+      'https://example.com/blog/2026/thing',
+    );
+  });
+
+  test('returns null when the url cannot be canonicalized', () => {
+    expect(articleKey('not a url')).toBeNull();
   });
 });

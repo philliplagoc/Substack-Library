@@ -91,3 +91,14 @@ describe('mergeCard', () => {
     expect(existing.title).toBe('Old Title');
   });
 });
+describe('mergeCard and the url', () => {
+  test('keeps the url the board already holds', () => {
+    const existing = makeCard({ url: 'https://www.pokgaigamer.com/p/steamanimegames' });
+    const merged = mergeCard(existing, {
+      url: 'https://open.substack.com/pub/pokgaigamer/p/steamanimegames',
+      title: 'Anime Into Games',
+    });
+    expect(merged.url).toBe('https://www.pokgaigamer.com/p/steamanimegames');
+    expect(merged.title).toBe('Anime Into Games');
+  });
+});

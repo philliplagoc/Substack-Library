@@ -35,9 +35,13 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-08-28
-**Phase:** Milestone 0 complete. Milestone 1 Tasks 1 through 6 are done and
-verified. Task 6 is not committed yet. Task 7, drag and drop, is not started.
+**Date:** 2026-08-29
+**Phase:** Milestone 0 complete. Milestone 1 complete, checked against its
+definition of done. The article-key dedup fix, `src/ui/ErrorBoundary.tsx`,
+`src/db/schema.test.ts`, `extension/MANUAL-CHECKS.md`, and the README and
+design-doc wrap-up edits all landed in one commit on top of `b1a4e44`, titled
+`feat(extension): add the error boundary and complete Milestone 1`. The tree is
+clean. Milestone 2, the reading loop, is next.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -45,15 +49,22 @@ plain HTML/CSS/JS board that settled the layout. `extension/` holds the real
 extension: `src/entrypoints/background.ts` (the toolbar handler that opens or
 focuses the board tab, tracked in `browser.storage.session`),
 `src/entrypoints/board/` (the board page), `src/domain/` (`types.ts`, `url.ts`
-with `canonicalizeUrl`), `src/db/` (`schema.ts`, `cards.ts` with `allCards`,
-`getCard`, `updateCard`, `deleteCard`, `nextSortOrder`, and the single-door
+with `canonicalizeUrl` and `articleKey`), `src/db/` (`schema.ts` at version 2,
+`cards.ts` with `allCards`, `getCard`, `updateCard`, `deleteCard`,
+`nextSortOrder`, `applyOrder`, `restoreCards`, and the single-door
 `ingestCard`), and `src/ui/` (`App.tsx`, `Board.tsx` which also exports
 `COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports `statusLabel`, and
 `Toolbar.tsx`). The board reads Dexie directly through `useLiveQuery` and renders
 three columns. `domain/card.ts` now also exports `CardFilter` and `visibleCards`,
 and `App.tsx` holds the filter state and passes the narrowed list to the board.
-Nothing writes to the table from the UI yet: no add-by-URL form, no drag and
-drop, no detail pane.
+The UI writes through the add-by-URL form, dnd-kit drag and drop, the card
+detail panel, and JSON backup and restore.
+**Card identity:** A card carries `url` and `articleKey`. `url` is the address
+the card was added with and links to. `articleKey` is what dedup compares, so
+Substack's several routes to one article resolve to one card. `articleKey` is
+indexed but not unique, because a board written before version 2 can already
+hold a duplicate and a unique index would make the upgrade throw. Boards that
+already hold such a pair keep it; delete one by hand.
 **Build system:** `spike/` still runs on `node --test` with `linkedom`.
 `extension/` runs on WXT `0.21.4`, React `19.2.8`, TypeScript `~5.9.3` (pinned
 below 7), Vite `^7.3.6` (pinned below 8). `npm run build` succeeds and writes
@@ -69,10 +80,16 @@ WXT regenerates on `wxt prepare` and `.gitignore` excludes. It must set
 never writes that option, so without it `npm run build` passes and
 `npm run compile` fails on every `.tsx` file. The generated base also sets
 `noUncheckedIndexedAccess: true`, which makes every array index read
-`T | undefined`; `src/db/cards.test.ts` handles that in one `onlyCard()` helper.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 37
-tests across 4 files, on Vitest with `fake-indexeddb`. `npm run compile` is
-clean. The React layer has no tests by design.
+`T | undefined`; `src/db/cards.test.ts` handles that in one `onlyCard()` helper. It also sets
+`noImplicitOverride: true`, which is why every member of `ErrorBoundary` that
+React's `Component` already declares carries an `override` modifier.
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 92
+tests across 6 files, on Vitest with `fake-indexeddb`. `npm run compile` reports
+nothing and `npm run build` is clean. The React layer has no tests by design.
+`extension/MANUAL-CHECKS.md` covers that layer, and all 33 of its boxes are
+ticked against a loaded build. Vite strips types without reading them, so a
+green `npm run build` says nothing about the types. Run `npm run compile` beside
+it.
 **Fixtures:** `article-free.html` (1599 body words), `article-paywalled.html`
 (684 preview words), `saved-list.html` (60 entries). All three anonymized and
 verified clean. `manifest.json` holds real expected values for each.
@@ -118,7 +135,9 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Milestone 1, Task 6.
+**Next up:** Run the rest of `extension/MANUAL-CHECKS.md`, from the "Board"
+section down. The "Capture" and "Migration to schema version 2" sections both
+pass.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -150,6 +169,113 @@ asked for; worth a cleanup pass before Task 2.
 ---
 
 ## Entries
+
+### 2026-08-29 - Finish Milestone 1: error boundary, manual checks, wrap-up
+
+**What changed:** Added `src/ui/ErrorBoundary.tsx` and wrapped `<App />` in it
+inside `src/entrypoints/board/main.tsx`. Added `extension/MANUAL-CHECKS.md`, ran
+its 33 boxes against a loaded build, and ticked every one. Added
+`src/db/schema.test.ts`, which drives the version 1 to version 2 upgrade under
+`fake-indexeddb`. Rewrote the README "Status" and "Development" sections, and
+closed the open questions in the Milestone 1 design doc and in
+`prototype/DECISIONS.md`. Fixed three TS4114 errors in the error boundary by
+marking `state`, `componentDidCatch`, and `render` with `override`.
+**Why:** A Dexie failure used to leave a white page with the reason buried in
+the console. The boundary names the failure on screen and says the cards are
+still in the database. React has no hook form of this, so the boundary is the
+one class component in the codebase. The checklist exists because `src/ui/` has
+no tests by design and something has to check that layer. The TS4114 errors came
+from `noImplicitOverride: true` in the WXT-generated `.wxt/tsconfig.json`. Vite
+strips types without reading them, so `npm run build` passed while
+`npm run compile` failed. Run both.
+**Files:** `extension/src/ui/ErrorBoundary.tsx`,
+`extension/src/entrypoints/board/main.tsx`, `extension/MANUAL-CHECKS.md`,
+`extension/src/db/schema.test.ts`, `README.md`, `prototype/DECISIONS.md`,
+`docs/superpowers/specs/2026-08-26-milestone-1-design.md`,
+`docs/superpowers/plans/2026-08-26-milestone-1.md`, `docs/learning-notes.md`
+**Verification:** `cd extension; npm test` passes, 92 tests across 6 files.
+`npm run compile` reports nothing. `npm run build` succeeds, with the standing
+warning that `package.json` carries no `version`. Every box in
+`extension/MANUAL-CHECKS.md` is ticked. The dependency rule holds by grep: no
+file in `src/ui/` imports `dexie` or `db/schema.ts`, and no file in
+`src/domain/` imports `dexie`, `react`, or `nanoid`, or calls `new Date()`.
+**State after:** Milestone 1 meets its definition of done. The board installs,
+opens from the toolbar, and carries three columns with drag and drop, search and
+a reading-time filter, the card detail panel, add by URL, and JSON backup and
+restore. All of it landed in one commit on top of `b1a4e44`.
+**Next up:** Open Milestone 2, the reading loop, from `implementation-plan.md`.
+**Open questions:** `ingestCard` still calls `db.cards.add()` unguarded
+(`src/db/cards.ts:72`), carried from the entry below. Two Milestone 1 questions
+move to Milestone 2: the Markdown preview toggle, which waits on a serializer
+that does not exist yet, and panel behaviour beside a live article, where the
+panel competes with the article for width instead of with a board.
+
+### 2026-08-29 - Verify the schema version 2 migration by hand
+
+**What changed:** Ran the "Migration to schema version 2" section of
+`extension/MANUAL-CHECKS.md` against a real browser and ticked its three boxes.
+Rewrote that section's setup steps, which were wrong the first time. Marked the
+same-slug dedup check as covered by tests rather than run by hand.
+**Why:** Nothing tests `src/ui/`, and the migration writes to a real reader's
+board. The first attempt appeared to fail: adding the `open.substack.com` route
+to a pre-fix card produced a second card. The cause was the recipe, not the
+code. The setup said to delete the database only on a `VersionError`, but Dexie
+does not throw when version 1 code opens a version 2 database. It opens it,
+reports `verno` 1, and writes rows with no `articleKey`. The version on disk
+stays at 2, so the version 2 build sees a current database and skips
+`.upgrade()`. The board then held keyless rows, which are absent from the
+`articleKey` index and invisible to the lookup in `ingestCard`. The setup now
+deletes the database first and verifies the on-disk version reads `10` before
+the check proceeds.
+**Files:** `extension/MANUAL-CHECKS.md`, `docs/learning-notes.md`
+**Verification:** `npm test` in `extension/`: 92 passed across 6 files. By hand
+on a genuine version 1 board: the board opened with no error boundary, every
+card kept its notes, and the share route folded into the card added by custom
+domain. The board held three rows, each with an `articleKey`, none `undefined`,
+and the card written under version 1 carried the key the upgrade gave it.
+**State after:** The migration is verified on a real board. The rest of
+`MANUAL-CHECKS.md` from "Board" down is still unrun. No code changed in this
+pass; the article-key fix is still uncommitted on top of `b1a4e44`.
+**Next up:** Run the remaining `MANUAL-CHECKS.md` sections, then commit the
+article-key fix.
+**Open questions:** `ingestCard` calls `db.cards.add()` unguarded
+(`src/db/cards.ts:72`). When the `articleKey` lookup misses but the URL
+collides, the unique `&url` index throws `ConstraintError` and it escapes as an
+unhandled rejection, so the form reports nothing. Every write path sets an
+`articleKey`, so this should be unreachable in normal use. It surfaced only
+through the broken setup above. Decide whether the single capture path should
+catch it and return `{ kind: 'rejected' }`.
+
+### 2026-08-28 - Dedup cards on article identity, not on the URL string
+
+**What changed:** Added `articleKey()` to `domain/url.ts` and an `articleKey`
+field to `Card`. `ingestCard()` and `restoreCards()` now look up by that key
+instead of by `url`. Dexie moved to version 2, which indexes the field and
+backfills every existing row. `mergeCard()` no longer overwrites `url`.
+**Why:** Substack serves one article from the publication's custom domain, its
+`*.substack.com` subdomain, and the `open.substack.com/pub/...` share route.
+`canonicalizeUrl` folds only the query, the hash, and a trailing slash, so two
+routes to one article produced two cards. The unique `&url` index proved it:
+identical strings could never have been stored, so the rows had to differ.
+`articleKey` reads the publication from the host (or from `/pub/<name>/` on the
+share route) and pairs it with the article slug. The rejected options were
+resolving the true URL over the network, which needs broad host permissions and
+breaks the local-first promise, and keying on the slug alone, which would merge
+two publications that both use `/p/welcome`. The guess fails toward a duplicate
+card, never toward a wrong merge.
+**Files:** `extension/src/domain/url.ts`, `types.ts`, `card.ts`, `ingest.ts`,
+`extension/src/db/schema.ts`, `cards.ts`, `extension/src/test-support/factory.ts`,
+their tests, new `extension/src/db/schema.test.ts`, `docs/learning-notes.md`.
+**Verification:** `npx vitest run` passes, 92 tests across 6 files.
+`npm run build` succeeds. Not checked in the browser yet.
+**State after:** New adds dedup across all three routes. A board that already
+holds a duplicate pair keeps it; the version 2 upgrade backfills both rows and
+leaves them. `articleKey` is not a unique index, on purpose.
+**Next up:** Run `extension/MANUAL-CHECKS.md`, delete the leftover duplicate on
+the board by hand, then commit.
+**Open questions:** A custom domain unrelated to the publication's Substack name
+still splits into two cards. Milestone 2's content script can read
+`<link rel="canonical">` from the page DOM and settle it with no network call.
 
 ### 2026-08-28 - Repair the `@vitejs/plugin-react` drift that broke `wxt prepare`
 

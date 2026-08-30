@@ -2366,3 +2366,207 @@ const card = await onlyCard();           // 3. a helper that narrows once
 `extension/src/db/cards.test.ts` uses the third. `onlyCard()` asserts the table
 holds exactly one card and returns it as a plain `Card`. One narrowing that every
 test reuses, instead of a `!` on every line.
+
+## 2026-08-28 - Milestone 1, duplicate cards by URL
+
+### Can't we just assume the publication name is in the host?
+
+Yes. It is a guess, and it is the right guess to make.
+
+Substack serves one article from several addresses:
+
+| address | shape |
+|---|---|
+| `www.pokgaigamer.com/p/steamanimegames` | the publication's own domain |
+| `pokgaigamer.substack.com/p/steamanimegames` | the Substack subdomain |
+| `open.substack.com/pub/pokgaigamer/p/steamanimegames` | the share route |
+
+`canonicalizeUrl` cannot fold these. It only edits the string it is handed:
+strip the `#hash`, strip the `?query`, drop a trailing slash. Which publication
+owns `pokgaigamer.com` is a fact about the world, not a fact about the string.
+
+The guess reads the name out of the host. The share route names its own
+publication in the path, so check that first. Everything else takes a host
+label:
+
+| host | rule | publication |
+|---|---|---|
+| `pokgaigamer.substack.com` | first label, verbatim | `pokgaigamer` |
+| `news.substack.com` | first label, verbatim | `news` |
+| `www.pokgaigamer.com` | strip generic labels | `pokgaigamer` |
+| `newsletter.pragmaticengineer.com` | strip generic labels | `pragmaticengineer` |
+
+The two rules contradict each other on `news.substack.com`, so the order
+decides the answer. A `*.substack.com` host returns its first label untouched,
+because a publication really can be named "news".
+
+The guess is wrong when a publication's custom domain has nothing to do with
+its Substack name. That produces two cards for one article, which is the
+behaviour before this change. It never merges two articles that are not the
+same one. Pick which way a guess fails before you pick how often it is right.
+
+### Why does the card keep two fields for one address?
+
+`url` is what the card links to. `articleKey` is what makes the article this
+article.
+
+They cannot be the same field. The board has to link to an address that works,
+so `url` stores the address you added. Dedup has to ignore which address you
+used, so `articleKey` stores `pokgaigamer/p/steamanimegames` for all three
+routes above.
+
+```ts
+card.url        // https://www.pokgaigamer.com/p/steamanimegames
+card.articleKey // pokgaigamer/p/steamanimegames
+```
+
+`ingestCard` looks up `articleKey`. A second route to a known article merges
+into the card that is already there and leaves its `url` alone.
+
+### Why is the new index not unique, when `&url` is?
+
+`&url` is unique, so IndexedDB itself blocks a second row with the same URL.
+That guarantee is worth having.
+
+`articleKey` cannot have it. A board written before this change already holds
+two cards for one article. A unique index has to be satisfied the moment it is
+created, so the version 2 upgrade would throw `ConstraintError`, the database
+would fail to open, and the board would show nothing.
+
+```ts
+this.version(2)
+    .stores({ cards: 'id, &url, articleKey, ...' })   // no &
+    .upgrade((tx) => /* backfill every row */);
+```
+
+A migration that can brick the only copy of your data is worse than a missing
+guarantee. `&url` still blocks the exact duplicate. `ingestCard` blocks the
+rest.
+
+### What does a Dexie version number do?
+
+It is how Dexie knows the stored database is out of date.
+
+Every `version(n).stores({...})` is a step. Dexie compares `n` with the version
+IndexedDB has on disk and runs each step in between, in order.
+
+```ts
+this.version(1).stores({ cards: 'id, &url, ...' });          // shipped already
+this.version(2).stores({ cards: 'id, &url, articleKey, ...' })
+    .upgrade((tx) => { /* fill the new field on old rows */ });
+```
+
+The `stores` string is the whole index list, not a diff. Version 2 repeats every
+index version 1 had, or they would be dropped.
+
+Two rules follow:
+
+- Never edit a shipped `version(n)` string. A browser that already has version
+  `n` will not re-run it, so your change reaches new installs only.
+- New index, new number, and an `upgrade` if old rows need the new field.
+
+## 2026-08-29 - Milestone 1, manual checks
+
+### How do I test the schema version 2 migration by hand?
+
+You build the old version first, then upgrade into the new one.
+
+An IndexedDB upgrade runs once. The browser writes the version number to disk
+when the upgrade finishes. Open the board on the version 2 build and the
+`.upgrade()` callback is spent. It will not fire again on that database, and
+there is no way back down to version 1.
+
+So the order matters:
+
+1. Export a backup. Step 3 destroys the board.
+2. Close every board tab. An open tab holds a connection, and a connection
+   blocks both the delete below and the version change.
+3. Delete the database. Run `indexedDB.deleteDatabase('substack-library')` from
+   the extension's service worker console.
+4. Check out the version 1 code and build it. Here that is `git stash`, because
+   the fix is still uncommitted on top of the last commit.
+5. Confirm the version on disk reads `10` before going on.
+6. Use the board. Add cards, drag one, type notes. The upgrade needs old rows to
+   act on, and the check needs notes to prove they survived.
+7. Close every board tab again.
+8. Restore the version 2 code, build, reload the extension, open the board.
+
+The upgrade runs during that last open.
+
+Step 3 is the one worth understanding, because skipping it cost a whole round.
+Old code does not refuse a newer database. Dexie declaring version 1 opens a
+database sitting at version 2, reports `verno` 1, and writes rows through the
+old code path. Those rows carry no `articleKey`. The number on disk never moves,
+so the version 2 build later sees a current database and skips `.upgrade()`
+altogether. The check then passes through a board of keyless rows and proves
+nothing.
+
+Two lessons sit inside that.
+
+- A downgrade fails silently. IndexedDB refuses a lower version through
+  `indexedDB.open(name, version)`, but Dexie opens without a version first,
+  reads what is there, and adapts. No error reaches you.
+- A missing field is not a non-matching field. An index skips rows where the
+  field is `undefined`. Those rows are absent from the index, not sorted to one
+  end of it, so `where('articleKey').equals(anything)` can never return them.
+  That is why the keyless rows deduped against nothing and the board grew a
+  second card for one article.
+
+Step 5 turns both into something you can see. Read the version before you trust
+the setup.
+
+A test file does the same thing without a browser. `src/db/schema.test.ts` opens
+a plain Dexie at version 1, writes a row with no `articleKey`, closes it, then
+opens `SubstackLibraryDb` on the same name and reads the row back. Each test
+uses a random database name so the two runs do not collide.
+
+The hand check earns its place on one point the test cannot reach: your real
+board, with your real cards and your real notes.
+
+## 2026-08-29 - Milestone 1, error boundary
+
+### Why did `npm run build` pass when `npm run compile` failed?
+
+Two scripts read the same code with two different tools, and only one of them
+checks types.
+
+| Script | What runs | Reads types? |
+| --- | --- | --- |
+| `npm run compile` | `tsc --noEmit` | Yes. This is the only type check in the repo. |
+| `npm run build` | `wxt build`, which calls Vite, which calls esbuild | No. It deletes the type annotations and keeps going. |
+
+esbuild throws the annotations away one file at a time. It never asks whether
+`state: State` is a legal thing to write. A file holding a type error still
+bundles into working JavaScript when the error is a rule about types alone, and
+`override` is such a rule. It changes nothing about what the code does.
+
+A green build tells you the code parses and bundles. It tells you nothing about
+whether the types agree. Run `npm run compile` first.
+
+### What is `override` and why did three lines need it?
+
+`override` is a promise to the compiler: a member with this name already exists
+on the class I extend, and I mean to replace it.
+
+WXT generates `.wxt/tsconfig.json`, and that file sets
+`"noImplicitOverride": true`. With the flag on, replacing an inherited member
+without writing the word is error TS4114.
+
+`ErrorBoundary extends Component`. React's `Component` declares `state`,
+`componentDidCatch`, and `render`, so all three needed the word:
+
+```tsx
+override state: State = { error: null };
+override componentDidCatch(error: Error, info: ErrorInfo) { ... }
+override render() { ... }
+```
+
+`getDerivedStateFromError` sits in the same class and needed nothing.
+`Component` never declares it. React looks for that name on your class at
+runtime and calls it when it finds it, so there is no inherited member to
+replace.
+
+The flag earns its place on a rename. If React drops `componentDidCatch` in a
+later version, the plain method would stay in the class, never run again, and
+say nothing. With `override`, the day the base member disappears the build
+stops.

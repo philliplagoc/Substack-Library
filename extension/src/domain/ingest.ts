@@ -7,7 +7,9 @@ import type { Card, CardInput } from './types';
 export function mergeCard(existing: Card, incoming: CardInput & { url: string }): Card {
     return {
         ...existing,
-        url: incoming.url,
+        // The url is not refreshed. The board already links somewhere that
+        // works, and the incoming url is only another route to the same
+        // article. Identity lives in articleKey, which does not change.
         title: incoming.title?.trim() || existing.title,
         author: incoming.author?.trim() || existing.author,
         publication: incoming.publication?.trim() || existing.publication,

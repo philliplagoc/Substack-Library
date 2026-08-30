@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { canonicalizeUrl } from '../domain/url';
+import { articleKey, canonicalizeUrl } from '../domain/url';
 import { createCard } from '../domain/card';
 import { mergeCard } from '../domain/ingest';
 import { db } from './schema';
@@ -50,8 +50,10 @@ export async function ingestCard(input: CardInput): Promise<IngestOutcome> {
     return { kind: 'rejected', reason: `Not an http or https URL: ${input.url}` };
   }
 
+  const key = articleKey(url) ?? url;
+
   return db.transaction('rw', db.cards, async (): Promise<IngestOutcome> => {
-    const existing = await db.cards.where('url').equals(url).first();
+    const existing = await db.cards.where('articleKey').equals(key).first();
 
     if (existing) {
       const merged = mergeCard(existing, { ...input, url });
@@ -105,12 +107,16 @@ export async function restoreCards(cards: Card[]): Promise<{ added: number; repl
       const url = canonicalizeUrl(card.url);
       if (url === null) continue;
 
-      const existing = await db.cards.where('url').equals(url).first();
+      // A file written before articleKey existed carries no key. Compute it
+      // rather than trust the file, so an old backup restores correctly.
+      const key = articleKey(url) ?? url;
+
+      const existing = await db.cards.where('articleKey').equals(key).first();
       if (existing) {
-        await db.cards.put({ ...card, id: existing.id, url });
+        await db.cards.put({ ...card, id: existing.id, url, articleKey: key });
         replaced += 1;
       } else {
-        await db.cards.put({ ...card, url });
+        await db.cards.put({ ...card, url, articleKey: key });
         added += 1;
       }
     }

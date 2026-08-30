@@ -22,6 +22,7 @@ describe('createCard', () => {
     expect(card).toEqual({
       id: 'fixed-id',
       url: 'https://alpha.substack.com/p/questions',
+      articleKey: 'alpha/p/questions',
       title: 'How Great Questions Change a Company',
       author: 'A. Writer',
       publication: 'Alpha Notes',

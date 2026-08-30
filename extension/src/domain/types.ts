@@ -10,7 +10,13 @@ export interface Quote {
 
 export interface Card {
   id: string;
+  /** The URL this card was added with. What the card links to. */
   url: string;
+  /**
+   * What makes this article this article, whichever of Substack's several
+   * routes you arrived by. Cards dedup on this, not on `url`.
+   */
+  articleKey: string;
   title: string;
   author: string;
   publication: string;

@@ -102,20 +102,29 @@ renormalization bug class that then needs its own tests.
 a string-ordering library and a mental model this project does not otherwise
 require.
 
-### Restore semantics: merge by URL
+### Restore semantics: replace by URL, never delete
 
-Restore reads a backup file and merges every record through the same
-`ingestCard()` path that every other card creation uses. It reports counts:
-added, updated, and skipped with a reason.
+Restore reads a backup file and writes whole cards through `restoreCards()` in
+`db/cards.ts`. A card with the same canonical URL is replaced, keeping the id
+already on the board. A card the board does not have is added. A local card the
+file does not mention is left alone. The button asks for confirmation first and
+states the overwrite rule in words.
 
-**Why merge.** It reuses one tested merge path instead of introducing a second
-way to write cards, and it cannot destroy data.
+**Why not `ingestCard()`.** The first draft of this design routed restore
+through `ingestCard()`. That was wrong. `ingestCard()` carries metadata only:
+url, title, author, publication, reading minutes. A backup carries whole cards,
+including notes, quotes, tags, status, and export history. Merging a backup
+through `ingestCard()` would drop every note in the file, which defeats the
+purpose of a backup.
 
-**Cost, accepted.** A restore does not undo a deletion, because merging never
-removes.
+`ingestCard()` stays the single path for capture: the add-by-URL form, the
+Milestone 2 content script, and Milestone 3 sync.
 
-**Rejected: replace-all.** It would undo deletions, at the price of a
-destructive code path that exists only for this feature.
+**Cost, accepted.** Restore never deletes, so it does not undo an add. It does
+undo a deletion, which is the case a backup exists for.
+
+**Rejected: wipe and replace the whole table.** It would make restore exact, at
+the price of destroying every card added since the backup was taken.
 
 ### Test depth: logic and Dexie, no UI
 
