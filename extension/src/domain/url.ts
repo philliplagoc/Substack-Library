@@ -38,7 +38,7 @@ const GENERIC_HOST_LABELS = new Set(['www', 'newsletter', 'blog', 'mail', 'email
  *  - On a custom domain the first label is often a delivery channel that has
  *    to come off before the real name shows.
  */
-function publicationFromHost(host: string): string {
+export function publicationFromHost(host: string): string {
   const labels = host.split('.');
 
   // On substack.com the first label is the publication, whatever it reads like.
@@ -81,4 +81,31 @@ export function articleKey(raw: string): string | null {
   if (direct) return `${publicationFromHost(hostname)}/p/${direct[1]!.toLowerCase()}`;
 
   return canonical;
+}
+
+/**
+ * Does this URL name a Substack article the extension should capture?
+ *
+ * The board wins every other URL: the toolbar button opens it instead.
+ *
+ * A false positive is cheap. A non-Substack page with a `/p/` path gets
+ * injected, yields no Substack metadata, and says so. A false NEGATIVE is
+ * expensive: the reader clicks on a real article and gets the board.
+ */
+export function shouldCaptureFrom(rawUrl: string | undefined | null): boolean {
+  // Narrow the type so canonicalizeUrl, which takes a plain string, accepts it.
+  if (typeof rawUrl !== 'string') return false;
+
+  // Not an http or https page at all: the board wins.
+  const canonical = canonicalizeUrl(rawUrl);
+  if (canonical === null) return false;
+
+  const { pathname } = new URL(canonical);
+
+  // The two path shapes Substack serves an article from. Anchored at both ends
+  // so `/inbox/saved` and its neighbours cannot match on a suffix.
+  const direct = /^\/p\/[^/]+$/;
+  const shared = /^\/pub\/[^/]+\/p\/[^/]+$/;
+
+  return direct.test(pathname) || shared.test(pathname);
 }

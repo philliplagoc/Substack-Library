@@ -18,13 +18,13 @@
 - **`noImplicitOverride: true`** is also set. Any class member React's `Component` already declares needs an `override` modifier.
 - **The dependency rule**, extended from the Milestone 1 design:
 
-  | Layer | May import | Must never import |
-  |---|---|---|
-  | `domain/` | nothing in this project | `db/`, `ui/`, `substack/`, `dexie`, `react` |
-  | `substack/` | **nothing in this project** | everything |
-  | `db/cards.ts` | `domain/`, `db/schema.ts` | `ui/`, `substack/` |
-  | `ui/` | `db/cards.ts`, `domain/` | `db/schema.ts`, `dexie`, `substack/` |
-  | `entrypoints/` | `ui/`, `db/cards.ts`, `domain/`, `substack/` | `db/schema.ts` |
+  | Layer          | May import                                   | Must never import                           |
+  | -------------- | -------------------------------------------- | ------------------------------------------- |
+  | `domain/`      | nothing in this project                      | `db/`, `ui/`, `substack/`, `dexie`, `react` |
+  | `substack/`    | **nothing in this project**                  | everything                                  |
+  | `db/cards.ts`  | `domain/`, `db/schema.ts`                    | `ui/`, `substack/`                          |
+  | `ui/`          | `db/cards.ts`, `domain/`                     | `db/schema.ts`, `dexie`, `substack/`        |
+  | `entrypoints/` | `ui/`, `db/cards.ts`, `domain/`, `substack/` | `db/schema.ts`                              |
 
 - **The spike fixtures are anonymized and not byte-faithful.** Query strings are stripped, `data-attrs` removed, and digit runs of six or more zeroed. Never assert on a query parameter or a numeric profile id.
 - **Silent failure is banned.** Every failure path ends in a message the reader can see and loses no data.
@@ -46,27 +46,28 @@ Three things the spec got slightly wrong. Implement what this plan says.
 
 ## File structure
 
-| File | Responsibility |
-|---|---|
-| `src/domain/url.ts` (modify) | add `shouldCaptureFrom()`; export `publicationFromHost()` |
-| `src/domain/article.ts` (create) | `readingMinutes()` — turn a word count into an estimate, or nothing |
-| `src/domain/quote.ts` (create) | `createQuote()`, `resolveQuote()` — build a quote, find it again later |
-| `src/messages.ts` (create) | the message and session-state types both sides share. Types only, no runtime code |
-| `src/substack/extract.ts` (create) | the two self-contained injected functions and every Substack selector |
-| `src/db/cards.ts` (modify) | add `cardByArticleKey()`, `addQuote()`, `updateQuote()` |
-| `src/ui/CardEditor.tsx` (create) | shared panel core: title, meta, notes, quotes, then a footer slot |
-| `src/ui/DetailPanel.tsx` (modify) | `CardEditor` plus the board's footer (flags, delete) |
-| `src/ui/ReadingPanel.tsx` (create) | `CardEditor` plus the reading footer (capture, status), and the notices |
-| `src/entrypoints/sidepanel/index.html` (create) | side panel document |
-| `src/entrypoints/sidepanel/main.tsx` (create) | React root for the panel |
-| `src/entrypoints/background.ts` (modify) | the click router, extraction, ingest, session state, panel open |
-| `wxt.config.ts` (modify) | `activeTab` and `scripting` permissions |
+| File                                            | Responsibility                                                                    |
+| ----------------------------------------------- | --------------------------------------------------------------------------------- |
+| `src/domain/url.ts` (modify)                    | add `shouldCaptureFrom()`; export `publicationFromHost()`                         |
+| `src/domain/article.ts` (create)                | `readingMinutes()` — turn a word count into an estimate, or nothing               |
+| `src/domain/quote.ts` (create)                  | `createQuote()`, `resolveQuote()` — build a quote, find it again later            |
+| `src/messages.ts` (create)                      | the message and session-state types both sides share. Types only, no runtime code |
+| `src/substack/extract.ts` (create)              | the two self-contained injected functions and every Substack selector             |
+| `src/db/cards.ts` (modify)                      | add `cardByArticleKey()`, `addQuote()`, `updateQuote()`                           |
+| `src/ui/CardEditor.tsx` (create)                | shared panel core: title, meta, notes, quotes, then a footer slot                 |
+| `src/ui/DetailPanel.tsx` (modify)               | `CardEditor` plus the board's footer (flags, delete)                              |
+| `src/ui/ReadingPanel.tsx` (create)              | `CardEditor` plus the reading footer (capture, status), and the notices           |
+| `src/entrypoints/sidepanel/index.html` (create) | side panel document                                                               |
+| `src/entrypoints/sidepanel/main.tsx` (create)   | React root for the panel                                                          |
+| `src/entrypoints/background.ts` (modify)        | the click router, extraction, ingest, session state, panel open                   |
+| `wxt.config.ts` (modify)                        | `activeTab` and `scripting` permissions                                           |
 
 ---
 
 ## Task 1: Scaffold the side panel and route the toolbar click
 
 **Files:**
+
 - Create: `extension/src/entrypoints/sidepanel/index.html`
 - Create: `extension/src/entrypoints/sidepanel/main.tsx`
 - Modify: `extension/wxt.config.ts`
@@ -75,10 +76,11 @@ Three things the spec got slightly wrong. Implement what this plan says.
 - Test: `extension/src/domain/url.test.ts`
 
 **Interfaces:**
+
 - Consumes: `canonicalizeUrl()` and `articleKey()` from `domain/url.ts`.
 - Produces: `shouldCaptureFrom(rawUrl: string | undefined | null): boolean`. Task 6's click router calls it. Also a working `sidepanel` entrypoint at the built path `/sidepanel.html`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `extension/src/domain/url.test.ts`:
 
@@ -122,12 +124,12 @@ describe('shouldCaptureFrom', () => {
 
 Update the import at the top of the file to `import { articleKey, canonicalizeUrl, shouldCaptureFrom } from './url';`
 
-- [ ] **Step 2: Run the test and watch it fail**
+- [x] **Step 2: Run the test and watch it fail**
 
-Run: `cd extension; npx vitest run src/domain/url.test.ts`
+Run: `cd extension; npx vitest run src/domain/url.test.ts`  
 Expected: FAIL. `shouldCaptureFrom is not a function`.
 
-- [ ] **Step 3: Add the TODO(human) stub**
+- [x] **Step 3: Add the TODO(human) stub**
 
 Append to `extension/src/domain/url.ts`:
 
@@ -149,16 +151,16 @@ export function shouldCaptureFrom(rawUrl: string | undefined | null): boolean {
 
 **This step is the developer's.** Stop here and make the Learn-by-Doing request. Do not implement it.
 
-- [ ] **Step 4: Run the test and watch it pass**
+- [x] **Step 4: Run the test and watch it pass**
 
-Run: `cd extension; npx vitest run src/domain/url.test.ts`
+Run: `cd extension; npx vitest run src/domain/url.test.ts`  
 Expected: PASS, all 8 new tests.
 
-- [ ] **Step 5: Export `publicationFromHost` for Task 6**
+- [x] **Step 5: Export `publicationFromHost` for Task 6**
 
 In `extension/src/domain/url.ts`, change `function publicationFromHost(` to `export function publicationFromHost(`. Leave the body and the comment above it alone.
 
-- [ ] **Step 6: Create the side panel document**
+- [x] **Step 6: Create the side panel document**
 
 `extension/src/entrypoints/sidepanel/index.html`:
 
@@ -176,7 +178,7 @@ In `extension/src/domain/url.ts`, change `function publicationFromHost(` to `exp
 </html>
 ```
 
-- [ ] **Step 7: Create the panel React root**
+- [x] **Step 7: Create the panel React root**
 
 `extension/src/entrypoints/sidepanel/main.tsx`. `ReadingPanel` does not exist until Task 5, so this renders a placeholder that Task 5 replaces.
 
@@ -195,7 +197,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 ```
 
-- [ ] **Step 8: Add the two permissions**
+- [x] **Step 8: Add the two permissions**
 
 In `extension/wxt.config.ts`, change the permissions line to:
 
@@ -205,7 +207,7 @@ In `extension/wxt.config.ts`, change the permissions line to:
 
 Do **not** add `sidePanel`. WXT adds it automatically when it finds a sidepanel entrypoint, along with `side_panel.default_path`. Adding it by hand duplicates it.
 
-- [ ] **Step 9: Route the toolbar click**
+- [x] **Step 9: Route the toolbar click**
 
 Replace the body of the `browser.action.onClicked` listener in `extension/src/entrypoints/background.ts` so the board path becomes a named function and the article path gets a stub Task 6 fills in:
 
@@ -249,21 +251,21 @@ export default defineBackground({
 });
 ```
 
-- [ ] **Step 10: Verify the build and the types**
+- [x] **Step 10: Verify the build and the types**
 
-Run: `cd extension; npm run compile; npm run build`
+Run: `cd extension; npm run compile; npm run build`  
 Expected: `compile` prints nothing. `build` succeeds, with the standing warning that `package.json` carries no `version` field.
 
-- [ ] **Step 11: Verify the manifest gained the side panel**
+- [x] **Step 11: Verify the manifest gained the side panel**
 
-Run: `cd extension; cat .output/chrome-mv3/manifest.json`
+Run: `cd extension; cat .output/chrome-mv3/manifest.json`  
 Expected: `permissions` contains `storage`, `activeTab`, `scripting`, and `sidePanel`. A `side_panel` key holds `"default_path": "sidepanel.html"`.
 
-- [ ] **Step 12: Verify by hand**
+- [x] **Step 12: Verify by hand**
 
 Load `extension/.output/chrome-mv3/` unpacked. Click the toolbar button on a non-article page: the board opens, as before. Open any Substack article and click: the side panel opens showing the scaffold text.
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add extension/src extension/wxt.config.ts
@@ -275,11 +277,13 @@ git commit -m "feat(extension): add the side panel entrypoint and route the tool
 ## Task 2: Extract article metadata from the page
 
 **Files:**
+
 - Create: `extension/src/substack/extract.ts`
 - Test: `extension/src/substack/extract.test.ts`
 - Modify: `extension/package.json` (add `linkedom`)
 
 **Interfaces:**
+
 - Consumes: nothing. `substack/` imports nothing in this project.
 - Produces: `ArticleMeta` and `extractArticleMeta(doc?: Document): ArticleMeta`. Task 6 hands the function to `executeScript`. Task 7 adds `readSelection` to the same file.
 
@@ -297,7 +301,7 @@ export interface ArticleMeta {
 
 - [ ] **Step 1: Install linkedom**
 
-Run: `cd extension; npm install --save-dev linkedom`
+Run: `cd extension; npm install --save-dev linkedom`  
 Expected: it resolves and `package.json` gains `linkedom` under `devDependencies`.
 
 - [ ] **Step 2: Write the failing test**
@@ -434,7 +438,7 @@ describe('extractArticleMeta JSON-LD handling', () => {
 
 - [ ] **Step 3: Run the test and watch it fail**
 
-Run: `cd extension; npx vitest run src/substack/extract.test.ts`
+Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
 Expected: FAIL. Cannot find module `./extract`.
 
 - [ ] **Step 4: Write the extractor**
@@ -561,17 +565,17 @@ export function extractArticleMeta(doc: Document = document): ArticleMeta {
 
 - [ ] **Step 5: Run the test and watch it pass**
 
-Run: `cd extension; npx vitest run src/substack/extract.test.ts`
+Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
 Expected: PASS, all 16 tests.
 
 - [ ] **Step 6: Prove the function is self-contained**
 
-Run: `cd extension; node -e "const s=require('fs').readFileSync('src/substack/extract.ts','utf8'); console.log(/^\s*import /m.test(s) ? 'FAIL: has imports' : 'OK: no imports')"`
+Run: `cd extension; node -e "const s=require('fs').readFileSync('src/substack/extract.ts','utf8'); console.log(/^\s*import /m.test(s) ? 'FAIL: has imports' : 'OK: no imports')"`  
 Expected: `OK: no imports`.
 
 - [ ] **Step 7: Run the whole suite and the type check**
 
-Run: `cd extension; npm test; npm run compile`
+Run: `cd extension; npm test; npm run compile`  
 Expected: every test passes. `compile` prints nothing.
 
 - [ ] **Step 8: Commit**
@@ -586,10 +590,12 @@ git commit -m "feat(extension): read article metadata from a Substack page"
 ## Task 3: Turn a word count into a reading estimate
 
 **Files:**
+
 - Create: `extension/src/domain/article.ts`
 - Test: `extension/src/domain/article.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `readingMinutes(wordCount: number | null, readable: boolean): number | undefined`. Task 6 calls it between extraction and `ingestCard()`.
 
@@ -632,7 +638,7 @@ describe('readingMinutes', () => {
 
 - [ ] **Step 2: Run the test and watch it fail**
 
-Run: `cd extension; npx vitest run src/domain/article.test.ts`
+Run: `cd extension; npx vitest run src/domain/article.test.ts`  
 Expected: FAIL. Cannot find module `./article`.
 
 - [ ] **Step 3: Add the TODO(human) stub**
@@ -668,7 +674,7 @@ export function readingMinutes(
 
 - [ ] **Step 4: Run the test and watch it pass**
 
-Run: `cd extension; npx vitest run src/domain/article.test.ts`
+Run: `cd extension; npx vitest run src/domain/article.test.ts`  
 Expected: PASS, all 6 tests.
 
 - [ ] **Step 5: Commit**
@@ -683,6 +689,7 @@ git commit -m "feat(extension): estimate reading minutes from a word count"
 ## Task 4: Extract CardEditor and put the board's panel on it
 
 **Files:**
+
 - Create: `extension/src/ui/CardEditor.tsx`
 - Modify: `extension/src/ui/DetailPanel.tsx`
 - Modify: `extension/src/db/cards.ts`
@@ -690,6 +697,7 @@ git commit -m "feat(extension): estimate reading minutes from a word count"
 - Test: `extension/src/db/cards.test.ts`
 
 **Interfaces:**
+
 - Consumes: `updateCard`, `deleteCard` from `db/cards.ts`; `Card`, `Quote` from `domain/types.ts`.
 - Produces: `updateQuote(cardId: string, index: number, changes: Partial<Quote>): Promise<void>` in `db/cards.ts`, and the `CardEditor` component:
 
@@ -700,7 +708,7 @@ interface Props {
 }
 ```
 
-- [ ] **Step 1: Write the failing test for `updateQuote`**
+- [ ] **Step 1: Write the failing test for `updateQuote**`
 
 Append to `extension/src/db/cards.test.ts`:
 
@@ -753,10 +761,10 @@ Add `updateQuote` to the imports from `./cards`, and add `Quote` to the type imp
 
 - [ ] **Step 2: Run the test and watch it fail**
 
-Run: `cd extension; npx vitest run src/db/cards.test.ts`
+Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: FAIL. `updateQuote is not a function`.
 
-- [ ] **Step 3: Implement `updateQuote`**
+- [ ] **Step 3: Implement `updateQuote**`
 
 Append to `extension/src/db/cards.ts`, and add `Quote` to the type import at the top:
 
@@ -788,10 +796,10 @@ export async function updateQuote(
 
 - [ ] **Step 4: Run the test and watch it pass**
 
-Run: `cd extension; npx vitest run src/db/cards.test.ts`
+Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: PASS.
 
-- [ ] **Step 5: Write `CardEditor`**
+- [ ] **Step 5: Write `CardEditor**`
 
 `extension/src/ui/CardEditor.tsx`:
 
@@ -875,7 +883,7 @@ export default function CardEditor({ card, footer }: Props) {
 
 The comment field writes on every keystroke rather than debouncing. A comment is a sentence, not a paragraph, and the write is a single indexed record update. If it ever shows up in profiling, lift the debounce out of `notes` into a shared hook and use it for both.
 
-- [ ] **Step 6: Put `DetailPanel` on `CardEditor`**
+- [ ] **Step 6: Put `DetailPanel` on `CardEditor**`
 
 Replace `extension/src/ui/DetailPanel.tsx` entirely:
 
@@ -970,12 +978,12 @@ Replace the `.panel li` and `.panel li .lost` rules in `extension/src/ui/styles.
 
 - [ ] **Step 8: Verify the whole suite, the types, and the build**
 
-Run: `cd extension; npm test; npm run compile; npm run build`
+Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass, `compile` silent.
 
 - [ ] **Step 9: Verify the dependency rule still holds**
 
-Run: `cd extension; grep -rn "from 'dexie'\|db/schema" src/ui/ || echo "OK: ui touches neither dexie nor schema"`
+Run: `cd extension; grep -rn "from 'dexie'\|db/schema" src/ui/ || echo "OK: ui touches neither dexie nor schema"`  
 Expected: `OK: ui touches neither dexie nor schema`.
 
 - [ ] **Step 10: Verify by hand**
@@ -994,6 +1002,7 @@ git commit -m "refactor(extension): extract CardEditor and make quote comments e
 ## Task 5: Build the reading panel
 
 **Files:**
+
 - Create: `extension/src/messages.ts`
 - Create: `extension/src/ui/ReadingPanel.tsx`
 - Modify: `extension/src/entrypoints/sidepanel/main.tsx`
@@ -1002,10 +1011,11 @@ git commit -m "refactor(extension): extract CardEditor and make quote comments e
 - Test: `extension/src/db/cards.test.ts`
 
 **Interfaces:**
+
 - Consumes: `CardEditor` from Task 4; `allCards`, `applyOrder` from `db/cards.ts`; `reorderCards` from `domain/card.ts`.
 - Produces: `cardByArticleKey(key: string): Promise<Card | undefined>` in `db/cards.ts`, the `PanelState` type in `src/messages.ts`, and a `ReadingPanel` component mounted at the sidepanel root. Task 6 writes `PanelState` into session storage; Task 7 adds the capture button to this panel's footer.
 
-- [ ] **Step 1: Write the failing test for `cardByArticleKey`**
+- [ ] **Step 1: Write the failing test for `cardByArticleKey**`
 
 Append to `extension/src/db/cards.test.ts`:
 
@@ -1035,10 +1045,10 @@ Add `cardByArticleKey` to the imports from `./cards`.
 
 - [ ] **Step 2: Run the test and watch it fail**
 
-Run: `cd extension; npx vitest run src/db/cards.test.ts`
+Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: FAIL. `cardByArticleKey is not a function`.
 
-- [ ] **Step 3: Implement `cardByArticleKey`**
+- [ ] **Step 3: Implement `cardByArticleKey**`
 
 Append to `extension/src/db/cards.ts`:
 
@@ -1058,7 +1068,7 @@ export async function cardByArticleKey(key: string): Promise<Card | undefined> {
 
 - [ ] **Step 4: Run the test and watch it pass**
 
-Run: `cd extension; npx vitest run src/db/cards.test.ts`
+Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: PASS.
 
 - [ ] **Step 5: Declare the shared types**
@@ -1097,7 +1107,7 @@ export type CaptureSelectionReply =
   | { ok: false; reason: string };
 ```
 
-- [ ] **Step 6: Write `ReadingPanel`**
+- [ ] **Step 6: Write `ReadingPanel**`
 
 `extension/src/ui/ReadingPanel.tsx`. Task 7 adds the capture button to the footer; the status buttons and notices are complete here.
 
@@ -1275,7 +1285,7 @@ Append to `extension/src/ui/styles.css`:
 
 - [ ] **Step 9: Verify the whole suite, the types, and the build**
 
-Run: `cd extension; npm test; npm run compile; npm run build`
+Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass, `compile` silent.
 
 - [ ] **Step 10: Verify by hand**
@@ -1294,10 +1304,12 @@ git commit -m "feat(extension): add the reading side panel with status controls"
 ## Task 6: Wire the click through extraction, ingest, and the panel
 
 **Files:**
+
 - Modify: `extension/src/entrypoints/background.ts`
 - Modify: `extension/src/substack/extract.ts`
 
 **Interfaces:**
+
 - Consumes: `shouldCaptureFrom`, `publicationFromHost`, `canonicalizeUrl`, `articleKey` (Task 1); `extractArticleMeta` (Task 2); `readingMinutes` (Task 3); `PanelState`, `PANEL_STATE_KEY` (Task 5); `ingestCard` from `db/cards.ts`.
 - Produces: a populated `PanelState` in session storage, and `detectSignedOut(doc?: Document): boolean` in `substack/extract.ts`.
 
@@ -1339,10 +1351,10 @@ Add `detectSignedOut` to the import from `./extract`.
 
 - [ ] **Step 2: Run the test and watch it fail**
 
-Run: `cd extension; npx vitest run src/substack/extract.test.ts`
+Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
 Expected: FAIL. `detectSignedOut is not a function`.
 
-- [ ] **Step 3: Implement `detectSignedOut`**
+- [ ] **Step 3: Implement `detectSignedOut**`
 
 Append to `extension/src/substack/extract.ts`. Self-contained, same rule as the rest of the file.
 
@@ -1370,7 +1382,7 @@ export function detectSignedOut(doc: Document = document): boolean {
 
 - [ ] **Step 4: Run the test and watch it pass**
 
-Run: `cd extension; npx vitest run src/substack/extract.test.ts`
+Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
 Expected: PASS, all 20 tests.
 
 - [ ] **Step 5: Wire the background**
@@ -1502,12 +1514,12 @@ Note the ordering in the listener. `sidePanel.open()` must be the first `await` 
 
 - [ ] **Step 6: Verify the types and the build**
 
-Run: `cd extension; npm run compile; npm run build`
+Run: `cd extension; npm run compile; npm run build`  
 Expected: `compile` silent, `build` succeeds.
 
 - [ ] **Step 7: Verify the layering held**
 
-Run: `cd extension; grep -rn "import" src/substack/extract.ts || echo "OK: substack/ imports nothing"`
+Run: `cd extension; grep -rn "import" src/substack/extract.ts || echo "OK: substack/ imports nothing"`  
 Expected: `OK: substack/ imports nothing`.
 
 - [ ] **Step 8: Verify by hand against a free article**
@@ -1538,6 +1550,7 @@ git commit -m "feat(extension): capture an article on toolbar click and open the
 ## Task 7: Capture selected text as quotes
 
 **Files:**
+
 - Modify: `extension/src/substack/extract.ts`
 - Modify: `extension/src/entrypoints/background.ts`
 - Modify: `extension/src/ui/ReadingPanel.tsx`
@@ -1546,6 +1559,7 @@ git commit -m "feat(extension): capture an article on toolbar click and open the
 - Test: `extension/src/domain/quote.test.ts`, `extension/src/db/cards.test.ts`
 
 **Interfaces:**
+
 - Consumes: `PanelMessage`, `CaptureSelectionReply` (Task 5); `Quote` from `domain/types.ts`.
 - Produces: `createQuote()`, `resolveQuote()` in `domain/quote.ts`; `addQuote()` in `db/cards.ts`; `readSelection()` in `substack/extract.ts`.
 
@@ -1555,7 +1569,7 @@ resolveQuote(articleText: string, quote: Quote): number | null
 addQuote(cardId: string, quote: Quote): Promise<void>
 ```
 
-- [ ] **Step 1: Write the failing test for `createQuote`**
+- [ ] **Step 1: Write the failing test for `createQuote**`
 
 `extension/src/domain/quote.test.ts`:
 
@@ -1586,7 +1600,7 @@ describe('createQuote', () => {
 });
 ```
 
-- [ ] **Step 2: Write the failing test for `resolveQuote`**
+- [ ] **Step 2: Write the failing test for `resolveQuote**`
 
 Append to `extension/src/domain/quote.test.ts`. The last two cases are `test.todo` on purpose: the spec leaves those decisions to the implementer, who writes the assertion that matches the rule they choose.
 
@@ -1632,7 +1646,7 @@ describe('resolveQuote', () => {
 
 - [ ] **Step 3: Run the tests and watch them fail**
 
-Run: `cd extension; npx vitest run src/domain/quote.test.ts`
+Run: `cd extension; npx vitest run src/domain/quote.test.ts`  
 Expected: FAIL. Cannot find module `./quote`.
 
 - [ ] **Step 4: Write `createQuote` and the TODO(human) stub**
@@ -1696,10 +1710,10 @@ export function resolveQuote(articleText: string, quote: Quote): number | null {
 
 - [ ] **Step 5: Run the tests and watch them pass**
 
-Run: `cd extension; npx vitest run src/domain/quote.test.ts`
+Run: `cd extension; npx vitest run src/domain/quote.test.ts`  
 Expected: PASS, 8 tests, 2 todo.
 
-- [ ] **Step 6: Write the failing test for `addQuote`**
+- [ ] **Step 6: Write the failing test for `addQuote**`
 
 Append to `extension/src/db/cards.test.ts`:
 
@@ -1744,10 +1758,10 @@ Add `addQuote` to the imports from `./cards`.
 
 - [ ] **Step 7: Run the test and watch it fail**
 
-Run: `cd extension; npx vitest run src/db/cards.test.ts`
+Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: FAIL. `addQuote is not a function`.
 
-- [ ] **Step 8: Implement `addQuote`**
+- [ ] **Step 8: Implement `addQuote**`
 
 Append to `extension/src/db/cards.ts`:
 
@@ -1770,7 +1784,7 @@ export async function addQuote(cardId: string, quote: Quote): Promise<void> {
 
 - [ ] **Step 9: Run the test and watch it pass**
 
-Run: `cd extension; npx vitest run src/db/cards.test.ts`
+Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: PASS.
 
 - [ ] **Step 10: Add `readSelection` to the extractor**
@@ -1945,7 +1959,7 @@ Add the button to the footer, above the status buttons:
 
 - [ ] **Step 13: Verify the whole suite, the types, and the build**
 
-Run: `cd extension; npm test; npm run compile; npm run build`
+Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass, `compile` silent.
 
 - [ ] **Step 14: Verify by hand**
@@ -1970,12 +1984,14 @@ git commit -m "feat(extension): capture selected text as quotes with commentary"
 ## Task 8: Manual checks, documentation, and wrap-up
 
 **Files:**
+
 - Modify: `extension/MANUAL-CHECKS.md`
 - Modify: `README.md`
 - Modify: `changes.log`
 - Modify: `docs/learning-notes.md`
 
 **Interfaces:**
+
 - Consumes: everything from Tasks 1 through 7.
 - Produces: no code.
 
@@ -2047,7 +2063,7 @@ Do not add a `changes.log` entry for the learning notes.
 
 - [ ] **Step 6: Final verification**
 
-Run: `cd extension; npm test; npm run compile; npm run build`
+Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass. Record the exact test and file counts in the changes.log entry.
 
 - [ ] **Step 7: Verify the dependency rule one last time**
@@ -2058,6 +2074,7 @@ grep -rn "from 'dexie'\|db/schema" src/ui/ || echo "OK: ui clean"
 grep -rn "^import" src/substack/extract.ts || echo "OK: substack imports nothing"
 grep -rn "from '\.\./db\|from '\.\./ui\|from 'dexie'\|from 'react'" src/domain/ || echo "OK: domain pure"
 ```
+
 Expected: three OK lines.
 
 - [ ] **Step 8: Commit**

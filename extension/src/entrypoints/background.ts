@@ -1,9 +1,11 @@
 // The toolbar action. It opens the board, or focuses the board tab it already opened.
+import { shouldCaptureFrom } from '../domain/url';
+
 export default defineBackground({
   main() {
     const BOARD_PATH = '/board.html';
 
-    browser.action.onClicked.addListener(async () => {
+    async function openBoard() {
       const { boardTabId } = await browser.storage.session.get('boardTabId');
 
       if (typeof boardTabId === 'number') {
@@ -22,6 +24,15 @@ export default defineBackground({
       if (tab.id != null) {
         await browser.storage.session.set({ boardTabId: tab.id });
       }
+    }
+
+    browser.action.onClicked.addListener(async (tab) => {
+      if (!shouldCaptureFrom(tab.url) || tab.id == null) {
+        await openBoard();
+        return;
+      }
+      // Task 6 extracts, ingests, and records state here.
+      await browser.sidePanel.open({ tabId: tab.id });
     });
   },
 });

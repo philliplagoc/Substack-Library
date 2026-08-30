@@ -6,7 +6,11 @@ export default defineConfig({
   manifest: {
     name: 'Substack Library',
     description: 'A three-column reading board for Substack articles.',
-    permissions: ['storage'],
+    permissions: [
+      'storage',
+      'activeTab',
+      'scripting'
+    ],
     action: {
       default_title: 'Open Substack Library',
     },

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { articleKey, canonicalizeUrl } from './url';
+import { articleKey, canonicalizeUrl, shouldCaptureFrom } from './url';
 
 describe('canonicalizeUrl', () => {
   test('strips the query string', () => {
@@ -107,5 +107,41 @@ describe('articleKey', () => {
 
   test('returns null when the url cannot be canonicalized', () => {
     expect(articleKey('not a url')).toBeNull();
+  });
+});
+
+describe('shouldCaptureFrom', () => {
+  test('captures an article on a substack.com subdomain', () => {
+    expect(shouldCaptureFrom('https://alpha.substack.com/p/questions')).toBe(true);
+  });
+
+  test('captures an article on a custom domain', () => {
+    expect(shouldCaptureFrom('https://www.theworkthatholds.com/p/on-attention')).toBe(true);
+  });
+
+  test('captures an article on the open.substack.com share route', () => {
+    expect(shouldCaptureFrom('https://open.substack.com/pub/alpha/p/questions')).toBe(true);
+  });
+
+  test('ignores a publication home page', () => {
+    expect(shouldCaptureFrom('https://alpha.substack.com')).toBe(false);
+  });
+
+  test('ignores the Saved list', () => {
+    expect(shouldCaptureFrom('https://substack.com/inbox/saved')).toBe(false);
+  });
+
+  test('ignores the board itself', () => {
+    expect(shouldCaptureFrom('chrome-extension://abcdefg/board.html')).toBe(false);
+  });
+
+  test('ignores a browser page', () => {
+    expect(shouldCaptureFrom('chrome://extensions')).toBe(false);
+  });
+
+  test('ignores an undefined url without throwing', () => {
+    expect(shouldCaptureFrom(undefined)).toBe(false);
+    expect(shouldCaptureFrom(null)).toBe(false);
+    expect(shouldCaptureFrom('')).toBe(false);
   });
 });
