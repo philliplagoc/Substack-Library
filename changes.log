@@ -42,8 +42,9 @@ definition of done. The article-key dedup fix, `src/ui/ErrorBoundary.tsx`,
 design-doc wrap-up edits all landed in one commit on top of `b1a4e44`, titled
 `feat(extension): add the error boundary and complete Milestone 1`. The tree is
 clean. Milestone 2 is split into 2A (capture and the companion panel) and 2B
-(Markdown export and the vault write). The 2A design is written and approved.
-The 2A implementation plan is next.
+(Markdown export and the vault write). The 2A design and its eight-task plan are
+both written. Tasks 1 and 2 of that plan are done and committed, in `a14f9d2`
+and `95bc5da`. Task 3 is next.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -51,7 +52,9 @@ plain HTML/CSS/JS board that settled the layout. `extension/` holds the real
 extension: `src/entrypoints/background.ts` (the toolbar handler that opens or
 focuses the board tab, tracked in `browser.storage.session`),
 `src/entrypoints/board/` (the board page), `src/domain/` (`types.ts`, `url.ts`
-with `canonicalizeUrl` and `articleKey`), `src/db/` (`schema.ts` at version 2,
+with `canonicalizeUrl` and `articleKey`), `src/substack/`
+(`extract.ts`, holding `ArticleMeta` and `extractArticleMeta`), `src/db/`
+(`schema.ts` at version 2,
 `cards.ts` with `allCards`, `getCard`, `updateCard`, `deleteCard`,
 `nextSortOrder`, `applyOrder`, `restoreCards`, and the single-door
 `ingestCard`), and `src/ui/` (`App.tsx`, `Board.tsx` which also exports
@@ -84,9 +87,14 @@ never writes that option, so without it `npm run build` passes and
 `noUncheckedIndexedAccess: true`, which makes every array index read
 `T | undefined`; `src/db/cards.test.ts` handles that in one `onlyCard()` helper. It also sets
 `noImplicitOverride: true`, which is why every member of `ErrorBoundary` that
-React's `Component` already declares carries an `override` modifier.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 92
-tests across 6 files, on Vitest with `fake-indexeddb`. `npm run compile` reports
+React's `Component` already declares carries an `override` modifier. Its `lib`
+is ESNext plus the DOM libs and it pulls in no Node types, so any test that
+imports a Node builtin needs `@types/node`, now a dev dependency.
+`src/substack/extract.test.ts` reads `node:fs` and is the only such file.
+`npm test` will not catch a missing type; Vite strips types without reading
+them. `npm run compile` is what catches it.
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 116
+tests across 7 files, on Vitest with `fake-indexeddb` and `linkedom`. `npm run compile` reports
 nothing and `npm run build` is clean. The React layer has no tests by design.
 `extension/MANUAL-CHECKS.md` covers that layer, and all 33 of its boxes are
 ticked against a loaded build. Vite strips types without reading them, so a
@@ -144,8 +152,9 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Execute `docs/superpowers/plans/2026-08-29-milestone-2a.md`, Task 1.
-Read its "Corrections to the design doc" section first.
+**Next up:** Execute `docs/superpowers/plans/2026-08-29-milestone-2a.md`, Task 3,
+`domain/article.ts` and `readingMinutes()`. It carries a `TODO(human)`
+contribution. Read the plan's "Corrections to the design doc" section first.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -180,6 +189,56 @@ reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
 ---
 
 ## Entries
+
+### 2026-08-29 - Extract article metadata from a Substack page (2A Task 2)
+
+**What changed:** Added `extension/src/substack/extract.ts`, holding
+`ArticleMeta` and `extractArticleMeta(doc?: Document)`, with 16 tests in
+`extract.test.ts`. Added `linkedom` and `@types/node` as dev dependencies.
+Ticked Task 2's eight boxes in the 2A plan and wrote a correction into its
+Step 1.
+**Why:** Task 6 hands this function to `chrome.scripting.executeScript`, which
+ships a function into the page by calling `Function.prototype.toString()` on it.
+Anything the function closes over is not part of that string, so an imported
+`SELECTORS` const would compile, type-check, and then throw a bare
+`ReferenceError` inside Substack's document. The file therefore imports nothing
+and the selectors live inside the function body. The `doc: Document = document`
+default is what keeps it testable: injection calls it with no arguments and the
+page's own `document` resolves at runtime, while tests hand it a `linkedom`
+document. Tests read the three `spike/fixtures/` files in place rather than
+copying them, because a second copy of an anonymized fixture is how anonymized
+fixtures drift. Reading a data file is not a module edge.
+**Correction to the plan:** the plan installed only `linkedom`, and its own
+Step 7 then failed on `TS2307: Cannot find module 'node:fs'`. WXT's generated
+tsconfig sets `lib` to ESNext and the DOM libs and pulls in no Node types.
+`npm test` passed anyway, because Vite strips types without reading them. This
+is the exact trap the plan's Global Constraints warn about, hit inside the plan
+itself. `@types/node` is the fix and is test-only; nothing under `src/` outside
+a `.test.ts` file may import a Node builtin.
+**Files:** `extension/src/substack/extract.ts` (new),
+`extension/src/substack/extract.test.ts` (new), `extension/package.json`,
+`extension/package-lock.json`,
+`docs/superpowers/plans/2026-08-29-milestone-2a.md`.
+**Verification:** `npm test` passes, 116 tests across 7 files.
+`npm run compile` prints nothing. `npm run build` is clean, with the standing
+missing-`version` warning. The self-contained check,
+`node -e "...(/^\s*import /m)..."` against `extract.ts`, prints `OK: no imports`.
+**State after:** The extension can read title, author, publication, canonical
+URL, word count, readability, and body text out of a Substack article DOM.
+Nothing calls it yet. `publication` returns `null` when JSON-LD and the
+breadcrumb both miss; the host fallback belongs to `background.ts` in Task 6,
+because `substack/` may import nothing and `publicationFromHost` lives in
+`domain/url.ts`.
+**Next up:** Task 3 of the 2A plan, `domain/article.ts` and `readingMinutes()`.
+It carries a `TODO(human)` contribution.
+**Open questions:** Custom-domain article metadata still has no fixture. The
+extractor reads JSON-LD and OG tags, neither of which is host-specific, so it
+should hold; the Task 8 manual pass is the first real check.
+
+**Known gap in this log:** Milestone 2A Task 1 landed in commit `a14f9d2`
+(the side panel entrypoint, `shouldCaptureFrom`, `publicationFromHost`, and the
+`activeTab` and `scripting` permissions) without an entry of its own. Read that
+commit for its reasoning.
 
 ### 2026-08-29 - Write the Milestone 2A implementation plan
 
