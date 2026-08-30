@@ -299,12 +299,22 @@ export interface ArticleMeta {
 }
 ```
 
-- [ ] **Step 1: Install linkedom**
+- [x] **Step 1: Install linkedom**
 
-Run: `cd extension; npm install --save-dev linkedom`  
-Expected: it resolves and `package.json` gains `linkedom` under `devDependencies`.
+Run: `cd extension; npm install --save-dev linkedom @types/node`  
+Expected: it resolves and `package.json` gains `linkedom` and `@types/node` under `devDependencies`.
 
-- [ ] **Step 2: Write the failing test**
+> **Correction, found during execution.** The plan originally installed only
+> `linkedom`, and Step 7 then failed with
+> `TS2307: Cannot find module 'node:fs'`. WXT's generated `.wxt/tsconfig.json`
+> sets `lib` to `ESNext`, `DOM`, and `DOM.Iterable` and pulls in no Node types,
+> so the `node:fs` import in the test has no declarations. `npm test` still
+> passed, because Vite strips types without reading them - the same trap the
+> Global Constraints warn about. `@types/node` is the fix. It is a test-only
+> dependency; nothing under `src/` outside a `.test.ts` file may import a Node
+> builtin.
+
+- [x] **Step 2: Write the failing test**
 
 `extension/src/substack/extract.test.ts`:
 
@@ -436,12 +446,12 @@ describe('extractArticleMeta JSON-LD handling', () => {
 });
 ```
 
-- [ ] **Step 3: Run the test and watch it fail**
+- [x] **Step 3: Run the test and watch it fail**
 
 Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
 Expected: FAIL. Cannot find module `./extract`.
 
-- [ ] **Step 4: Write the extractor**
+- [x] **Step 4: Write the extractor**
 
 `extension/src/substack/extract.ts`. Everything is inside the one function on purpose — read the header comment before changing its shape.
 
@@ -563,22 +573,22 @@ export function extractArticleMeta(doc: Document = document): ArticleMeta {
 }
 ```
 
-- [ ] **Step 5: Run the test and watch it pass**
+- [x] **Step 5: Run the test and watch it pass**
 
 Run: `cd extension; npx vitest run src/substack/extract.test.ts`  
 Expected: PASS, all 16 tests.
 
-- [ ] **Step 6: Prove the function is self-contained**
+- [x] **Step 6: Prove the function is self-contained**
 
 Run: `cd extension; node -e "const s=require('fs').readFileSync('src/substack/extract.ts','utf8'); console.log(/^\s*import /m.test(s) ? 'FAIL: has imports' : 'OK: no imports')"`  
 Expected: `OK: no imports`.
 
-- [ ] **Step 7: Run the whole suite and the type check**
+- [x] **Step 7: Run the whole suite and the type check**
 
 Run: `cd extension; npm test; npm run compile`  
 Expected: every test passes. `compile` prints nothing.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add extension/src/substack extension/package.json extension/package-lock.json
