@@ -131,6 +131,10 @@ article body.
 - `docs/superpowers/specs/2026-08-29-milestone-2a-design.md` - the Milestone 2A
   design. Read its "Amendments to earlier documents" section first: it overturns
   three decisions in `implementation-plan.md` and the Milestone 1 design.
+- `docs/superpowers/plans/2026-08-29-milestone-2a.md` - the task-by-task plan for
+  Milestone 2A. Eight tasks. Read its "Corrections to the design doc" section
+  first; the spec's `substack/selectors.ts` does not exist, and tasks 4 to 6 are
+  reordered.
 - `docs/superpowers/plans/2026-08-16-milestone-0.md` - the finished Milestone 0
   plan, 12 tasks in two parts.
 - `spike/README.md` - the Substack compatibility doc. Milestones 2 and 3 read it
@@ -140,8 +144,8 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Write the Milestone 2A implementation plan into
-`docs/superpowers/plans/`, following the eight-task shape in the 2A design.
+**Next up:** Execute `docs/superpowers/plans/2026-08-29-milestone-2a.md`, Task 1.
+Read its "Corrections to the design doc" section first.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -176,6 +180,53 @@ reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
 ---
 
 ## Entries
+
+### 2026-08-29 - Write the Milestone 2A implementation plan
+
+**What changed:** Wrote `docs/superpowers/plans/2026-08-29-milestone-2a.md`.
+Eight tasks, TDD steps throughout, three `TODO(human)` contributions
+(`shouldCaptureFrom`, `readingMinutes`, `resolveQuote`). No code changed.
+**Why:** Three things in the 2A design turned out to be wrong once the plan had
+to name real files, and the plan corrects them rather than leaving the executor
+to discover them.
+
+`substack/selectors.ts` cannot exist. `scripting.executeScript` ships a function
+into the page by calling `Function.prototype.toString()` on it, so the function
+cannot close over an imported `SELECTORS` const. Such code compiles,
+type-checks, and then throws a bare `ReferenceError` inside Substack's document.
+The selectors live inside the injected function's own body, in
+`substack/extract.ts`. The same constraint forces the `doc: Document = document`
+default parameter, which is what keeps the extractor testable: injection calls
+it with no arguments and the page's `document` resolves at runtime, while tests
+pass a linkedom document straight in.
+
+The publication host fallback moved from the extractor to the background.
+`publicationFromHost` is `domain/` code, and `substack/` imports nothing.
+
+Tasks 4 to 6 are reordered. The spec listed the click wiring before the panel it
+opens, which would mean writing a throwaway panel and replacing it two tasks
+later. The plan builds `CardEditor`, then `ReadingPanel`, then wires the click.
+
+One runtime-only trap is recorded in the plan because no test catches it:
+`sidePanel.open()` must be the first `await` in the click handler. Chrome ties
+it to the user gesture, and the gesture is spent once an unrelated async
+operation resolves.
+
+Also confirmed against `node_modules`: WXT adds the `sidePanel` permission and
+`side_panel.default_path` itself when it finds a sidepanel entrypoint, so
+`wxt.config.ts` declares only `activeTab` and `scripting`.
+**Files:** `docs/superpowers/plans/2026-08-29-milestone-2a.md`, `changes.log`
+**Verification:** No code changed, so no test run. Every literal the plan asserts
+was checked against the real fixtures with linkedom: word counts 1599 and 684,
+`isAccessibleForFree` true and false, JSON-LD `author` is an array on both,
+`publisher.name` matches `fixtures/manifest.json`, and the nav container holds 5
+buttons with no "Sign in" on either fixture.
+**State after:** Milestone 1 complete, tree clean, no 2A code.
+**Next up:** Task 1 of the 2A plan: the sidepanel entrypoint, the two
+permissions, and the click router. It opens with a `TODO(human)` on
+`shouldCaptureFrom`.
+**Open questions:** Unchanged. Custom-domain article metadata has no fixture;
+Task 6 Step 9 is the first real check.
 
 ### 2026-08-29 - Split Milestone 2 and write the 2A design
 
