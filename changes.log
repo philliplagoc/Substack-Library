@@ -41,7 +41,9 @@ definition of done. The article-key dedup fix, `src/ui/ErrorBoundary.tsx`,
 `src/db/schema.test.ts`, `extension/MANUAL-CHECKS.md`, and the README and
 design-doc wrap-up edits all landed in one commit on top of `b1a4e44`, titled
 `feat(extension): add the error boundary and complete Milestone 1`. The tree is
-clean. Milestone 2, the reading loop, is next.
+clean. Milestone 2 is split into 2A (capture and the companion panel) and 2B
+(Markdown export and the vault write). The 2A design is written and approved.
+The 2A implementation plan is next.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -126,6 +128,9 @@ article body.
 - `docs/superpowers/plans/2026-08-26-milestone-1.md` - the task-by-task plan for
   Milestone 1. Eleven tasks. Read its "Correction to the design doc" section
   first; restore does not go through `ingestCard()`.
+- `docs/superpowers/specs/2026-08-29-milestone-2a-design.md` - the Milestone 2A
+  design. Read its "Amendments to earlier documents" section first: it overturns
+  three decisions in `implementation-plan.md` and the Milestone 1 design.
 - `docs/superpowers/plans/2026-08-16-milestone-0.md` - the finished Milestone 0
   plan, 12 tasks in two parts.
 - `spike/README.md` - the Substack compatibility doc. Milestones 2 and 3 read it
@@ -135,9 +140,8 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Run the rest of `extension/MANUAL-CHECKS.md`, from the "Board"
-section down. The "Capture" and "Migration to schema version 2" sections both
-pass.
+**Next up:** Write the Milestone 2A implementation plan into
+`docs/superpowers/plans/`, following the eight-task shape in the 2A design.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -157,18 +161,58 @@ asked for; worth a cleanup pass before Task 2.
 
 **Open questions:**
 
-- `extractArticleMeta` reads `isPreview` from the `.paywall` selector, while
-  `spike/README.md` names JSON-LD `isAccessibleForFree` the primary path. The
-  code and the doc disagree, and both fixtures pass either way. Decide before
-  the Milestone 2 content script.
-- `prototype/DECISIONS.md` ends with an empty "Open questions for Milestone 1".
-  Milestone 1 Task 11 either fills it or deletes the section.
+- Custom-domain article metadata has no fixture. The spike proved custom domains
+  work for the Saved-list link and left article metadata untested. Milestone 2A's
+  manual pass is the first real check; a fourth fixture is the remedy if it fails.
+- Milestone 2A's panel follows deliberate toolbar clicks, not tab focus. Whether
+  that is right is a question only real use answers. Revisit after two weeks.
+
+Both open questions carried in the 2026-08-29 state are now closed. `isPreview`
+reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
+`prototype/DECISIONS.md` was closed by Milestone 1 Task 11.
 
 **Blockers:** None.
 
 ---
 
 ## Entries
+
+### 2026-08-29 - Split Milestone 2 and write the 2A design
+
+**What changed:** Split Milestone 2 into 2A (content injection, capture, and the
+companion panel) and 2B (Markdown serialization, versioned download, vault write,
+and the offer to move to Processed). Wrote and approved
+`docs/superpowers/specs/2026-08-29-milestone-2a-design.md`. No code changed.
+**Why:** The two halves fail differently. 2A fails when Substack renames a class,
+so its evidence is fixtures and visible failure states. 2B fails when a
+serializer has a bug, so its evidence is pure unit tests. One spec would have
+mixed the two testing strategies and let a stall on Substack's DOM block work
+that has nothing to do with Substack. Items 3 to 5 never needed the article page
+anyway; they hang off the board's existing detail panel.
+
+The design overturns three earlier decisions, each recorded in its "Amendments to
+earlier documents" section. The panel is `chrome.sidePanel`, not the iframe the
+Milestone 1 design committed to, because the side panel reaches the same
+extension origin and the same Dexie without becoming a co-tenant in Substack's
+layout. Native Save moves to Milestone 3, because its value is unrealizable until
+the Saved-list parser exists, its popover cannot be fixture-tested, and Milestone
+3 has to build the same inverted-label driver for Unsave regardless. Signed-out
+becomes a note rather than a gate, because the spike found metadata reads without
+a session and 2A invokes no native control.
+
+Injection is `activeTab` plus `scripting`, with no host permissions and no
+declarative content script. This is the only option that reaches custom-domain
+publications, which a `*://*.substack.com/*` match is structurally blind to,
+without asking for `<all_urls>`.
+**Files:** `docs/superpowers/specs/2026-08-29-milestone-2a-design.md`,
+`changes.log`
+**Verification:** Not run. No code changed.
+**State after:** Milestone 1 still complete and the tree still clean. The 2A
+design is approved and committed. No 2A code exists.
+**Next up:** Write the Milestone 2A implementation plan, eight tasks, into
+`docs/superpowers/plans/`.
+**Open questions:** Custom-domain article metadata has no fixture. Whether the
+panel should follow tab focus rather than deliberate clicks.
 
 ### 2026-08-29 - Finish Milestone 1: error boundary, manual checks, wrap-up
 
