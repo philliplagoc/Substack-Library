@@ -114,3 +114,74 @@ Restore the backup from step 1 when you are done.
 - [x] Restore reports added and replaced counts.
 - [x] Restore a file with one broken record. The good records restore and
       the message names the broken one by index.
+
+## Capture from an article page
+
+- [x] Toolbar click on a free Substack article opens the side panel.
+- [x] The panel says "Added to To Read." and shows the real title,
+      publication, and author.
+- [x] A reading estimate appears and is plausible for the article's length.
+- [x] The card is in To Read on the board.
+- [x] A second click on the same article says "Already on your board.
+      Metadata refreshed."
+- [x] A second click creates no duplicate card.
+- [x] Clicking from the `open.substack.com/pub/.../p/...` share route finds
+      the same card.
+- [x] Toolbar click on a non-article page still opens the board.
+- [x] Toolbar click on `chrome://extensions` opens the board and shows no
+      error.
+- [x] Toolbar click on a custom-domain publication captures a real title and
+      publication.
+- [x] A paywalled article creates a card, shows "Preview only", and leaves
+      the minutes blank.
+- [x] Signed out in a private window: the card is still created and the
+      signed-out notice appears.
+
+> The private-window box needs setup. Extensions do not run in incognito  
+> until you allow it: `chrome://extensions`, this extension's Details, then  
+> "Allow in Incognito".
+
+## Reader routes
+
+Not in the plan. Added 2026-08-30 after the toolbar button opened the board  
+on a home-feed post. These are the app's own reader shells, where `<head>`  
+describes the shell and only the body knows which article is open.
+
+- [x] A post opened from the inbox, `substack.com/inbox/post/<id>`, makes a
+      card with the post's own title and URL.
+- [x] A post opened from the home feed, `substack.com/home/post/p-<id>`, does
+      the same. Passed 2026-08-30, first run. The home shell and the inbox
+      shell lay out alike, so one `readReaderArticle` reads both.
+- [x] The same article opened from a reader route and from the publication's
+      own page is one card, not two.
+- [x] `substack.com/inbox/saved` and `substack.com/home` still open the
+      board.
+
+## Reading panel
+
+- [x] Notes typed in the panel appear on the board's detail panel after a
+      reload.
+- [x] Notes typed on the board appear in the panel without a reload.
+- [x] The three status buttons move the card, and the current status is
+      disabled.
+- [x] Moving to Reading puts the card at the TOP of the Reading column.
+- [x] The panel keeps showing the previous article when you switch tabs
+      without clicking.
+- [x] Narrowing the panel to its minimum leaves the quote comment boxes
+      usable.
+
+## Quotes
+
+Six of these were run as Task 7 Step 14 on 2026-08-30 and are ticked from  
+that pass. Only the reload box is new.
+
+- [x] Selecting text and clicking "Capture quote" adds the quote verbatim.
+- [x] A comment typed on a quote survives a reload.
+- [x] A comment typed on a quote is editable from the board's detail panel
+      too.
+- [x] "Capture quote" with nothing selected says so and adds nothing.
+- [x] Capturing a passage that appears twice in the article adds exactly one
+      quote.
+- [x] Editing the article in DevTools so a quote no longer matches shows
+      "location unavailable".
+- [x] A quote whose location is lost still shows its full text.

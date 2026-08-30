@@ -36,22 +36,16 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-08-30
-**Phase:** Milestone 0 complete. Milestone 1 complete, checked against its
-definition of done. The article-key dedup fix, `src/ui/ErrorBoundary.tsx`,
-`src/db/schema.test.ts`, `extension/MANUAL-CHECKS.md`, and the README and
-design-doc wrap-up edits all landed in one commit on top of `b1a4e44`, titled
-`feat(extension): add the error boundary and complete Milestone 1`. Milestone 2
-is split into 2A (capture and the companion panel) and 2B (Markdown export and
-the vault write). The 2A design and its eight-task plan are both written. Tasks
-1 through 4 are done and committed. Task 5 is committed. Task 6 grew from 11
-steps to 19 to absorb the inbox reader route, and all 19 are now done and
-committed. Its Steps 16 to 18 are browser checks and passed by hand on
-2026-08-30. Step 17 check 3 failed on its first run and was fixed by
-`resolveArticleUrl`; every check then passed, including check 7, the one that
-proves two routes to one article make one card. Task 7 is done: its Step 14
-browser checks all passed by hand on 2026-08-30. It is UNCOMMITTED, and so is a
-follow-on fix widening `isReaderRoute` to the home feed's reader shell. Task 8
-is next.
+**Phase:** Milestones 0, 1, and 2A are all complete and all checked against
+their definitions of done. Milestone 2 is split into 2A (capture and the
+companion panel) and 2B (Markdown export and the vault write). All eight 2A
+tasks are done, committed, and pushed to `origin/main`, the last of them at
+`119d057`. Every box in `extension/MANUAL-CHECKS.md` is ticked, including the
+30 added for 2A. Two long-open questions closed in that pass: a custom-domain
+publication captures a real title and publication, so the fourth fixture the
+plan named as its remedy is not needed; and the home feed's reader shell reads
+like the inbox's, so one `readReaderArticle` handles both. No 2B design exists
+yet, and writing it is the next step.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -117,15 +111,15 @@ imports a Node builtin needs `@types/node`, now a dev dependency.
 `src/substack/extract.test.ts` reads `node:fs` and is the only such file.
 `npm test` will not catch a missing type; Vite strips types without reading
 them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 166
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 170
 tests and 1 todo across 9 files, on Vitest with `fake-indexeddb` and `linkedom`.
 Run it from `extension/`. Running Vitest from the repository root also sweeps
 `.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
 `npm run compile` reports
 nothing and `npm run build` is clean. The React layer has no tests by design.
-`extension/MANUAL-CHECKS.md` covers that layer; its Milestone 1 boxes are ticked
-against a loaded build, and Milestone 2A adds boxes in Task 8 that are not yet
-run. Vite strips types without reading them, so a
+`extension/MANUAL-CHECKS.md` covers that layer, and every box in it is now
+ticked against a loaded build, Milestone 1's and Milestone 2A's alike.
+Vite strips types without reading them, so a
 green `npm run build` says nothing about the types. Run `npm run compile` beside
 it.
 **Fixtures:** `article-free.html` (1599 body words), `article-paywalled.html`
@@ -206,23 +200,23 @@ asked for; worth a cleanup pass before Task 2.
 
 **Open questions:**
 
-- Custom-domain article metadata has no fixture. The spike proved custom domains
-  work for the Saved-list link and left article metadata untested. Milestone 2A's
-  manual pass is the first real check; a fourth fixture is the remedy if it fails.
 - Milestone 2A's panel follows deliberate toolbar clicks, not tab focus. Whether
-  that is right is a question only real use answers. Revisit after two weeks.
+  that is right is a question only real use answers. Revisit around 2026-09-13.
 - `resolveQuote` reads `panel.bodyText`, the copy the background captured at
   click time. An article edited after that click resolves against the stale
-  copy, so "location unavailable" can lag an edit by one toolbar click. Task 7
-  Step 14 check 5 depends on exactly that behaviour, which is why it says to
-  click the button again.
-- The inbox reader route has no fixture. Task 6 tests `readReaderArticle`
-  against synthetic HTML, so the unit tests prove the walk against a model of
-  the page rather than the page. Task 6 Step 17 check 6 is the first real check.
-  A fourth fixture is the remedy if it fails.
+  copy, so "location unavailable" can lag an edit by one toolbar click. This is
+  intended, and Task 7 Step 14 check 5 depends on it, which is why that check
+  says to click the button again.
+- Neither reader shell has a fixture. `readReaderArticle` is unit-tested against
+  synthetic HTML, so the tests pin the walk against a model of the page rather
+  than the page. Both shells passed by hand on 2026-08-30. Capture a fixture if
+  Substack changes either layout.
 
-Both open questions carried in the 2026-08-29 state are now closed. `isPreview`
-reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
+Four questions closed. Custom-domain article metadata was checked by hand on
+2026-08-30 and reads correctly, so the fourth fixture is unnecessary; the
+extractor reads JSON-LD and OG tags, and neither is host-specific. The home
+feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
+`isAccessibleForFree` first, decided in the Milestone 2A design.
 `prototype/DECISIONS.md` was closed by Milestone 1 Task 11.
 
 **Blockers:** None.
@@ -230,6 +224,80 @@ reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
 ---
 
 ## Entries
+
+### 2026-08-30 - Milestone 2A complete
+
+**What changed:** No code. `extension/MANUAL-CHECKS.md` gained 30 boxes across
+four sections and every one is ticked against a loaded build. The README
+"Status" section now reports 2A complete and names what is missing. This entry
+closes the milestone. The eight tasks, one line each:
+
+1. The side panel entrypoint, `shouldCaptureFrom`, and the click router.
+2. `substack/extract.ts`: title, author, publication, canonical URL, word
+   count, readability, and body text out of a Substack DOM.
+3. `readingMinutes`: 250 words a minute, rounded up, blank on a preview.
+4. `CardEditor`, shared by the board's detail panel and the reading panel.
+5. `ReadingPanel`, plus `cardByArticleKey` and the `PanelState` types.
+6. The toolbar click wired through extraction, ingest, and the panel. Grew
+   from 11 steps to 19 to absorb the inbox reader route.
+7. Quote capture: `readSelection`, `createQuote`, `resolveQuote`, `addQuote`,
+   and the panel's Capture quote button.
+8. This wrap-up.
+
+**Why:** The reading loop's first half is closed. Notes are taken beside the
+article instead of away from it, and the article no longer has to be left to
+write a sentence about it.
+
+**The three corrections this plan made to the spec**, each recorded in the
+plan's "Corrections to the design doc" section and each found by writing the
+plan rather than by running it:
+
+`substack/selectors.ts` cannot exist. `scripting.executeScript` ships a
+function into the page by calling `Function.prototype.toString()` on it, so an
+injected function cannot close over an imported `SELECTORS` const. Such code
+compiles, type-checks, and throws a bare `ReferenceError` inside Substack's
+document. The selectors live in the injected function's own body.
+
+The publication host fallback moved from the extractor to the background.
+`publicationFromHost` is `domain/` code and `substack/` imports nothing.
+
+Tasks 4 to 6 were reordered. The spec listed the click wiring before the panel
+it opens, which would have meant writing a throwaway panel and replacing it two
+tasks later.
+
+**One runtime-only trap, which no test catches:** `sidePanel.open()` must be the
+first `await` in the click handler. Chrome ties it to the user gesture, and the
+gesture is spent once an unrelated async operation resolves. `background.ts`
+opens the panel before it captures, and the comment there says why.
+
+**Files:** `extension/MANUAL-CHECKS.md`, `README.md`,
+`docs/superpowers/plans/2026-08-29-milestone-2a.md`, `changes.log`.
+**Verification:** `cd extension; npm test` passes, 170 tests and 1 todo across 9
+files. `npm run compile` reports nothing. `npm run build` is clean, with the
+standing warning that `package.json` carries no `version` field. The three
+dependency-rule greps print `OK: ui clean`, `OK: substack imports nothing`, and
+`OK: domain pure`. Every box in `extension/MANUAL-CHECKS.md` is ticked, all 30
+of the new ones by hand on 2026-08-30.
+
+**The custom-domain check PASSED.** A toolbar click on a custom-domain
+publication captured a real title and publication. That question had been open
+since Task 2, and the fourth fixture the plan named as its remedy is not needed.
+The extractor reads JSON-LD and OG tags, neither of which is host-specific,
+which is why it held.
+
+**The home feed reader shell PASSED too**, on its first run, so
+`readReaderArticle` reads both app shells with one walk.
+
+**State after:** Milestone 2A meets its definition of done. The toolbar button
+on a Substack article makes or refreshes a card and opens a panel beside the
+article; the panel takes notes, captures quotes, comments on them, and moves the
+card between columns. Custom domains and both reader shells work. A paywalled
+article makes a card and says it is a preview. Nothing exports yet.
+**Next up:** The Milestone 2B design: Markdown serialization, the versioned
+download, the vault write, and the offer to move a card to Processed. Notes live
+in the extension's database until that lands.
+**Open questions:** Whether the panel should follow tab focus rather than
+deliberate toolbar clicks. Real use answers it; revisit around 2026-09-13.
 
 ### 2026-08-30 - The home feed is a second reader route
 

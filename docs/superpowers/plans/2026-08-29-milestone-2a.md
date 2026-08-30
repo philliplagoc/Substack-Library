@@ -1325,7 +1325,9 @@ Append to `extension/src/ui/styles.css`:
 Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass, `compile` silent.
 
-- [ ] **Step 10: Verify by hand**
+- [x] **Step 10: Verify by hand** — NOT RUN, and superseded rather than passed.
+
+This step expects the panel's empty state, because nothing writes `PanelState` until Task 6. Task 6 landed before anyone ran it, so the condition it was checking for no longer exists. Task 6 Step 16 checks the same panel with the state present, which is the stronger check. Left unrun on purpose.
 
 Reload the unpacked extension. Open a Substack article and click the toolbar button. The panel opens and reads "Open a Substack article and click the Substack Library toolbar button" — correct, because nothing writes `PanelState` until Task 6.
 
@@ -2331,9 +2333,9 @@ Expected: all pass, `compile` silent.
 
 - [x] **Step 14: Verify by hand**
 
-> Ran 2026-08-30. All five checks passed. A separate failure surfaced in the
-> same session and belongs to `isReaderRoute`, not to this task: the toolbar
-> button opened the board on `substack.com/home/post/p-<id>`. See the amendment
+> Ran 2026-08-30. All five checks passed. A separate failure surfaced in the  
+> same session and belongs to `isReaderRoute`, not to this task: the toolbar  
+> button opened the board on `substack.com/home/post/p-<id>`. See the amendment  
 > to correction 4.
 
 Reload the unpacked extension. On a free article with the panel open:
@@ -2344,7 +2346,12 @@ Reload the unpacked extension. On a free article with the panel open:
 4. Select a passage that appears twice in the article and capture it. Expected: one quote, no error.
 5. In DevTools, edit the article text of a captured quote so it no longer matches, then click the toolbar button again to refresh the panel. Expected: "location unavailable" under that quote, with the text still intact.
 
-- [ ] **Step 15: Commit**
+- [x] **Step 15: Commit**
+
+Landed as `4e2c72d`, code only. The `changes.log` entry and these plan
+corrections went into `119d057` with the reader-route fix, because git cannot
+split one file's hunks across two commits without an interactive add and both
+units of work had touched the same two documents.
 
 ```bash
 git add extension/src
@@ -2367,7 +2374,7 @@ git commit -m "feat(extension): capture selected text as quotes with commentary"
 - Consumes: everything from Tasks 1 through 7.
 - Produces: no code.
 
-- [ ] **Step 1: Add the reading-panel checks**
+- [x] **Step 1: Add the reading-panel checks**
 
 Append to `extension/MANUAL-CHECKS.md`:
 
@@ -2407,15 +2414,15 @@ Append to `extension/MANUAL-CHECKS.md`:
 - [ ] A quote whose location is lost still shows its full text
 ```
 
-- [ ] **Step 2: Run every box**
+- [x] **Step 2: Run every box**
 
 Load `extension/.output/chrome-mv3/` unpacked and work through all three new sections. Tick each box in the file as it passes. If a box fails, fix it and re-run the section — do not tick it and move on.
 
-- [ ] **Step 3: Update the README status**
+- [x] **Step 3: Update the README status**
 
 In `README.md`, rewrite the "Status" section so it says Milestone 2A is complete: the extension captures an article from the toolbar on any Substack page including custom domains, opens a side panel beside it, and takes notes and quotes. Name what is still missing: Markdown export and the vault write (2B), and Saved sync with native Save and Unsave (Milestone 3).
 
-- [ ] **Step 4: Add the changes.log entry**
+- [x] **Step 4: Add the changes.log entry**
 
 Add an entry at the top of the "Entries" section using the template in the file, then rewrite "Current state" to match. Record:
 
@@ -2427,18 +2434,20 @@ Add an entry at the top of the "Entries" section using the template in the file,
 - Whether the custom-domain check passed. **If it failed, say so plainly and record capturing a fourth fixture as the next step.**
 - Next up: the Milestone 2B design.
 
-- [ ] **Step 5: Write the learning notes**
+- [x] **Step 5: Write the learning notes** — nothing to write.
+
+`CLAUDE.md` scopes these notes to questions the developer actually asked while building, and forbids notes on the immediate task. Across Milestone 2A the developer asked none of the first kind. Two of the three `TODO(human)` contributions this step names, `readingMinutes` and `resolveQuote`, were also not written by the developer: the first was handed back for lack of time and the second was requested from the assistant, so neither produced a question either. Writing notes anyway would mean inventing questions nobody asked. `docs/learning-notes.md` is unchanged for this milestone.
 
 For each `TODO(human)` the developer implemented — `shouldCaptureFrom`, `readingMinutes`, `resolveQuote` — add a note to `docs/learning-notes.md` under a `## 2026-08-29 - Milestone 2A` heading, but only for questions the developer actually asked while building. Follow the rules in `CLAUDE.md`: the developer's own words as the `###` heading, the answer you gave but shorter, tables and code blocks kept, and run the `stop-slop` skill on the note text afterwards.
 
 Do not add a `changes.log` entry for the learning notes.
 
-- [ ] **Step 6: Final verification**
+- [x] **Step 6: Final verification**
 
 Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass. Record the exact test and file counts in the changes.log entry.
 
-- [ ] **Step 7: Verify the dependency rule one last time**
+- [x] **Step 7: Verify the dependency rule one last time**
 
 ```bash
 cd extension
@@ -2449,7 +2458,7 @@ grep -rn "from '\.\./db\|from '\.\./ui\|from 'dexie'\|from 'react'" src/domain/ 
 
 Expected: three OK lines.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add .
