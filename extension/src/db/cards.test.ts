@@ -1,7 +1,15 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { db } from './schema';
-import type { Card } from '../domain/types';
-import { allCards, getCard, updateCard, deleteCard, nextSortOrder, ingestCard } from './cards';
+import type { Card, Quote } from '../domain/types';
+import {
+  allCards,
+  getCard,
+  updateCard,
+  deleteCard,
+  nextSortOrder,
+  ingestCard,
+  updateQuote,
+} from './cards';
 import { makeCard } from '../test-support/factory';
 import { applyOrder } from './cards';
 import { restoreCards } from './cards';
@@ -302,5 +310,48 @@ describe('restoreCards and the routes to one article', () => {
 
     await restoreCards([older as Card]);
     expect((await onlyCard()).articleKey).toBe('pokgaigamer/p/steamanimegames');
+  });
+});
+
+describe('updateQuote', () => {
+  const q = (text: string): Quote => ({
+    text,
+    locatorLost: false,
+    capturedAt: '2026-08-29T00:00:00.000Z',
+  });
+
+  test('writes a comment onto one quote and leaves its neighbours alone', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('first'), q('second')] }));
+
+    await updateQuote('a', 1, { comment: 'my reaction' });
+
+    const card = await getCard('a');
+    expect(card?.quotes[0]?.comment).toBeUndefined();
+    expect(card?.quotes[1]?.comment).toBe('my reaction');
+    expect(card?.quotes[1]?.text).toBe('second');
+  });
+
+  test('flips locatorLost without disturbing the verbatim text', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('gone from the article')] }));
+
+    await updateQuote('a', 0, { locatorLost: true });
+
+    const card = await getCard('a');
+    expect(card?.quotes[0]?.locatorLost).toBe(true);
+    expect(card?.quotes[0]?.text).toBe('gone from the article');
+  });
+
+  test('does nothing when the index is out of range', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('only')] }));
+
+    await updateQuote('a', 7, { comment: 'nowhere' });
+
+    const card = await getCard('a');
+    expect(card?.quotes).toHaveLength(1);
+    expect(card?.quotes[0]?.comment).toBeUndefined();
+  });
+
+  test('does nothing when the card is gone', async () => {
+    await expect(updateQuote('missing', 0, { comment: 'x' })).resolves.toBeUndefined();
   });
 });

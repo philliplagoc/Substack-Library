@@ -44,7 +44,8 @@ design-doc wrap-up edits all landed in one commit on top of `b1a4e44`, titled
 clean. Milestone 2 is split into 2A (capture and the companion panel) and 2B
 (Markdown export and the vault write). The 2A design and its eight-task plan are
 both written. Tasks 1 and 2 of that plan are done and committed, in `a14f9d2`
-and `95bc5da`. Task 3 is complete. Task 4 is next.
+and `95bc5da`. Task 3 is complete. Task 4 code and automated verification are
+complete. Its browser reload check remains. Task 5 follows after that check.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -62,6 +63,9 @@ with `canonicalizeUrl` and `articleKey`), `src/substack/`
 `Toolbar.tsx`). The board reads Dexie directly through `useLiveQuery` and renders
 three columns. `domain/card.ts` now also exports `CardFilter` and `visibleCards`,
 and `App.tsx` holds the filter state and passes the narrowed list to the board.
+`db/cards.ts` also exports `updateQuote`, and `ui/CardEditor.tsx` owns the
+shared title, metadata, notes, and quote-comment fields. `DetailPanel.tsx`
+supplies its Substack flags and delete button through the editor footer.
 The UI writes through the add-by-URL form, dnd-kit drag and drop, the card
 detail panel, and JSON backup and restore.
 **Card identity:** A card carries `url` and `articleKey`. `url` is the address
@@ -152,9 +156,8 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Execute `docs/superpowers/plans/2026-08-29-milestone-2a.md`, Task 3,
-`domain/article.ts` and `readingMinutes()`. It carries a `TODO(human)`
-contribution. Read the plan's "Corrections to the design doc" section first.
+**Next up:** Reload the unpacked extension and perform Task 4 Step 10. Then
+execute Task 5, `hooks/usePanelState.ts`.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -189,6 +192,27 @@ reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
 ---
 
 ## Entries
+
+### 2026-08-29 - Extract the shared card editor (2A Task 4)
+
+**What changed:** Added transactional quote updates and their four tests.
+Extracted the board panel fields into `CardEditor` and added editable quote
+comments and quote styles.
+**Why:** The board and the coming reading panel need one editor for notes and
+quotes. Quote comments must persist without changing the quote text or its
+location state.
+**Files:** `extension/src/db/cards.ts`, `extension/src/db/cards.test.ts`,
+`extension/src/ui/CardEditor.tsx`, `extension/src/ui/DetailPanel.tsx`,
+`extension/src/ui/styles.css`, `docs/superpowers/plans/2026-08-29-milestone-2a.md`,
+`changes.log`
+**Verification:** The focused database test passed with 33 tests. `npm test`
+passed with 126 tests in 8 files. `npm run compile` passed. `npm run build`
+passed with the standing missing-`version` warning. The UI dependency check
+reported `OK: ui touches neither dexie nor schema`.
+**State after:** The implementation and automated checks are complete. The
+unpacked-extension browser reload check is not yet run.
+**Next up:** Run Task 4 Step 10, then start Task 5.
+**Open questions:** none
 
 ### 2026-08-29 - Estimate article reading minutes (2A Task 3)
 

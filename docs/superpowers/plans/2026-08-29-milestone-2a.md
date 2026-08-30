@@ -718,7 +718,7 @@ interface Props {
 }
 ```
 
-- [ ] **Step 1: Write the failing test for `updateQuote**`
+- [x] **Step 1: Write the failing test for `updateQuote**`
 
 Append to `extension/src/db/cards.test.ts`:
 
@@ -769,12 +769,12 @@ describe('updateQuote', () => {
 
 Add `updateQuote` to the imports from `./cards`, and add `Quote` to the type import from `../domain/types`.
 
-- [ ] **Step 2: Run the test and watch it fail**
+- [x] **Step 2: Run the test and watch it fail**
 
 Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: FAIL. `updateQuote is not a function`.
 
-- [ ] **Step 3: Implement `updateQuote**`
+- [x] **Step 3: Implement `updateQuote**`
 
 Append to `extension/src/db/cards.ts`, and add `Quote` to the type import at the top:
 
@@ -804,12 +804,12 @@ export async function updateQuote(
 }
 ```
 
-- [ ] **Step 4: Run the test and watch it pass**
+- [x] **Step 4: Run the test and watch it pass**
 
 Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: PASS.
 
-- [ ] **Step 5: Write `CardEditor**`
+- [x] **Step 5: Write `CardEditor**`
 
 `extension/src/ui/CardEditor.tsx`:
 
@@ -893,7 +893,7 @@ export default function CardEditor({ card, footer }: Props) {
 
 The comment field writes on every keystroke rather than debouncing. A comment is a sentence, not a paragraph, and the write is a single indexed record update. If it ever shows up in profiling, lift the debounce out of `notes` into a shared hook and use it for both.
 
-- [ ] **Step 6: Put `DetailPanel` on `CardEditor**`
+- [x] **Step 6: Put `DetailPanel` on `CardEditor**`
 
 Replace `extension/src/ui/DetailPanel.tsx` entirely:
 
@@ -969,7 +969,7 @@ export default function DetailPanel({ card, onClose }: Props) {
 }
 ```
 
-- [ ] **Step 7: Style the quote list**
+- [x] **Step 7: Style the quote list**
 
 Replace the `.panel li` and `.panel li .lost` rules in `extension/src/ui/styles.css` with:
 
@@ -986,12 +986,12 @@ Replace the `.panel li` and `.panel li .lost` rules in `extension/src/ui/styles.
 .quotes textarea { width: 100%; font: inherit; font-size: 12px; }
 ```
 
-- [ ] **Step 8: Verify the whole suite, the types, and the build**
+- [x] **Step 8: Verify the whole suite, the types, and the build**
 
 Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass, `compile` silent.
 
-- [ ] **Step 9: Verify the dependency rule still holds**
+- [x] **Step 9: Verify the dependency rule still holds**
 
 Run: `cd extension; grep -rn "from 'dexie'\|db/schema" src/ui/ || echo "OK: ui touches neither dexie nor schema"`  
 Expected: `OK: ui touches neither dexie nor schema`.
@@ -1000,7 +1000,7 @@ Expected: `OK: ui touches neither dexie nor schema`.
 
 Reload the unpacked extension. Open the board, select a card with a quote (add one through backup restore if none exists), and confirm the panel renders title, meta, notes, the quote with a comment box, the three checkboxes, and delete. Type a comment, reload the page, and confirm it persisted.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add extension/src

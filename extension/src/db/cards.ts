@@ -4,7 +4,7 @@ import { createCard } from '../domain/card';
 import { mergeCard } from '../domain/ingest';
 import { db } from './schema';
 import Dexie from 'dexie';
-import type { Card, CardInput, Status } from '../domain/types';
+import type { Card, CardInput, Quote, Status } from '../domain/types';
 import type { OrderChange } from '../domain/card';
 
 
@@ -123,4 +123,28 @@ export async function restoreCards(cards: Card[]): Promise<{ added: number; repl
   });
 
   return { added, replaced };
+}
+
+/**
+ * Change one quote on one card.
+ *
+ * Quotes have no id, so the index is the address. It is stable because quotes
+ * are only ever appended, never inserted or reordered. Read, patch, write, in
+ * one transaction, because two panels can hold the same card open at once.
+ */
+export async function updateQuote(
+  cardId: string,
+  index: number,
+  changes: Partial<Quote>,
+): Promise<void> {
+  await db.transaction('rw', db.cards, async () => {
+    const card = await db.cards.get(cardId);
+    if (!card) return;
+    const quote = card.quotes[index];
+    if (!quote) return;
+
+    const quotes = card.quotes.slice();
+    quotes[index] = { ...quote, ...changes };
+    await db.cards.update(cardId, { quotes });
+  });
 }
