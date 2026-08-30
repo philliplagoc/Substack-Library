@@ -5,3 +5,4 @@ Thumbs.db
 # WXT build output and generated types
 .output/
 .wxt/
+.worktrees/
