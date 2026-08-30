@@ -609,7 +609,7 @@ git commit -m "feat(extension): read article metadata from a Substack page"
 - Consumes: nothing.
 - Produces: `readingMinutes(wordCount: number | null, readable: boolean): number | undefined`. Task 6 calls it between extraction and `ingestCard()`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `extension/src/domain/article.test.ts`:
 
@@ -646,12 +646,12 @@ describe('readingMinutes', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and watch it fail**
+- [x] **Step 2: Run the test and watch it fail**
 
 Run: `cd extension; npx vitest run src/domain/article.test.ts`  
 Expected: FAIL. Cannot find module `./article`.
 
-- [ ] **Step 3: Add the TODO(human) stub**
+- [x] **Step 3: Add the TODO(human) stub**
 
 `extension/src/domain/article.ts`:
 
@@ -682,12 +682,12 @@ export function readingMinutes(
 
 **This step is the developer's.** Stop here and make the Learn-by-Doing request. Do not implement it.
 
-- [ ] **Step 4: Run the test and watch it pass**
+- [x] **Step 4: Run the test and watch it pass**
 
 Run: `cd extension; npx vitest run src/domain/article.test.ts`  
 Expected: PASS, all 6 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add extension/src/domain/article.ts extension/src/domain/article.test.ts

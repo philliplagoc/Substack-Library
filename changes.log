@@ -44,7 +44,7 @@ design-doc wrap-up edits all landed in one commit on top of `b1a4e44`, titled
 clean. Milestone 2 is split into 2A (capture and the companion panel) and 2B
 (Markdown export and the vault write). The 2A design and its eight-task plan are
 both written. Tasks 1 and 2 of that plan are done and committed, in `a14f9d2`
-and `95bc5da`. Task 3 is next.
+and `95bc5da`. Task 3 is complete. Task 4 is next.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -189,6 +189,22 @@ reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
 ---
 
 ## Entries
+
+### 2026-08-29 - Estimate article reading minutes (2A Task 3)
+
+**What changed:** Added `readingMinutes()` and its six tests. The function
+uses 250 words per minute and rounds partial minutes up.
+**Why:** The board needs a useful reading estimate. Preview-only and missing
+article bodies must stay blank because the reader cannot finish them.
+**Files:** `extension/src/domain/article.ts`,
+`extension/src/domain/article.test.ts`,
+`docs/superpowers/plans/2026-08-29-milestone-2a.md`, `changes.log`
+**Verification:** The focused test passed with 6 tests. `npm test` passed with
+122 tests in 8 files. `npm run compile` passed. `npm run build` passed.
+**State after:** Reading estimates now return full-minute values for readable
+articles. Task 4 is next.
+**Next up:** Extract `CardEditor` and put the board detail panel on it.
+**Open questions:** none
 
 ### 2026-08-29 - Extract article metadata from a Substack page (2A Task 2)
 
