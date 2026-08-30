@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { makeCard } from '../test-support/factory';
-import { toMarkdown } from './markdown';
-import type { Quote } from './types';
+import { toMarkdown, exportFilename } from './markdown';
+import type { Card, Quote } from './types';
 
 /** The frontmatter block, without its --- fences. */
 function frontmatterOf(markdown: string): string[] {
@@ -167,5 +167,78 @@ describe('toMarkdown body', () => {
     expect(reaction).toBeGreaterThan(first);
     expect(second).toBeGreaterThan(reaction);
     expect(notes).toBeGreaterThan(second);
+  });
+});
+
+describe('exportFilename', () => {
+  // Every case in this block wants the same savedAt, because the date prefix
+  // comes from it and is not what any of them is testing.
+  const card = (overrides: Partial<Card> = {}) =>
+    makeCard({ savedAt: '2026-08-16T09:31:00.000Z', ...overrides });
+
+  test('is date first, then the title', () => {
+    const subject = card({ title: 'How Great Questions Change a Company' });
+    expect(exportFilename(subject, 1)).toBe(
+      '2026-08-16 - How Great Questions Change a Company.md',
+    );
+  });
+
+  test('adds no suffix for the first export', () => {
+    expect(exportFilename(card({ title: 'Once' }), 1)).toBe('2026-08-16 - Once.md');
+  });
+
+  test('puts the version before the extension on a re-export', () => {
+    expect(exportFilename(card({ title: 'Once' }), 2)).toBe('2026-08-16 - Once (v2).md');
+    expect(exportFilename(card({ title: 'Once' }), 11)).toBe('2026-08-16 - Once (v11).md');
+  });
+
+  test('replaces every character Windows forbids in a filename', () => {
+    const subject = card({ title: 'a\\b/c:d*e?f"g<h>i|j' });
+    expect(exportFilename(subject, 1)).toBe('2026-08-16 - a-b-c-d-e-f-g-h-i-j.md');
+  });
+
+  test('collapses runs of whitespace to one space', () => {
+    expect(exportFilename(card({ title: 'Too    many\n\nspaces' }), 1)).toBe(
+      '2026-08-16 - Too many spaces.md',
+    );
+  });
+
+  test('strips the trailing dots a title ending in an ellipsis leaves behind', () => {
+    // Windows forbids a trailing dot as well as the nine forbidden characters.
+    expect(exportFilename(card({ title: 'And then...' }), 1)).toBe(
+      '2026-08-16 - And then.md',
+    );
+  });
+
+  test('strips leading dots and spaces', () => {
+    expect(exportFilename(card({ title: '  .hidden' }), 1)).toBe('2026-08-16 - hidden.md');
+  });
+
+  test('truncates a long title on a word boundary', () => {
+    const title = 'word '.repeat(40).trim(); // 199 characters
+    const name = exportFilename(card({ title }), 1);
+    const stem = name.slice('2026-08-16 - '.length, -'.md'.length);
+
+    expect(stem.length).toBeLessThanOrEqual(120);
+    expect(stem.endsWith('word')).toBe(true);
+    expect(stem).not.toContain('  ');
+  });
+
+  test('falls back to the article slug when the title sanitizes to nothing', () => {
+    const subject = card({
+      title: '///',
+      url: 'https://alpha.substack.com/p/great-questions',
+    });
+    expect(exportFilename(subject, 1)).toBe('2026-08-16 - great-questions.md');
+  });
+
+  test('falls back to untitled when the URL has no slug either', () => {
+    const subject = card({ title: '///', url: 'https://alpha.substack.com/' });
+    expect(exportFilename(subject, 1)).toBe('2026-08-16 - untitled.md');
+  });
+
+  test('falls back to untitled when the URL is unparseable', () => {
+    const subject = card({ title: '   ', url: 'not-a-url' });
+    expect(exportFilename(subject, 1)).toBe('2026-08-16 - untitled.md');
   });
 });

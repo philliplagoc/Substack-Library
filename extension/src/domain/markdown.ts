@@ -70,3 +70,52 @@ export function toMarkdown(card: Card): string {
 
   return blocks.join('\n\n') + '\n';
 }
+
+/** Every character Windows forbids in a filename. */
+const FORBIDDEN = /[\\/:*?"<>|]/g;
+
+const MAX_TITLE = 120;
+
+/**
+ * A title made safe to be a filename.
+ *
+ * Order matters: replace, collapse, trim, truncate. Replacing after trimming
+ * would reintroduce a leading "-" from a title starting with "/".
+ */
+function sanitizeTitle(raw: string): string {
+  const replaced = raw.replace(FORBIDDEN, '-').replace(/\s+/g, ' ');
+  const trimmed = replaced.replace(/^[.\s-]+/, '').replace(/[.\s-]+$/, '');
+
+  if (trimmed.length <= MAX_TITLE) return trimmed;
+
+  const cut = trimmed.slice(0, MAX_TITLE);
+  const lastSpace = cut.lastIndexOf(' ');
+  // A single 120-character word has no boundary to cut on. Cut it anyway; a
+  // truncated word beats a filename the filesystem refuses.
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[.\s-]+$/, '');
+}
+
+/** The last path segment of a URL, sanitized. Empty when there is none. */
+function slugFromUrl(raw: string): string {
+  try {
+    const segments = new URL(raw).pathname.split('/').filter(Boolean);
+    return sanitizeTitle(segments[segments.length - 1] ?? '');
+  } catch {
+    // A card can hold a URL this cannot parse. A filename is not the place to
+    // find that out, so fall through to `untitled`.
+    return '';
+  }
+}
+
+/**
+ * `YYYY-MM-DD - Title.md`, with ` (vN)` before the extension when N > 1.
+ *
+ * The date is savedAt, not the export date, so two exports of one card sort
+ * next to each other in a Downloads folder.
+ */
+export function exportFilename(card: Card, version: number): string {
+  const date = card.savedAt.slice(0, 10);
+  const stem = sanitizeTitle(card.title) || slugFromUrl(card.url) || 'untitled';
+  const suffix = version > 1 ? ` (v${version})` : '';
+  return `${date} - ${stem}${suffix}.md`;
+}
