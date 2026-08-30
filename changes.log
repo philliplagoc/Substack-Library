@@ -48,7 +48,10 @@ steps to 19 to absorb the inbox reader route, and all 19 are now done and
 committed. Its Steps 16 to 18 are browser checks and passed by hand on
 2026-08-30. Step 17 check 3 failed on its first run and was fixed by
 `resolveArticleUrl`; every check then passed, including check 7, the one that
-proves two routes to one article make one card. Tasks 7 and 8 are next.
+proves two routes to one article make one card. Task 7 is done: its Step 14
+browser checks all passed by hand on 2026-08-30. It is UNCOMMITTED, and so is a
+follow-on fix widening `isReaderRoute` to the home feed's reader shell. Task 8
+is next.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -61,15 +64,16 @@ page), `src/entrypoints/sidepanel/` (the reading panel document and React
 root), `src/domain/` (`types.ts`, `url.ts` with `canonicalizeUrl`,
 `articleKey`, `resolveArticleUrl`, `shouldCaptureFrom`, `isReaderRoute`,
 `publicationFromHost`;
-`article.ts` with `readingMinutes`), `src/substack/` (`extract.ts`, holding
-`ArticleMeta`, `extractArticleMeta`, `detectSignedOut`, and
-`readReaderArticle` - every one of them self-contained, because
+`article.ts` with `readingMinutes`; `quote.ts` with `createQuote` and
+`resolveQuote`), `src/substack/` (`extract.ts`, holding
+`ArticleMeta`, `extractArticleMeta`, `detectSignedOut`, `readReaderArticle`,
+and `readSelection` - every one of them self-contained, because
 `executeScript` ships them by `Function.prototype.toString()`), `src/messages.ts` (types only: `PanelState`,
 `PANEL_STATE_KEY`, `PanelMessage`, `CaptureSelectionReply` — belongs to no
 layer), `src/db/` (`schema.ts` at version 2, `cards.ts` with `allCards`,
 `getCard`, `updateCard`, `deleteCard`, `nextSortOrder`, `applyOrder`,
-`restoreCards`, `updateQuote`, `cardByArticleKey`, and the single-door
-`ingestCard`), and `src/ui/` (`App.tsx`, `Board.tsx` which also exports
+`restoreCards`, `updateQuote`, `addQuote`, `cardByArticleKey`, and the
+single-door `ingestCard`), and `src/ui/` (`App.tsx`, `Board.tsx` which also exports
 `COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports `statusLabel`,
 `Toolbar.tsx`, `CardEditor.tsx`, `DetailPanel.tsx`, `ReadingPanel.tsx`). The
 board reads Dexie directly through `useLiveQuery` and renders three columns.
@@ -77,10 +81,12 @@ board reads Dexie directly through `useLiveQuery` and renders three columns.
 `App.tsx` holds the filter state and passes the narrowed list to the board.
 `ui/CardEditor.tsx` owns the shared title, metadata, notes, and quote-comment
 fields. `DetailPanel.tsx` supplies its Substack flags and delete button through
-the editor footer. `ReadingPanel.tsx` supplies three status buttons through the
-same footer and follows the `PanelState` the background writes on each toolbar
-click. Task 6 now writes that state, so the panel has something to show; no
-browser check has confirmed it. The UI writes through the add-by-URL form, dnd-kit drag and drop,
+the editor footer. `ReadingPanel.tsx` supplies a Capture quote button and three status buttons
+through the same footer and follows the `PanelState` the background writes on
+each toolbar click. It also re-checks every quote against `panel.bodyText` and
+writes `locatorLost`, which is what puts the "location unavailable" label on the
+board's detail panel. No browser check has confirmed the capture button or that
+effect. The UI writes through the add-by-URL form, dnd-kit drag and drop,
 the card detail panel, and JSON backup and restore.
 **Card identity:** A card carries `url` and `articleKey`. `url` is the address
 the card was added with and links to. `articleKey` is what dedup compares, so
@@ -111,8 +117,8 @@ imports a Node builtin needs `@types/node`, now a dev dependency.
 `src/substack/extract.test.ts` reads `node:fs` and is the only such file.
 `npm test` will not catch a missing type; Vite strips types without reading
 them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 151
-tests and 1 todo across 8 files, on Vitest with `fake-indexeddb` and `linkedom`.
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 166
+tests and 1 todo across 9 files, on Vitest with `fake-indexeddb` and `linkedom`.
 Run it from `extension/`. Running Vitest from the repository root also sweeps
 `.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
 `npm run compile` reports
@@ -175,13 +181,12 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Task 6 Steps 1 to 15 are done and uncommitted. What remains is all
-browser work. Reload the unpacked extension, then run Task 6 Steps 16, 17, and
-18. Step 17 check 6 opens a post from the inbox, at
-`https://substack.com/inbox/post/<id>`, and check 7 opens that same article on
-its publication's domain and demands one card, not two. Commit at Step 19 once
-those pass. Task 5 Step 10 is now moot: Task 6 writes the `PanelState` whose
-absence that step was checking for, so Step 16 supersedes it.
+**Next up:** Commit Task 7 and the reader-route fix, as two commits. Then click
+the toolbar button on a home-feed post, `substack.com/home/post/p-<id>`: the
+route now reaches `capture()`, but whether `readReaderArticle` can read an
+article out of that shell has never been checked. Then Task 8, the manual
+checks and the wrap-up. Task 5 Step 10 is moot: Task 6 writes the `PanelState`
+whose absence that step was checking for, so Task 6 Step 16 superseded it.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -206,6 +211,11 @@ asked for; worth a cleanup pass before Task 2.
   manual pass is the first real check; a fourth fixture is the remedy if it fails.
 - Milestone 2A's panel follows deliberate toolbar clicks, not tab focus. Whether
   that is right is a question only real use answers. Revisit after two weeks.
+- `resolveQuote` reads `panel.bodyText`, the copy the background captured at
+  click time. An article edited after that click resolves against the stale
+  copy, so "location unavailable" can lag an edit by one toolbar click. Task 7
+  Step 14 check 5 depends on exactly that behaviour, which is why it says to
+  click the button again.
 - The inbox reader route has no fixture. Task 6 tests `readReaderArticle`
   against synthetic HTML, so the unit tests prove the walk against a model of
   the page rather than the page. Task 6 Step 17 check 6 is the first real check.
@@ -220,6 +230,107 @@ reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
 ---
 
 ## Entries
+
+### 2026-08-30 - The home feed is a second reader route
+
+**What changed:** `isReaderRoute` now matches `/(inbox|home)/post/(p-)?<digits>`
+on `substack.com`, where it used to match `/inbox/post/<digits>` only. Four
+tests were added and the describe block was renamed to "the reader routes".
+**Why:** The toolbar button opened the board on
+`https://substack.com/home/post/p-175437103`, found by hand right after Task 7's
+checks passed. The home feed serves the same app shell as the inbox and differs
+twice: the path segment is `/home`, and the id carries a `p-` prefix the inbox's
+bare `213391431` does not. Either difference alone was enough to make
+`shouldCaptureFrom` fall through to the board.
+
+The id was NOT loosened to `[^/]+`. `/inbox/post/settings` is a settings page,
+an existing test pins that it is refused, and injecting there finds no article
+to read. "Digits, optionally prefixed `p-`" accepts both real shapes and keeps
+that test green.
+**Files:** `extension/src/domain/url.ts`, `extension/src/domain/url.test.ts`,
+`docs/superpowers/plans/2026-08-29-milestone-2a.md`, `changes.log`.
+**Verification:** `cd extension; npm test` passes, 170 tests and 1 todo across 9
+files, up from 166. `npm run compile` reports nothing. `npm run build` is clean.
+NOT verified in a browser: whether the home shell renders the same body as the
+inbox shell.
+**State after:** The route reaches `capture()`. Whether `readReaderArticle` can
+read an article out of the home shell is unknown.
+**Next up:** Click the toolbar button on a home-feed post in a loaded build. A
+card with the post's own title and URL means the shell matches. The message
+"Couldn't tell which article this is" means it does not, and the fix is a
+DevTools probe for `.body.markup` and the nearest `/p/` anchor above it, the
+same four probes that produced correction 4 in the 2A plan.
+**Open questions:** Whether Substack serves further reader shells under other
+path segments. `/inbox` and `/home` are the two seen. A third would present the
+same way: the board opens where a card was wanted.
+
+### 2026-08-30 - Capture selected text as quotes (2A Task 7, code only)
+
+**What changed:** Task 7 Steps 1 to 13. New `domain/quote.ts` with `createQuote`
+and `resolveQuote`, and `domain/quote.test.ts` with 11 tests.
+`substack/extract.ts` gained `readSelection()`. `db/cards.ts` gained
+`addQuote()`. `background.ts` gained a `runtime.onMessage` listener that answers
+`capture-selection` by injecting `readSelection` into the panel's tab.
+`ReadingPanel.tsx` gained a Capture quote button, a capture-error notice, and an
+effect that re-checks every quote against the article text and writes
+`locatorLost`.
+**Why:** This is the task that closes the reading loop: select a sentence, press
+a button, and the quote lands on the card with a comment box beside it. Three
+decisions are worth keeping.
+
+`resolveQuote` searches with a whitespace-tolerant regex built from the quote
+and run over the ORIGINAL article text, rather than normalizing both sides and
+calling `indexOf`. The function returns a character offset into the string it
+was handed, and collapsing whitespace in the article shifts every offset past
+the first collapsed run. Normalizing the needle instead keeps the haystack
+addressable.
+
+The four decisions the plan left open went: whitespace runs collapse and nothing
+else does, so an author who changed case or punctuation made an edit and
+`locatorLost` reports it; two matches the prefix cannot separate return null,
+because "it is in two places" is not an answer to "where is it" and a confident
+wrong offset is worse than a visible label; a match at a new offset is still the
+same quote, so inserting a paragraph does not mark everything below it lost; and
+a quote spanning a paragraph break still matches, which is the whitespace rule
+doing its work.
+
+`resolveQuote` was planned as a `TODO(human)` and the developer asked for it in
+the same pass, so it was implemented directly and the plan's Step 4 now records
+which way each decision went. The plan's two `test.todo` entries became real
+tests, which is what its own Step 2 asked the implementer to do.
+**Correction to the plan:** Step 12 put the quote-resolution `useEffect` after
+`moveTo`. That is past three conditional returns in `ReadingPanel`, and a hook
+that runs on some renders and not others is React's "rendered fewer hooks than
+expected" crash. The effect and the `captureError` state both sit with the other
+hooks now, above the first early return. The plan carries the correction.
+**Files:** `extension/src/domain/quote.ts` (new),
+`extension/src/domain/quote.test.ts` (new), `extension/src/db/cards.ts`,
+`extension/src/db/cards.test.ts`, `extension/src/substack/extract.ts`,
+`extension/src/entrypoints/background.ts`, `extension/src/ui/ReadingPanel.tsx`,
+`docs/superpowers/plans/2026-08-29-milestone-2a.md`, `changes.log`.
+**Verification:** `cd extension; npm test` passes, 166 tests and 1 todo across 9
+files, up from 151 across 8. `npm run compile` reports nothing. `npm run build`
+is clean, with the standing missing-`version` warning. The bundled
+`background.js` was read back: `readSelection` compiled to
+`function eo(k=window){...}` with no closure references and no downlevel
+helpers, which is the failure the extractor's header warns about and neither the
+type check nor the test suite catches. Step 14 is the browser check and is NOT
+run.
+**State after:** The code is complete and unverified in a browser. Nothing is
+committed. The React layer has no tests by design, so nothing automated has
+exercised the capture button, the message round trip, or the `locatorLost`
+effect.
+**Next up:** Task 7 Step 14, the five by-hand checks, in a loaded build. Then the
+Step 15 commit. Check 4 is the one that matters most: a passage that appears
+twice in the article is the only case that reaches `resolveQuote`'s tie-break
+branch, and check 5 is the only thing that has ever driven the `locatorLost`
+effect.
+**Open questions:** `resolveQuote` runs over `panel.bodyText`, which the
+background captured at click time. An article edited after that click resolves
+against the stale copy until the reader clicks the toolbar button again. That is
+the intended behaviour and it means "location unavailable" can lag an edit by
+one click. Also unmeasured: the effect walks every quote on every card change,
+which is fine at ten quotes and untested at two hundred.
 
 ### 2026-08-30 - Task 6 verified by hand and committed
 

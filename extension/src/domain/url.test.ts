@@ -212,8 +212,31 @@ describe('resolveArticleUrl', () => {
   });
 });
 
-describe('the inbox reader route', () => {
+describe('the reader routes', () => {
   const READER = 'https://substack.com/inbox/post/213391431';
+  // The home feed serves the same shell under a different path, and stamps its
+  // id with a `p-` prefix the inbox does not. Found by hand on 2026-08-30, when
+  // the toolbar button opened the board on it.
+  const HOME_READER = 'https://substack.com/home/post/p-175437103';
+
+  test('captures a post opened from the home feed', () => {
+    expect(shouldCaptureFrom(HOME_READER)).toBe(true);
+    expect(isReaderRoute(HOME_READER)).toBe(true);
+  });
+
+  test('ignores the home feed itself', () => {
+    expect(shouldCaptureFrom('https://substack.com/home')).toBe(false);
+    expect(isReaderRoute('https://substack.com/home')).toBe(false);
+  });
+
+  test('ignores a home post segment that is not an id', () => {
+    expect(shouldCaptureFrom('https://substack.com/home/post/settings')).toBe(false);
+  });
+
+  test('takes the p- prefix only in front of digits', () => {
+    // `p-` is a prefix on an id, not a licence for any word after it.
+    expect(isReaderRoute('https://substack.com/home/post/p-settings')).toBe(false);
+  });
 
   test('captures a post opened from the inbox', () => {
     expect(shouldCaptureFrom(READER)).toBe(true);

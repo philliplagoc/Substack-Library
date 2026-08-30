@@ -67,6 +67,8 @@ The unscoped selector must not be used. `a[href*="/p/"]` across the document ret
 
 Task 6 absorbs this. `shouldCaptureFrom` gains the route, `domain/url.ts` gains `isReaderRoute()`, `substack/extract.ts` gains `readReaderArticle()`, and `capture()` prefers the reader result over `meta.canonicalUrl` for both url and title.
 
+**Amended 2026-08-30, after Task 7.** There are two of these shells, not one. `substack.com/home/post/p-175437103` is the home feed's reader, found by hand when the toolbar button opened the board on it. It differs twice over: the path segment is `/home` rather than `/inbox`, and the id carries a `p-` prefix the inbox's bare `213391431` does not. `isReaderRoute` now matches `/(inbox|home)/post/(p-)?<digits>`. The id was NOT loosened to any segment, because `/inbox/post/settings` is a settings page and injecting there finds no article. Whether the home shell renders the same body as the inbox shell is unmeasured; `readReaderArticle` returns null when `.body.markup` or the ancestor `/p/` anchor is missing, and `capture()` turns that into a visible refusal, so a wrong guess costs a message rather than a bad card.
+
 ---
 
 ## File structure
@@ -1898,7 +1900,7 @@ resolveQuote(articleText: string, quote: Quote): number | null
 addQuote(cardId: string, quote: Quote): Promise<void>
 ```
 
-- [ ] **Step 1: Write the failing test for `createQuote**`
+- [x] **Step 1: Write the failing test for `createQuote**`
 
 `extension/src/domain/quote.test.ts`:
 
@@ -1929,7 +1931,7 @@ describe('createQuote', () => {
 });
 ```
 
-- [ ] **Step 2: Write the failing test for `resolveQuote**`
+- [x] **Step 2: Write the failing test for `resolveQuote**`
 
 Append to `extension/src/domain/quote.test.ts`. The last two cases are `test.todo` on purpose: the spec leaves those decisions to the implementer, who writes the assertion that matches the rule they choose.
 
@@ -1973,12 +1975,23 @@ describe('resolveQuote', () => {
 });
 ```
 
-- [ ] **Step 3: Run the tests and watch them fail**
+> **Correction, found during execution.** Both `test.todo` entries are real  
+> tests in the file that landed, so the suite reports 11 tests and 0 todo rather  
+> than the "8 tests, 2 todo" Step 5 predicts. The instruction above says the  
+> implementer "writes the assertion that matches the rule they choose", and a  
+> decision made but left unpinned is a decision the next reader has to  
+> re-derive. Two matches the prefix cannot separate return null; whitespace runs  
+> collapse and case and punctuation do not. A third test was added beside them,  
+> asserting the returned offset indexes `articleText` itself rather than a  
+> normalized copy - that is the property the regex-over-the-original approach  
+> exists to hold, and nothing else in the file was checking it.
+
+- [x] **Step 3: Run the tests and watch them fail**
 
 Run: `cd extension; npx vitest run src/domain/quote.test.ts`  
 Expected: FAIL. Cannot find module `./quote`.
 
-- [ ] **Step 4: Write `createQuote` and the TODO(human) stub**
+- [x] **Step 4: Write `createQuote` and the TODO(human) stub**
 
 `extension/src/domain/quote.ts`:
 
@@ -2037,12 +2050,25 @@ export function resolveQuote(articleText: string, quote: Quote): number | null {
 
 **This step is the developer's.** Stop here and make the Learn-by-Doing request. Do not implement `resolveQuote`. Implementing `createQuote` above is fine — it has no decision in it.
 
-- [ ] **Step 5: Run the tests and watch them pass**
+> **Correction, found during execution.** The developer asked for the  
+> `TODO(human)` to be implemented in the same pass, so `resolveQuote` was  
+> written directly and its docstring now records which way each of the four  
+> decisions went instead of listing them as open. The shape that landed: split  
+> the quote on whitespace, escape each word, join with `\s+`, and run that  
+> pattern over the ORIGINAL article. Normalizing the article instead was  
+> rejected - it shifts every offset past the first collapsed whitespace run, and  
+> the function's contract is an offset a caller can slice with. Zero matches is  
+> null, one match wins outright without consulting the prefix, and more than one  
+> is settled by the prefix or else null. The empty-locator check sits before the  
+> tie-break filter rather than inside it, because `''.endsWith()` is true of  
+> every string and would leave every match standing rather than none.
+
+- [x] **Step 5: Run the tests and watch them pass**
 
 Run: `cd extension; npx vitest run src/domain/quote.test.ts`  
 Expected: PASS, 8 tests, 2 todo.
 
-- [ ] **Step 6: Write the failing test for `addQuote**`
+- [x] **Step 6: Write the failing test for `addQuote**`
 
 Append to `extension/src/db/cards.test.ts`:
 
@@ -2085,12 +2111,12 @@ describe('addQuote', () => {
 
 Add `addQuote` to the imports from `./cards`.
 
-- [ ] **Step 7: Run the test and watch it fail**
+- [x] **Step 7: Run the test and watch it fail**
 
 Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: FAIL. `addQuote is not a function`.
 
-- [ ] **Step 8: Implement `addQuote**`
+- [x] **Step 8: Implement `addQuote**`
 
 Append to `extension/src/db/cards.ts`:
 
@@ -2111,12 +2137,12 @@ export async function addQuote(cardId: string, quote: Quote): Promise<void> {
 }
 ```
 
-- [ ] **Step 9: Run the test and watch it pass**
+- [x] **Step 9: Run the test and watch it pass**
 
 Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: PASS.
 
-- [ ] **Step 10: Add `readSelection` to the extractor**
+- [x] **Step 10: Add `readSelection` to the extractor**
 
 Append to `extension/src/substack/extract.ts`. Self-contained, same rule as the rest of the file.
 
@@ -2162,7 +2188,7 @@ export function readSelection(
 }
 ```
 
-- [ ] **Step 11: Handle the message in the background**
+- [x] **Step 11: Handle the message in the background**
 
 Add this inside `main()` in `extension/src/entrypoints/background.ts`, after the `browser.action.onClicked` listener, and add `readSelection` to the import from `../substack/extract` and the two message types to the import from `../messages`:
 
@@ -2205,7 +2231,7 @@ Add this inside `main()` in `extension/src/entrypoints/background.ts`, after the
     });
 ```
 
-- [ ] **Step 12: Add the capture button and quote resolution to the panel**
+- [x] **Step 12: Add the capture button and quote resolution to the panel**
 
 In `extension/src/ui/ReadingPanel.tsx`, add these imports:
 
@@ -2221,7 +2247,7 @@ Add a `captureError` state beside the existing state, inside the component:
   const [captureError, setCaptureError] = useState<string | null>(null);
 ```
 
-Add the capture handler and the resolution effect, after `moveTo`:
+Add the capture handler after `moveTo`:
 
 ```tsx
   async function captureQuote() {
@@ -2246,6 +2272,18 @@ Add the capture handler and the resolution effect, after `moveTo`:
     );
   }
 ```
+
+> **Correction, found during execution.** The resolution effect below does NOT  
+> go after `moveTo`. `ReadingPanel` has three conditional returns above that  
+> point - `panel === undefined`, `panel === null`, and `!card` - and a hook  
+> placed after them runs on some renders and not others, which is React's  
+> "rendered fewer hooks than expected" crash. It goes with the other hooks,  
+> directly after the `card` `useLiveQuery` and above the first early return.  
+> Its body already guards with `if (!card || !panel?.bodyText) return;`, so  
+> moving it up changes nothing about when it does its work. `captureError`'s  
+> `useState` belongs up there for the same reason.
+
+Add the resolution effect beside the other hooks, above the early returns:
 
 ```tsx
   // Re-check every quote against the article as it stands now. Persisted
@@ -2286,12 +2324,17 @@ Add the button to the footer, above the status buttons:
           </>
 ```
 
-- [ ] **Step 13: Verify the whole suite, the types, and the build**
+- [x] **Step 13: Verify the whole suite, the types, and the build**
 
 Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass, `compile` silent.
 
-- [ ] **Step 14: Verify by hand**
+- [x] **Step 14: Verify by hand**
+
+> Ran 2026-08-30. All five checks passed. A separate failure surfaced in the
+> same session and belongs to `isReaderRoute`, not to this task: the toolbar
+> button opened the board on `substack.com/home/post/p-<id>`. See the amendment
+> to correction 4.
 
 Reload the unpacked extension. On a free article with the panel open:
 

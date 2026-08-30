@@ -155,15 +155,21 @@ export function shouldCaptureFrom(rawUrl: string | undefined | null): boolean {
 }
 
 /**
- * Is this the Substack app's inbox reader rather than an article's own page?
+ * Is this the Substack app reading a post, rather than an article's own page?
  *
- * `substack.com/inbox/post/<id>` draws a post inside the app shell. The server
- * matched `/inbox`, so `<head>` describes the shell and every head-first read
- * path in `extract.ts` answers for the wrong page. A caller that sees true must
- * read the article's identity out of the body instead.
+ * `substack.com/inbox/post/<id>` and `substack.com/home/post/<id>` draw a post
+ * inside the app shell. The server matched `/inbox` or `/home`, so `<head>`
+ * describes the shell and every head-first read path in `extract.ts` answers
+ * for the wrong page. A caller that sees true must read the article's identity
+ * out of the body instead.
  *
  * The host is part of the rule. No publication serves `/inbox/post/<id>` from
  * its own domain, so matching the path alone would widen this for nothing.
+ *
+ * The id comes in two shapes. The inbox writes bare digits, `213391431`; the
+ * home feed writes `p-175437103`. Both are matched, and neither is loosened to
+ * "any segment": `/inbox/post/settings` is a settings page, not a post, and a
+ * capture attempt there would inject into a page with no article to find.
  */
 export function isReaderRoute(rawUrl: string | undefined | null): boolean {
   if (typeof rawUrl !== 'string') return false;
@@ -172,5 +178,5 @@ export function isReaderRoute(rawUrl: string | undefined | null): boolean {
   if (canonical === null) return false;
 
   const { hostname, pathname } = new URL(canonical);
-  return hostname === 'substack.com' && /^\/inbox\/post\/\d+$/.test(pathname);
+  return hostname === 'substack.com' && /^\/(?:inbox|home)\/post\/(?:p-)?\d+$/.test(pathname);
 }
