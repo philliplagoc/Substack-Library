@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import ErrorBoundary from '../../ui/ErrorBoundary';
+import ReadingPanel from '../../ui/ReadingPanel';
 import '../../ui/styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <p className="notice">Side panel scaffold. Task 5 renders the reading panel here.</p>
+      <ReadingPanel />
     </ErrorBoundary>
   </React.StrictMode>,
 );

@@ -35,39 +35,46 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-08-29
+**Date:** 2026-08-30
 **Phase:** Milestone 0 complete. Milestone 1 complete, checked against its
 definition of done. The article-key dedup fix, `src/ui/ErrorBoundary.tsx`,
 `src/db/schema.test.ts`, `extension/MANUAL-CHECKS.md`, and the README and
 design-doc wrap-up edits all landed in one commit on top of `b1a4e44`, titled
-`feat(extension): add the error boundary and complete Milestone 1`. The tree is
-clean. Milestone 2 is split into 2A (capture and the companion panel) and 2B
-(Markdown export and the vault write). The 2A design and its eight-task plan are
-both written. Tasks 1 and 2 of that plan are done and committed, in `a14f9d2`
-and `95bc5da`. Task 3 is complete. Task 4 code and automated verification are
-complete. Its browser reload check remains. Task 5 follows after that check.
+`feat(extension): add the error boundary and complete Milestone 1`. Milestone 2
+is split into 2A (capture and the companion panel) and 2B (Markdown export and
+the vault write). The 2A design and its eight-task plan are both written. Tasks
+1 through 4 are done and committed. Task 5 code and automated verification are
+complete; its browser reload check (Step 10) remains. Task 6 follows after that
+check.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
 plain HTML/CSS/JS board that settled the layout. `extension/` holds the real
 extension: `src/entrypoints/background.ts` (the toolbar handler that opens or
-focuses the board tab, tracked in `browser.storage.session`),
-`src/entrypoints/board/` (the board page), `src/domain/` (`types.ts`, `url.ts`
-with `canonicalizeUrl` and `articleKey`), `src/substack/`
-(`extract.ts`, holding `ArticleMeta` and `extractArticleMeta`), `src/db/`
-(`schema.ts` at version 2,
-`cards.ts` with `allCards`, `getCard`, `updateCard`, `deleteCard`,
-`nextSortOrder`, `applyOrder`, `restoreCards`, and the single-door
+focuses the board tab, tracked in `browser.storage.session`, and routes an
+article-shaped URL to `sidePanel.open`), `src/entrypoints/board/` (the board
+page), `src/entrypoints/sidepanel/` (the reading panel document and React
+root), `src/domain/` (`types.ts`, `url.ts` with `canonicalizeUrl`,
+`articleKey`, `shouldCaptureFrom`, `publicationFromHost`; `article.ts` with
+`readingMinutes`), `src/substack/` (`extract.ts`, holding `ArticleMeta` and
+`extractArticleMeta`), `src/messages.ts` (types only: `PanelState`,
+`PANEL_STATE_KEY`, `PanelMessage`, `CaptureSelectionReply` — belongs to no
+layer), `src/db/` (`schema.ts` at version 2, `cards.ts` with `allCards`,
+`getCard`, `updateCard`, `deleteCard`, `nextSortOrder`, `applyOrder`,
+`restoreCards`, `updateQuote`, `cardByArticleKey`, and the single-door
 `ingestCard`), and `src/ui/` (`App.tsx`, `Board.tsx` which also exports
-`COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports `statusLabel`, and
-`Toolbar.tsx`). The board reads Dexie directly through `useLiveQuery` and renders
-three columns. `domain/card.ts` now also exports `CardFilter` and `visibleCards`,
-and `App.tsx` holds the filter state and passes the narrowed list to the board.
-`db/cards.ts` also exports `updateQuote`, and `ui/CardEditor.tsx` owns the
-shared title, metadata, notes, and quote-comment fields. `DetailPanel.tsx`
-supplies its Substack flags and delete button through the editor footer.
-The UI writes through the add-by-URL form, dnd-kit drag and drop, the card
-detail panel, and JSON backup and restore.
+`COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports `statusLabel`,
+`Toolbar.tsx`, `CardEditor.tsx`, `DetailPanel.tsx`, `ReadingPanel.tsx`). The
+board reads Dexie directly through `useLiveQuery` and renders three columns.
+`domain/card.ts` now also exports `CardFilter` and `visibleCards`, and
+`App.tsx` holds the filter state and passes the narrowed list to the board.
+`ui/CardEditor.tsx` owns the shared title, metadata, notes, and quote-comment
+fields. `DetailPanel.tsx` supplies its Substack flags and delete button through
+the editor footer. `ReadingPanel.tsx` supplies three status buttons through the
+same footer and follows the `PanelState` the background writes on each toolbar
+click; nothing writes that state yet, so it stays on its empty-state message
+until Task 6. The UI writes through the add-by-URL form, dnd-kit drag and drop,
+the card detail panel, and JSON backup and restore.
 **Card identity:** A card carries `url` and `articleKey`. `url` is the address
 the card was added with and links to. `articleKey` is what dedup compares, so
 Substack's several routes to one article resolve to one card. `articleKey` is
@@ -97,11 +104,12 @@ imports a Node builtin needs `@types/node`, now a dev dependency.
 `src/substack/extract.test.ts` reads `node:fs` and is the only such file.
 `npm test` will not catch a missing type; Vite strips types without reading
 them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 116
-tests across 7 files, on Vitest with `fake-indexeddb` and `linkedom`. `npm run compile` reports
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 129
+tests across 8 files, on Vitest with `fake-indexeddb` and `linkedom`. `npm run compile` reports
 nothing and `npm run build` is clean. The React layer has no tests by design.
-`extension/MANUAL-CHECKS.md` covers that layer, and all 33 of its boxes are
-ticked against a loaded build. Vite strips types without reading them, so a
+`extension/MANUAL-CHECKS.md` covers that layer; its Milestone 1 boxes are ticked
+against a loaded build, and Milestone 2A adds boxes in Task 8 that are not yet
+run. Vite strips types without reading them, so a
 green `npm run build` says nothing about the types. Run `npm run compile` beside
 it.
 **Fixtures:** `article-free.html` (1599 body words), `article-paywalled.html`
@@ -156,8 +164,10 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Reload the unpacked extension and perform Task 4 Step 10. Then
-execute Task 5, `hooks/usePanelState.ts`.
+**Next up:** Reload the unpacked extension and perform Task 5 Step 10: the panel
+opens on a Substack article and reads its empty-state message. Then execute
+Task 6, which wires the toolbar click through extraction, ingest, and
+`PanelState`.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -192,6 +202,42 @@ reads JSON-LD `isAccessibleForFree` first, decided in the Milestone 2A design.
 ---
 
 ## Entries
+
+### 2026-08-30 - Build the reading side panel (2A Task 5)
+
+**What changed:** Added `cardByArticleKey()` to `db/cards.ts` and its three
+tests. Created `src/messages.ts`, the types-only file both the background and
+the panel share: `PanelState`, `PANEL_STATE_KEY`, `PanelMessage`,
+`CaptureSelectionReply`. Created `src/ui/ReadingPanel.tsx`: it follows the
+`PanelState` the background writes on each toolbar click, looks the card up by
+article key with `useLiveQuery`, renders it through `CardEditor`, and gives the
+footer three status buttons that move the card to the top of a column. Mounted
+it at the sidepanel root in place of the Task 1 scaffold. Added the `.reading`
+styles.
+**Why:** The reading loop needs an editor beside the article. The panel follows
+a deliberate toolbar click, not tab focus, so switching tabs without clicking
+leaves it where it was. `cardByArticleKey` uses `.first()` because `articleKey`
+is indexed but not unique: a pre-version-2 board can already hold a duplicate
+pair, and `.first()` returns the older of them rather than throwing.
+**Files:** `extension/src/db/cards.ts`, `extension/src/db/cards.test.ts`,
+`extension/src/messages.ts` (new), `extension/src/ui/ReadingPanel.tsx` (new),
+`extension/src/entrypoints/sidepanel/main.tsx`, `extension/src/ui/styles.css`,
+`docs/superpowers/plans/2026-08-29-milestone-2a.md`, `changes.log`
+**Verification:** `npm test` passes, 129 tests across 8 files. `npm run compile`
+prints nothing. `npm run build` is clean, with the standing missing-`version`
+warning. `grep -rn "from 'dexie'\|db/schema" src/ui/` reports the UI touches
+neither. The browser reload check (Task 5 Step 10) is not yet run; it expects
+the panel to read "Open a Substack article and click the Substack Library
+toolbar button" because nothing writes `PanelState` until Task 6.
+**State after:** The panel exists and renders, but stays on its empty-state
+message until Task 6 wires the toolbar click through extraction and ingest and
+writes `PanelState` to session storage.
+**Next up:** Task 6: wire the click through `extractArticleMeta`,
+`detectSignedOut`, `readingMinutes`, `ingestCard`, and `PanelState`. Task 6 adds
+`detectSignedOut` to the extractor; Task 7 carries the `TODO(human)` on
+`resolveQuote`.
+**Open questions:** Whether the panel should follow tab focus rather than
+deliberate clicks. Real use answers it; revisit after two weeks.
 
 ### 2026-08-29 - Extract the shared card editor (2A Task 4)
 

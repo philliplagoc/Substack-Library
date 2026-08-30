@@ -148,3 +148,15 @@ export async function updateQuote(
     await db.cards.update(cardId, { quotes });
   });
 }
+
+/**
+ * The card for one article, whichever of Substack's routes it was added by.
+ *
+ * `articleKey` is indexed but not unique, because a board written before
+ * schema version 2 can already hold a duplicate pair. `.first()` is therefore
+ * the honest read: it returns one card, and a board that holds two for one
+ * article shows the older of them until the reader deletes one by hand.
+ */
+export async function cardByArticleKey(key: string): Promise<Card | undefined> {
+  return db.cards.where('articleKey').equals(key).first();
+}

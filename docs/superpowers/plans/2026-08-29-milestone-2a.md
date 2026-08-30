@@ -304,14 +304,14 @@ export interface ArticleMeta {
 Run: `cd extension; npm install --save-dev linkedom @types/node`  
 Expected: it resolves and `package.json` gains `linkedom` and `@types/node` under `devDependencies`.
 
-> **Correction, found during execution.** The plan originally installed only
-> `linkedom`, and Step 7 then failed with
-> `TS2307: Cannot find module 'node:fs'`. WXT's generated `.wxt/tsconfig.json`
-> sets `lib` to `ESNext`, `DOM`, and `DOM.Iterable` and pulls in no Node types,
-> so the `node:fs` import in the test has no declarations. `npm test` still
-> passed, because Vite strips types without reading them - the same trap the
-> Global Constraints warn about. `@types/node` is the fix. It is a test-only
-> dependency; nothing under `src/` outside a `.test.ts` file may import a Node
+> **Correction, found during execution.** The plan originally installed only  
+> `linkedom`, and Step 7 then failed with  
+> `TS2307: Cannot find module 'node:fs'`. WXT's generated `.wxt/tsconfig.json`  
+> sets `lib` to `ESNext`, `DOM`, and `DOM.Iterable` and pulls in no Node types,  
+> so the `node:fs` import in the test has no declarations. `npm test` still  
+> passed, because Vite strips types without reading them - the same trap the  
+> Global Constraints warn about. `@types/node` is the fix. It is a test-only  
+> dependency; nothing under `src/` outside a `.test.ts` file may import a Node  
 > builtin.
 
 - [x] **Step 2: Write the failing test**
@@ -996,7 +996,7 @@ Expected: all pass, `compile` silent.
 Run: `cd extension; grep -rn "from 'dexie'\|db/schema" src/ui/ || echo "OK: ui touches neither dexie nor schema"`  
 Expected: `OK: ui touches neither dexie nor schema`.
 
-- [ ] **Step 10: Verify by hand**
+- [x] **Step 10: Verify by hand**
 
 Reload the unpacked extension. Open the board, select a card with a quote (add one through backup restore if none exists), and confirm the panel renders title, meta, notes, the quote with a comment box, the three checkboxes, and delete. Type a comment, reload the page, and confirm it persisted.
 
@@ -1025,7 +1025,7 @@ git commit -m "refactor(extension): extract CardEditor and make quote comments e
 - Consumes: `CardEditor` from Task 4; `allCards`, `applyOrder` from `db/cards.ts`; `reorderCards` from `domain/card.ts`.
 - Produces: `cardByArticleKey(key: string): Promise<Card | undefined>` in `db/cards.ts`, the `PanelState` type in `src/messages.ts`, and a `ReadingPanel` component mounted at the sidepanel root. Task 6 writes `PanelState` into session storage; Task 7 adds the capture button to this panel's footer.
 
-- [ ] **Step 1: Write the failing test for `cardByArticleKey**`
+- [x] **Step 1: Write the failing test for `cardByArticleKey**`
 
 Append to `extension/src/db/cards.test.ts`:
 
@@ -1053,12 +1053,12 @@ describe('cardByArticleKey', () => {
 
 Add `cardByArticleKey` to the imports from `./cards`.
 
-- [ ] **Step 2: Run the test and watch it fail**
+- [x] **Step 2: Run the test and watch it fail**
 
 Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: FAIL. `cardByArticleKey is not a function`.
 
-- [ ] **Step 3: Implement `cardByArticleKey**`
+- [x] **Step 3: Implement `cardByArticleKey**`
 
 Append to `extension/src/db/cards.ts`:
 
@@ -1076,12 +1076,12 @@ export async function cardByArticleKey(key: string): Promise<Card | undefined> {
 }
 ```
 
-- [ ] **Step 4: Run the test and watch it pass**
+- [x] **Step 4: Run the test and watch it pass**
 
 Run: `cd extension; npx vitest run src/db/cards.test.ts`  
 Expected: PASS.
 
-- [ ] **Step 5: Declare the shared types**
+- [x] **Step 5: Declare the shared types**
 
 `extension/src/messages.ts`. Types only, no runtime code, so it belongs to no layer.
 
@@ -1117,7 +1117,7 @@ export type CaptureSelectionReply =
   | { ok: false; reason: string };
 ```
 
-- [ ] **Step 6: Write `ReadingPanel**`
+- [x] **Step 6: Write `ReadingPanel**`
 
 `extension/src/ui/ReadingPanel.tsx`. Task 7 adds the capture button to the footer; the status buttons and notices are complete here.
 
@@ -1254,7 +1254,7 @@ export default function ReadingPanel() {
 }
 ```
 
-- [ ] **Step 7: Mount it**
+- [x] **Step 7: Mount it**
 
 Replace the placeholder in `extension/src/entrypoints/sidepanel/main.tsx`:
 
@@ -1274,7 +1274,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 ```
 
-- [ ] **Step 8: Style the panel fluidly**
+- [x] **Step 8: Style the panel fluidly**
 
 Append to `extension/src/ui/styles.css`:
 
@@ -1293,7 +1293,7 @@ Append to `extension/src/ui/styles.css`:
 .reading .statuses { display: flex; gap: 6px; flex-wrap: wrap; }
 ```
 
-- [ ] **Step 9: Verify the whole suite, the types, and the build**
+- [x] **Step 9: Verify the whole suite, the types, and the build**
 
 Run: `cd extension; npm test; npm run compile; npm run build`  
 Expected: all pass, `compile` silent.
@@ -1302,7 +1302,7 @@ Expected: all pass, `compile` silent.
 
 Reload the unpacked extension. Open a Substack article and click the toolbar button. The panel opens and reads "Open a Substack article and click the Substack Library toolbar button" — correct, because nothing writes `PanelState` until Task 6.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add extension/src

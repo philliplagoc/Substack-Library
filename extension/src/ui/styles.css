@@ -105,3 +105,16 @@ body {
 .notice { font-size: 12px; margin: 4px 0; }
 .notice.error { color: #b00; }
 .boundary { padding: 24px; }
+
+/*
+ * The sidepanel is NOT the board's 380px panel. Chrome owns this width and the
+ * reader drags it, so the layout is fluid with a floor that keeps the quote
+ * comment boxes usable.
+ */
+.reading {
+  padding: 12px;
+  min-width: 260px;
+}
+.reading h2 { font-size: 15px; margin: 0 0 4px; }
+.reading textarea { width: 100%; font: inherit; }
+.reading .statuses { display: flex; gap: 6px; flex-wrap: wrap; }

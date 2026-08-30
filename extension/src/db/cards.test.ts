@@ -9,6 +9,7 @@ import {
   nextSortOrder,
   ingestCard,
   updateQuote,
+  cardByArticleKey,
 } from './cards';
 import { makeCard } from '../test-support/factory';
 import { applyOrder } from './cards';
@@ -353,5 +354,25 @@ describe('updateQuote', () => {
 
   test('does nothing when the card is gone', async () => {
     await expect(updateQuote('missing', 0, { comment: 'x' })).resolves.toBeUndefined();
+  });
+});
+
+describe('cardByArticleKey', () => {
+  test('finds the card for an article key', async () => {
+    await db.cards.add(makeCard({ id: 'a', url: 'https://alpha.substack.com/p/one' }));
+    const found = await cardByArticleKey('alpha/p/one');
+    expect(found?.id).toBe('a');
+  });
+
+  test('finds one card whichever route the reader arrived by', async () => {
+    // The same article, added from the share route, keys the same way.
+    await db.cards.add(
+      makeCard({ id: 'a', url: 'https://open.substack.com/pub/alpha/p/one' }),
+    );
+    expect((await cardByArticleKey('alpha/p/one'))?.id).toBe('a');
+  });
+
+  test('returns undefined for a key no card holds', async () => {
+    expect(await cardByArticleKey('alpha/p/nothing')).toBeUndefined();
   });
 });
