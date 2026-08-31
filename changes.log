@@ -44,7 +44,11 @@ tasks are done, committed, and pushed to `origin/main`, the last of them at
 30 added for 2A. Two long-open questions closed in that pass: a custom-domain
 publication captures a real title and publication, so the fourth fixture the
 plan named as its remedy is not needed; and the home feed's reader shell reads
-like the inbox's, so one `readReaderArticle` handles both. The 2B design and its
+like the inbox's, so one `readReaderArticle` handles both. A third reader route,
+the profile-scoped `substack.com/@<handle>/p-<id>`, was added to `isReaderRoute`
+on 2026-08-30 after the toolbar button opened the board on it; its box in the
+"Reader routes" manual checks is unticked, pending a run against a loaded build.
+The 2B design and its
 four-task plan are both written and approved, and no 2B code exists. 2B was cut
 from four items to three: the Obsidian vault write left it for a spec of its own, so 2B is
 Markdown serialization, the versioned download, and the offer to move a card to
@@ -233,6 +237,38 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-08-30 - The profile-scoped link is a third reader route
+
+**What changed:** `isReaderRoute` now also matches `/@<handle>/(p-)?<digits>` on
+`substack.com`. The path test moved into a named `READER_PATH` constant that
+covers all three shells (`/inbox/post/<id>`, `/home/post/p-<id>`,
+`/@<handle>/p-<id>`); the host check stays inline. Three tests were added to
+"the reader routes".
+**Why:** The toolbar button opened the board on
+`https://substack.com/@kevinszabo14/p-210325254` instead of the side panel,
+found by hand while running the 2B manual checks. Substack serves the same app
+shell from a profile-scoped path, and `shouldCaptureFrom` fell through to the
+board because none of its shapes matched. Same class of bug as the home-feed
+route on 2026-08-30.
+
+The handle is `[\w-]+`, not `[^/]+`: the trailing `\d+$` anchor already refuses
+`/@handle/about`, so the tighter class only documents what a handle is. The id
+rule is unchanged, so `/@handle/p-settings` is still refused.
+**Files:** `extension/src/domain/url.ts`, `extension/src/domain/url.test.ts`,
+`extension/MANUAL-CHECKS.md`, `changes.log`.
+**Verification:** `cd extension; npm test` passes, 213 tests and 1 todo across
+10 files. `npm run compile` reports nothing. NOT verified in a browser: whether
+`readReaderArticle` can read an article out of the profile shell.
+**State after:** The route reaches `capture()`. The new box in MANUAL-CHECKS.md
+"Reader routes" is unticked, pending a run against a loaded build.
+**Next up:** Click the toolbar button on a `substack.com/@<handle>/p-<id>` post
+in a loaded build. A card with the post's own title and URL means the shell
+matches the inbox and home shells. "Couldn't tell which article this is" means
+it does not, and the fix is the same DevTools probe for `.body.markup` and the
+nearest `/p/` anchor above it.
+**Open questions:** Whether Substack serves further reader shells under other
+path segments. Three are now known; a fourth would present the same way.
 
 ### 2026-08-30 - Write the Milestone 2B implementation plan
 

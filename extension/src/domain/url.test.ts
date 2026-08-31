@@ -219,6 +219,26 @@ describe('the reader routes', () => {
   // the toolbar button opened the board on it.
   const HOME_READER = 'https://substack.com/home/post/p-175437103';
 
+  // Substack also serves the app-shell post view from a profile-scoped path,
+  // `substack.com/@<handle>/p-<id>`. Found by hand on 2026-08-30, when the
+  // toolbar button opened the board instead of the panel on it.
+  const PROFILE_READER = 'https://substack.com/@kevinszabo14/p-210325254';
+
+  test('captures a post opened from a profile-scoped url', () => {
+    expect(shouldCaptureFrom(PROFILE_READER)).toBe(true);
+    expect(isReaderRoute(PROFILE_READER)).toBe(true);
+  });
+
+  test('ignores a bare profile page', () => {
+    expect(shouldCaptureFrom('https://substack.com/@kevinszabo14')).toBe(false);
+    expect(isReaderRoute('https://substack.com/@kevinszabo14')).toBe(false);
+  });
+
+  test('ignores a profile post segment that is not an id', () => {
+    expect(isReaderRoute('https://substack.com/@kevinszabo14/about')).toBe(false);
+    expect(isReaderRoute('https://substack.com/@kevinszabo14/p-settings')).toBe(false);
+  });
+
   test('captures a post opened from the home feed', () => {
     expect(shouldCaptureFrom(HOME_READER)).toBe(true);
     expect(isReaderRoute(HOME_READER)).toBe(true);

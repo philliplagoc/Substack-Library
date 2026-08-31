@@ -170,7 +170,19 @@ export function shouldCaptureFrom(rawUrl: string | undefined | null): boolean {
  * home feed writes `p-175437103`. Both are matched, and neither is loosened to
  * "any segment": `/inbox/post/settings` is a settings page, not a post, and a
  * capture attempt there would inject into a page with no article to find.
+ *
+ * A third path reaches the same shell: `substack.com/@<handle>/p-<id>`, the
+ * profile-scoped link. Same rule — the leading segment is `@<handle>` instead
+ * of `inbox/post` or `home/post`, and the id still ends the path.
  */
+// Matches `/inbox/post/<id>`, `/home/post/p-<id>`, and `/@<handle>/p-<id>`.
+// The id is always `(?:p-)?\d+` and always ends the path; only the leading
+// segment differs. Anchored at both ends so a settings or about page under the
+// same prefix cannot match. The handle is `[\w-]+`: Substack handles are
+// alphanumerics, underscores, and hyphens, and the trailing `\d+$` already
+// blocks `/@handle/about` on its own.
+const READER_PATH = /^\/(?:(?:inbox|home)\/post|@[\w-]+)\/(?:p-)?\d+$/;
+
 export function isReaderRoute(rawUrl: string | undefined | null): boolean {
   if (typeof rawUrl !== 'string') return false;
 
@@ -178,5 +190,5 @@ export function isReaderRoute(rawUrl: string | undefined | null): boolean {
   if (canonical === null) return false;
 
   const { hostname, pathname } = new URL(canonical);
-  return hostname === 'substack.com' && /^\/(?:inbox|home)\/post\/(?:p-)?\d+$/.test(pathname);
+  return hostname === 'substack.com' && READER_PATH.test(pathname);
 }
