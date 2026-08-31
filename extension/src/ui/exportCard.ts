@@ -1,4 +1,4 @@
-import { recordExport } from '../db/cards';
+import { getCard, recordExport } from '../db/cards';
 import { exportFilename, toMarkdown } from '../domain/markdown';
 import type { Card } from '../domain/types';
 
@@ -25,10 +25,16 @@ function describe(error: unknown): string {
  * Milestone 1. The extension has no `downloads` permission and needs none.
  */
 export async function exportCard(card: Card, now: string): Promise<ExportOutcome> {
-  const filename = exportFilename(card, card.exportVersion + 1);
+  let filename: string;
 
   try {
-    const blob = new Blob([toMarkdown(card)], { type: 'text/markdown' });
+    // Read the card as persisted. The prop comes from a live query and `notes`
+    // is written on a debounce, so the rendered card can trail the last
+    // keystroke by up to that delay. Fall back to the prop if the row is gone.
+    const fresh = (await getCard(card.id)) ?? card;
+    filename = exportFilename(fresh, fresh.exportVersion + 1);
+
+    const blob = new Blob([toMarkdown(fresh)], { type: 'text/markdown' });
     const href = URL.createObjectURL(blob);
 
     const anchor = document.createElement('a');

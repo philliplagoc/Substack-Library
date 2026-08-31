@@ -8,9 +8,16 @@ import type { Card, Quote } from './types';
  * quotes YAML reads backslash escapes, so a literal backslash has to be doubled
  * BEFORE the quotes are escaped, or the escaping of a quote would itself be
  * escaped away.
+ *
+ * All whitespace runs are flattened to a single space first. A home-feed title
+ * comes from trimmed anchor text and JSON-LD headline can carry a literal
+ * newline; a newline inside the quotes would emit a second physical line in the
+ * `---` fence that is not a `key: value` pair, and Obsidian then fails to parse
+ * the whole frontmatter block. Flattening also neutralizes tabs.
  */
 function yamlString(value: string): string {
-  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  const flat = value.replace(/\s+/g, ' ').trim();
+  return `"${flat.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 function frontmatter(card: Card): string {

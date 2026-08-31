@@ -26,6 +26,8 @@ export default function ExportButton({ card }: Props) {
   async function handleExport() {
     setBusy(true);
     setMoveError(null);
+    setOutcome(null);
+    setOfferOpen(false);
     const result = await exportCard(card, new Date().toISOString());
     setOutcome(result);
     // Nowhere to move a card that is already there, and an offer that does

@@ -47,6 +47,17 @@ describe('toMarkdown frontmatter', () => {
     expect(toMarkdown(card)).toContain('title: "Either\\\\Or"');
   });
 
+  test('flattens a newline in a title to a single space so the YAML still parses', () => {
+    const normal = frontmatterOf(toMarkdown(makeCard({ title: 'How Great Questions' })));
+    const wrapped = frontmatterOf(toMarkdown(makeCard({ title: 'How Great\nQuestions' })));
+
+    expect(wrapped).toHaveLength(normal.length);
+    expect(wrapped).toContain('title: "How Great Questions"');
+    for (const line of wrapped) {
+      expect(line === '---' || line.includes(': ')).toBe(true);
+    }
+  });
+
   test('emits read only when the card has been read', () => {
     const unread = makeCard({ readAt: undefined });
     expect(toMarkdown(unread)).not.toContain('read:');
@@ -222,6 +233,15 @@ describe('exportFilename', () => {
     expect(stem.length).toBeLessThanOrEqual(120);
     expect(stem.endsWith('word')).toBe(true);
     expect(stem).not.toContain('  ');
+  });
+
+  test('truncates a single word longer than the limit with no boundary to cut on', () => {
+    const name = exportFilename(card({ title: 'x'.repeat(200) }), 1);
+    const stem = name.slice('2026-08-16 - '.length, -'.md'.length);
+
+    expect(stem.length).toBe(120);
+    expect(stem).toBe('x'.repeat(120));
+    expect(stem).not.toContain(' ');
   });
 
   test('falls back to the article slug when the title sanitizes to nothing', () => {
