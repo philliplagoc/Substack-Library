@@ -79,7 +79,7 @@ change; both parents put `<ExportButton>` into the content they already pass.
 
 **Carries a `TODO(human)`** on `quoteBlock`. See Step 7.
 
-- [ ] **Step 1: Write the failing frontmatter tests**
+- [x] **Step 1: Write the failing frontmatter tests**
 
 Create `extension/src/domain/markdown.test.ts`:
 
@@ -163,7 +163,7 @@ describe('toMarkdown frontmatter', () => {
 Properties view to offer it, and a reader who wants to tag the note in Obsidian
 should not have to type the key first.
 
-- [ ] **Step 2: Run the tests and watch them fail**
+- [x] **Step 2: Run the tests and watch them fail**
 
 ```bash
 cd extension
@@ -172,7 +172,7 @@ npx vitest run src/domain/markdown.test.ts
 
 Expected: every test fails with `Failed to resolve import "./markdown"`.
 
-- [ ] **Step 3: Write the frontmatter**
+- [x] **Step 3: Write the frontmatter**
 
 Create `extension/src/domain/markdown.ts`:
 
@@ -221,7 +221,7 @@ export function toMarkdown(card: Card): string {
 }
 ```
 
-- [ ] **Step 4: Run the tests and watch them pass**
+- [x] **Step 4: Run the tests and watch them pass**
 
 ```bash
 cd extension
@@ -230,7 +230,7 @@ npx vitest run src/domain/markdown.test.ts
 
 Expected: 8 passed.
 
-- [ ] **Step 5: Write the failing body tests**
+- [x] **Step 5: Write the failing body tests**
 
 Append to `extension/src/domain/markdown.test.ts`:
 
@@ -339,7 +339,7 @@ Add `Quote` to the type import at the top of the test file:
 import type { Quote } from './types';
 ```
 
-- [ ] **Step 6: Run the tests and watch them fail**
+- [x] **Step 6: Run the tests and watch them fail**
 
 ```bash
 cd extension
@@ -349,7 +349,7 @@ npx vitest run src/domain/markdown.test.ts
 Expected: the 8 frontmatter tests pass and the 11 body tests fail, because
 `toMarkdown` returns frontmatter only.
 
-- [ ] **Step 7: `TODO(human)` — write `quoteBlock`**
+- [x] **Step 7: `TODO(human)` — write `quoteBlock`**
 
 Add the constant, the stub, and the assembled `toMarkdown` to
 `extension/src/domain/markdown.ts`, replacing the one-line `toMarkdown` from
@@ -408,7 +408,7 @@ function quoteBlock(quote: Quote): string {
 `.trimEnd()` on each line is what turns an empty line into `>` rather than
 `"> "`, which matters because a trailing space in Markdown is a hard line break.
 
-- [ ] **Step 8: Run the tests and watch them pass**
+- [x] **Step 8: Run the tests and watch them pass**
 
 ```bash
 cd extension
@@ -417,7 +417,7 @@ npx vitest run src/domain/markdown.test.ts
 
 Expected: 19 passed.
 
-- [ ] **Step 9: Run the whole suite and the type check**
+- [x] **Step 9: Run the whole suite and the type check**
 
 ```bash
 cd extension
@@ -428,7 +428,7 @@ npm run compile
 Expected: `npm test` passes with 19 more tests than the 170 it passed at the end
 of Milestone 2A, in one more file. `npm run compile` prints nothing.
 
-- [ ] **Step 10: Check the dependency rule by hand**
+- [x] **Step 10: Check the dependency rule by hand**
 
 ```bash
 cd extension
@@ -438,7 +438,7 @@ grep -n "^import" src/domain/markdown.ts
 Expected: exactly one line, `import type { Card, Quote } from './types';`. A
 non-`type` import here is a rule violation even if it compiles.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add extension/src/domain/markdown.ts extension/src/domain/markdown.test.ts
@@ -460,7 +460,7 @@ git commit -m "feat(export): serialize a card to Markdown"
 
 **Carries a `TODO(human)`** on the sanitization. See Step 3.
 
-- [ ] **Step 1: Write the failing filename tests**
+- [x] **Step 1: Write the failing filename tests**
 
 Append to `extension/src/domain/markdown.test.ts`. Add `exportFilename` to the
 `./markdown` import at the top of the file, and add `Card` to the type import
@@ -544,7 +544,7 @@ describe('exportFilename', () => {
 The `'a\\b/c:d*e?f"g<h>i|j'` title is one character from each of the nine
 Windows forbids, in one string, so a fix that misses one fails visibly.
 
-- [ ] **Step 2: Run the tests and watch them fail**
+- [x] **Step 2: Run the tests and watch them fail**
 
 ```bash
 cd extension
@@ -554,7 +554,7 @@ npx vitest run src/domain/markdown.test.ts
 Expected: the 19 Task 1 tests pass and the 11 new ones fail with
 `exportFilename is not a function`.
 
-- [ ] **Step 3: `TODO(human)` — write the sanitization**
+- [x] **Step 3: `TODO(human)` — write the sanitization**
 
 Append the stubs to `extension/src/domain/markdown.ts`:
 
@@ -621,7 +621,7 @@ function sanitizeTitle(raw: string): string {
 }
 ```
 
-- [ ] **Step 4: Run the tests and watch them pass**
+- [x] **Step 4: Run the tests and watch them pass**
 
 ```bash
 cd extension
@@ -630,7 +630,7 @@ npx vitest run src/domain/markdown.test.ts
 
 Expected: 30 passed.
 
-- [ ] **Step 5: Run the whole suite and the type check**
+- [x] **Step 5: Run the whole suite and the type check**
 
 ```bash
 cd extension
@@ -641,7 +641,7 @@ npm run compile
 Expected: both clean. `src/domain/markdown.ts` still imports types only, so no
 new grep is needed beyond Task 1 Step 10.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add extension/src/domain/markdown.ts extension/src/domain/markdown.test.ts
@@ -670,7 +670,7 @@ Both take their timestamp as an argument rather than calling `new Date()`, so
 the tests are deterministic. `ingestCard` calls `new Date()` itself, but it has
 no caller who cares what the answer was; these two do.
 
-- [ ] **Step 1: Write the failing `recordExport` tests**
+- [x] **Step 1: Write the failing `recordExport` tests**
 
 `cards.test.ts` already opens with a `beforeEach` that clears the table and an
 `onlyCard()` helper. Add to it:
@@ -718,7 +718,7 @@ describe('recordExport', () => {
 
 Add `recordExport` to the import from `./cards` at the top of the test file.
 
-- [ ] **Step 2: Run the tests and watch them fail**
+- [x] **Step 2: Run the tests and watch them fail**
 
 ```bash
 cd extension
@@ -727,7 +727,7 @@ npx vitest run src/db/cards.test.ts
 
 Expected: four failures, `recordExport is not a function`.
 
-- [ ] **Step 3: Write `recordExport`**
+- [x] **Step 3: Write `recordExport`**
 
 Append to `extension/src/db/cards.ts`:
 
@@ -754,7 +754,7 @@ export async function recordExport(cardId: string, at: string): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Run the tests and watch them pass**
+- [x] **Step 4: Run the tests and watch them pass**
 
 ```bash
 cd extension
@@ -763,7 +763,7 @@ npx vitest run src/db/cards.test.ts
 
 Expected: the four new tests pass alongside the file's existing ones.
 
-- [ ] **Step 5: Write the failing `moveCardTo` tests**
+- [x] **Step 5: Write the failing `moveCardTo` tests**
 
 Append to `extension/src/db/cards.test.ts`:
 
@@ -823,7 +823,7 @@ behaviour. It is here because `moveCardTo` is now the only path the reading
 panel's status buttons take, and a regression in it would silently stop
 recording when articles were read.
 
-- [ ] **Step 6: Run the tests and watch them fail**
+- [x] **Step 6: Run the tests and watch them fail**
 
 ```bash
 cd extension
@@ -832,7 +832,7 @@ npx vitest run src/db/cards.test.ts
 
 Expected: four failures, `moveCardTo is not a function`.
 
-- [ ] **Step 7: Write `moveCardTo`**
+- [x] **Step 7: Write `moveCardTo`**
 
 Append to `extension/src/db/cards.ts`:
 
@@ -873,7 +873,7 @@ from the same module as a type-only import at line 8. Change line 3 to:
 import { createCard, reorderCards } from '../domain/card';
 ```
 
-- [ ] **Step 8: Run the tests and watch them pass**
+- [x] **Step 8: Run the tests and watch them pass**
 
 ```bash
 cd extension
@@ -882,7 +882,7 @@ npx vitest run src/db/cards.test.ts
 
 Expected: all eight new tests pass.
 
-- [ ] **Step 9: Put `ReadingPanel`'s status buttons on `moveCardTo`**
+- [x] **Step 9: Put `ReadingPanel`'s status buttons on `moveCardTo`**
 
 In `extension/src/ui/ReadingPanel.tsx`, delete the whole private `moveTo`
 function:
@@ -927,7 +927,7 @@ And delete the `cards` query, which nothing reads any more:
   const cards = useLiveQuery(() => allCards(), []);
 ```
 
-- [ ] **Step 10: Run the type check, which is what catches this refactor**
+- [x] **Step 10: Run the type check, which is what catches this refactor**
 
 ```bash
 cd extension
@@ -937,7 +937,7 @@ npm run compile
 Expected: nothing. An unused import or a leftover reference to `cards` shows up
 here, not in `npm test`, because the React layer has no tests.
 
-- [ ] **Step 11: Run the whole suite and build**
+- [x] **Step 11: Run the whole suite and build**
 
 ```bash
 cd extension
@@ -948,7 +948,7 @@ npm run build
 Expected: `npm test` passes with 8 more tests than after Task 2. `npm run build`
 is clean apart from the standing missing-`version` warning.
 
-- [ ] **Step 12: Check the dependency rule by hand**
+- [x] **Step 12: Check the dependency rule by hand**
 
 ```bash
 cd extension
@@ -957,7 +957,7 @@ grep -rn "from 'dexie'\|db/schema" src/ui/ && echo "VIOLATION" || echo "OK: ui c
 
 Expected: `OK: ui clean`.
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add extension/src/db/cards.ts extension/src/db/cards.test.ts extension/src/ui/ReadingPanel.tsx
@@ -989,7 +989,7 @@ This task writes the only untested code in the milestone. Keep `exportCard`
 thin and put every decision that could be wrong into the two pure modules that
 already have tests.
 
-- [ ] **Step 1: Write the download glue**
+- [x] **Step 1: Write the download glue**
 
 Create `extension/src/ui/exportCard.ts`:
 
@@ -1046,7 +1046,7 @@ export async function exportCard(card: Card, now: string): Promise<ExportOutcome
 }
 ```
 
-- [ ] **Step 2: Write the button and the offer**
+- [x] **Step 2: Write the button and the offer**
 
 Create `extension/src/ui/ExportButton.tsx`:
 
@@ -1140,7 +1140,7 @@ export default function ExportButton({ card }: Props) {
 The `not-recorded` case reports the file AND the failure. It is not a success
 message, and it does not pretend the counter moved.
 
-- [ ] **Step 3: Mount it in the reading panel**
+- [x] **Step 3: Mount it in the reading panel**
 
 In `extension/src/ui/ReadingPanel.tsx`, import the component:
 
@@ -1159,7 +1159,7 @@ buttons:
             <p className="statuses">
 ```
 
-- [ ] **Step 4: Mount it in the board's detail panel**
+- [x] **Step 4: Mount it in the board's detail panel**
 
 In `extension/src/ui/DetailPanel.tsx`, import the component:
 
@@ -1177,7 +1177,7 @@ Then add it to the top of the footer, above the `<h3>Substack</h3>` heading:
             <h3>Substack</h3>
 ```
 
-- [ ] **Step 5: Style the offer row**
+- [x] **Step 5: Style the offer row**
 
 Append to `extension/src/ui/styles.css`:
 
@@ -1193,7 +1193,7 @@ Append to `extension/src/ui/styles.css`:
 `flex-wrap` is load-bearing. The side panel is narrow, and the offer's two
 buttons must wrap under the question rather than overflow.
 
-- [ ] **Step 6: Run the type check and the build**
+- [x] **Step 6: Run the type check and the build**
 
 ```bash
 cd extension
@@ -1205,7 +1205,7 @@ Expected: `npm run compile` prints nothing. `npm run build` is clean apart from
 the standing missing-`version` warning. This is the whole automated gate for
 this task; the React layer has no tests.
 
-- [ ] **Step 7: Run the whole suite and the dependency greps**
+- [x] **Step 7: Run the whole suite and the dependency greps**
 
 ```bash
 cd extension
@@ -1217,7 +1217,7 @@ grep -rn "^import" src/domain/markdown.ts
 Expected: `npm test` unchanged from Task 3, since this task adds no tests.
 `OK: ui clean`. `markdown.ts` still shows one type-only import.
 
-- [ ] **Step 8: Add the manual checks**
+- [x] **Step 8: Add the manual checks**
 
 Append a new section to `extension/MANUAL-CHECKS.md`, matching the file's
 existing checkbox style:
@@ -1268,13 +1268,13 @@ If a box fails, stop and fix the code rather than editing the box. The only box
 that may be adjusted without a code change is the last one, which records
 browser behaviour rather than this extension's.
 
-- [ ] **Step 10: Update the README status**
+- [x] **Step 10: Update the README status**
 
 In `README.md`, change the "Status" section so it reports Milestone 2B complete
 and names what is still missing: the Obsidian vault write and its settings
 surface, the Saved-list sync, and the backlog import.
 
-- [ ] **Step 11: Write the `changes.log` entry**
+- [x] **Step 11: Write the `changes.log` entry**
 
 Add an entry at the top of the "Entries" section using the template in the file,
 and rewrite "Current state" to match. Record:

@@ -48,11 +48,16 @@ like the inbox's, so one `readReaderArticle` handles both. A third reader route,
 the profile-scoped `substack.com/@<handle>/p-<id>`, was added to `isReaderRoute`
 on 2026-08-30 after the toolbar button opened the board on it; its box in the
 "Reader routes" manual checks is unticked, pending a run against a loaded build.
-The 2B design and its
-four-task plan are both written and approved, and no 2B code exists. 2B was cut
-from four items to three: the Obsidian vault write left it for a spec of its own, so 2B is
-Markdown serialization, the versioned download, and the offer to move a card to
-Processed.
+2B was cut from four items to three: the Obsidian vault write left it for a
+spec of its own, so 2B is Markdown serialization, the versioned download, and
+the offer to move a card to Processed. All four 2B tasks are implemented,
+committed, and pushed to `origin/main` (`9b25fb1`, `7daf39a`, `56f4eae`,
+`71faf02`, and the follow-up `933df4c`). The automated gate is green: 213 tests
+and 1 todo across 10 files, `npm run compile` clean, `npm run build` clean bar
+the standing missing-`version` warning, and both dependency greps pass. The 13
+boxes in the new `extension/MANUAL-CHECKS.md` "Markdown export (Milestone 2B)"
+section are unticked, pending a run against a loaded build. That browser pass is
+the only thing between 2B and its definition of done.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -118,8 +123,8 @@ imports a Node builtin needs `@types/node`, now a dev dependency.
 `src/substack/extract.test.ts` reads `node:fs` and is the only such file.
 `npm test` will not catch a missing type; Vite strips types without reading
 them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 170
-tests and 1 todo across 9 files, on Vitest with `fake-indexeddb` and `linkedom`.
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 213
+tests and 1 todo across 10 files, on Vitest with `fake-indexeddb` and `linkedom`.
 Run it from `extension/`. Running Vitest from the repository root also sweeps
 `.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
 `npm run compile` reports
@@ -190,10 +195,11 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** Task 1 of `docs/superpowers/plans/2026-08-30-milestone-2b.md`:
-`domain/markdown.ts` and `toMarkdown`, carrying a `TODO(human)` on the quote
-block. Then `exportFilename` (a second `TODO(human)`), then `recordExport` and
-`moveCardTo`, then the button, both footers, and the wrap-up.
+**Next up:** The 13-box "Markdown export (Milestone 2B)" pass in
+`extension/MANUAL-CHECKS.md`, against an unpacked build from
+`extension/.output/chrome-mv3/`. If every box holds, tick them and 2B meets its
+definition of done. After that, the Obsidian vault write, which needs its own
+design doc.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -237,6 +243,82 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-08-30 - Milestone 2B code complete: Markdown export from both panels
+
+**What changed:** Records work that landed in five commits (`9b25fb1`,
+`7daf39a`, `56f4eae`, `71faf02`, `933df4c`) without an entry each; the
+profile-scoped-route entry below was written on top of them. The plan's
+checkboxes are now ticked through Task 4 Step 8, and Steps 10 and 11 (the README
+status and this entry) are done. The four 2B tasks:
+
+1. `domain/markdown.ts`: `toMarkdown(card)` serializes a card to frontmatter,
+   one blockquote per quote (comment in its own paragraph, lost-locator marker
+   last), then a `## Notes` block. Pure, types-only import.
+2. `exportFilename(card, version)`: `YYYY-MM-DD - Title.md`, dated by `savedAt`,
+   with ` (vN)` before the extension when N > 1. `sanitizeTitle` replaces the
+   nine Windows-forbidden characters, collapses whitespace, trims, truncates on
+   a word boundary at 120, then falls back to the URL slug and then `untitled`.
+3. `db/cards.ts` gains `recordExport` (read-increment-write in one transaction)
+   and `moveCardTo` (was `ReadingPanel`'s private `moveTo`). The reading panel's
+   status buttons now call `moveCardTo`, so a column move is covered by
+   `cards.test.ts` rather than by a manual check only.
+4. `ui/exportCard.ts` (blob-and-anchor download, then record) and
+   `ui/ExportButton.tsx` (the button, the outcome notice, the Processed offer),
+   mounted in both the `ReadingPanel` and `DetailPanel` footers.
+
+**Why:** The reading loop's second half. A note taken beside the article now
+leaves the extension as a Markdown file.
+
+**The export is recorded after the file is written, not before.** A counter
+bumped ahead of a failed download would name a version for a file that does not
+exist. In this order the worst case is a duplicate file, which is recoverable.
+
+`exportVersion` counts exports, not files on disk. Delete a `(v2)` by hand and
+the next export is still `(v3)`; the extension has no read access to Downloads.
+
+**Follow-up in `933df4c`:** `yamlString` now flattens whitespace runs, because a
+home-feed title carries a literal newline that would break the `---` fence; and
+`exportCard` re-reads the card with `getCard` before serializing, because
+`notes` is written on a debounce and the rendered prop can trail the last
+keystroke.
+
+**The three amendments to `implementation-plan.md`** the design named: the vault
+write leaves Milestone 2 for its own spec; the frontmatter grows to eight keys,
+gaining `reading_minutes`; and the exported file marks a lost quote locator with
+an italic line, where the reliability rule had described only the panel doing
+it.
+
+**Correction to the plan, commit `df34020`:** the reference `sanitizeTitle`
+trimmed with `/^[.\s]+/` and `/[.\s]+$/`, neither of which contains `-`, so
+`sanitizeTitle('///')` returned `'---'` and defeated the
+`|| slugFromUrl || 'untitled'` fallback in `exportFilename`. The trim classes
+are `/^[.\s-]+/` and `/[.\s-]+$/`. Recorded in the plan's "Corrections to the
+design doc" section.
+
+**Files:** `extension/src/domain/markdown.ts` (new),
+`extension/src/domain/markdown.test.ts` (new), `extension/src/db/cards.ts`,
+`extension/src/db/cards.test.ts`, `extension/src/ui/exportCard.ts` (new),
+`extension/src/ui/ExportButton.tsx` (new), `extension/src/ui/ReadingPanel.tsx`,
+`extension/src/ui/DetailPanel.tsx`, `extension/src/ui/styles.css`,
+`extension/MANUAL-CHECKS.md`, `README.md`,
+`docs/superpowers/plans/2026-08-30-milestone-2b.md`.
+**Verification:** `cd extension; npm test` passes, 213 tests and 1 todo across 10
+files. `npm run compile` reports nothing, after `npm install` re-added
+`@types/node`, which was in `package.json` but missing from `node_modules` and
+made `tsc` fail on `node:fs`. `npm run build` is clean bar the standing
+missing-`version` warning. Both dependency greps pass and
+`src/domain/markdown.ts` imports types only. The 13 "Markdown export
+(Milestone 2B)" boxes in `MANUAL-CHECKS.md` are NOT run.
+**State after:** 2B code complete and unverified in a browser. Plan checkboxes
+ticked through Task 4 Step 8, plus Steps 10 and 11. Step 9 (the browser pass)
+and Step 12 (the wrap-up commit) are not done.
+**Next up:** Run the 13-box "Markdown export (Milestone 2B)" section against an
+unpacked build. If every box holds, tick them and the milestone is done. Then
+the Obsidian vault write, its own design.
+**Open questions:** The vault write and its overwrite-versus-version rule, still
+its own milestone. The Markdown preview toggle from `prototype/DECISIONS.md`,
+cheap now that `toMarkdown` exists and deliberately out of 2B.
 
 ### 2026-08-30 - The profile-scoped link is a third reader route
 

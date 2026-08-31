@@ -16,11 +16,18 @@ A local-first Chrome/Edge extension for a deliberate Substack reading workflow: 
   you take notes, capture selected text as quotes, comment on them, and move
   the card between columns. A paywalled article still makes a card and says
   so. See `docs/superpowers/specs/2026-08-29-milestone-2a-design.md`.
-- Not built yet: Markdown export and the write into an Obsidian vault
-  (Milestone 2B), and Saved-list sync with native Save and Unsave
-  (Milestone 3). Notes live in the extension's database until 2B lands, so
-  export a JSON backup from the board if you want them somewhere else.
-- Next: the Milestone 2B design. See `implementation-plan.md`.
+- Milestone 2B built, pending a manual browser pass: one click in the reading
+  panel or the board's detail panel downloads a card as a Markdown file, names
+  it `YYYY-MM-DD - <title>.md` dated by when the card was saved, records the
+  export on the card, and offers to move the card to Processed. A second export
+  of the same card lands as ` (v2)` and never overwrites the first. See
+  `docs/superpowers/specs/2026-08-30-milestone-2b-design.md`.
+- Not built yet: the write into an Obsidian vault and its settings surface, the
+  Saved-list sync with native Save and Unsave, and the backlog import. Until the
+  vault write lands, export a JSON backup from the board for a full copy.
+- Next: run the 13-box "Markdown export (Milestone 2B)" section of
+  `extension/MANUAL-CHECKS.md` against an unpacked build, then the Obsidian
+  vault write, which needs its own design.
 
 ## Development
 
