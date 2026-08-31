@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { browser } from 'wxt/browser';
-import { addQuote, allCards, applyOrder, cardByArticleKey, updateQuote } from '../db/cards';
-import { reorderCards } from '../domain/card';
+import { addQuote, cardByArticleKey, moveCardTo, updateQuote } from '../db/cards';
 import { createQuote, resolveQuote } from '../domain/quote';
 import {
   PANEL_STATE_KEY,
@@ -64,7 +63,6 @@ const OUTCOME_TEXT: Record<PanelState['outcome'], string> = {
 
 export default function ReadingPanel() {
   const panel = usePanelState();
-  const cards = useLiveQuery(() => allCards(), []);
   const card = useLiveQuery(
     () => (panel ? cardByArticleKey(panel.articleKey) : Promise.resolve(undefined)),
     [panel?.articleKey],
@@ -114,19 +112,6 @@ export default function ReadingPanel() {
     );
   }
 
-  async function moveTo(toStatus: Status) {
-    if (!cards || !card) return;
-    // reorderCards renumbers whole columns, so it needs every card. toIndex 0
-    // puts this one at the top of the target column, which is where the thing
-    // being read right now belongs.
-    const changes = reorderCards(
-      cards,
-      { cardId: card.id, toStatus, toIndex: 0 },
-      new Date().toISOString(),
-    );
-    await applyOrder(changes);
-  }
-
   async function captureQuote() {
     if (!card) return;
     setCaptureError(null);
@@ -171,7 +156,7 @@ export default function ReadingPanel() {
                 <button
                   key={status}
                   disabled={card.status === status}
-                  onClick={() => void moveTo(status)}
+                  onClick={() => void moveCardTo(card.id, status, new Date().toISOString())}
                 >
                   {COLUMN_LABELS[status]}
                 </button>

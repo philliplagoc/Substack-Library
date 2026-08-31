@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { articleKey, canonicalizeUrl } from '../domain/url';
-import { createCard } from '../domain/card';
+import { createCard, reorderCards } from '../domain/card';
 import { mergeCard } from '../domain/ingest';
 import { db } from './schema';
 import Dexie from 'dexie';
@@ -173,5 +173,53 @@ export async function addQuote(cardId: string, quote: Quote): Promise<void> {
     const card = await db.cards.get(cardId);
     if (!card) return;
     await db.cards.update(cardId, { quotes: [...card.quotes, quote] });
+  });
+}
+
+/**
+ * Record that a card was exported.
+ *
+ * Read, increment, write, in one transaction, because the board's detail panel
+ * and the reading panel can hold the same card open at once and two clicks
+ * racing through get-then-update would both read the same version.
+ *
+ * A card that is gone is not an error. The reader deleted it between the click
+ * and this write, and there is nothing left to record against.
+ */
+export async function recordExport(cardId: string, at: string): Promise<void> {
+  await db.transaction('rw', db.cards, async () => {
+    const card = await db.cards.get(cardId);
+    if (!card) return;
+    await db.cards.update(cardId, {
+      exportVersion: card.exportVersion + 1,
+      lastExportedAt: at,
+    });
+  });
+}
+
+/**
+ * Move one card to the top of another column.
+ *
+ * This was `ReadingPanel`'s private `moveTo`. It moved down here because the
+ * Processed offer needs the same move from a second component, and because
+ * src/ui/ has no automated tests: a behaviour living in a component is a
+ * behaviour only a manual check can verify.
+ *
+ * reorderCards renumbers whole columns, so it needs every card. Reading them
+ * inside the transaction is what makes the renumber safe against a concurrent
+ * drag on the board. applyOrder called in here joins this transaction rather
+ * than opening its own; Dexie reuses an active transaction of a compatible
+ * scope.
+ */
+export async function moveCardTo(
+  cardId: string,
+  toStatus: Status,
+  now: string,
+): Promise<void> {
+  await db.transaction('rw', db.cards, async () => {
+    const cards = await db.cards.orderBy('[status+sortOrder]').toArray();
+    // reorderCards returns [] for a card it cannot find, and applyOrder returns
+    // early on an empty list, so a deleted card falls through both.
+    await applyOrder(reorderCards(cards, { cardId, toStatus, toIndex: 0 }, now));
   });
 }
