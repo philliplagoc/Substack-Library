@@ -11,12 +11,13 @@ A local-first Chrome/Edge extension for a deliberate Substack reading workflow: 
   a Substack article reads its title, author, publication, and length, makes
   or refreshes a card, and opens a side panel beside the article. Custom
   domains work, and so do the app's own reader shells at
-  `substack.com/inbox/post/<id>` and `substack.com/home/post/p-<id>`, where
-  the page's `<head>` describes the shell rather than the post. In the panel
+  `substack.com/inbox/post/<id>`, `substack.com/home/post/p-<id>`, and
+  `substack.com/@<handle>/p-<id>`, where the page's `<head>` describes the
+  shell rather than the post. In the panel
   you take notes, capture selected text as quotes, comment on them, and move
   the card between columns. A paywalled article still makes a card and says
   so. See `docs/superpowers/specs/2026-08-29-milestone-2a-design.md`.
-- Milestone 2B built, pending a manual browser pass: one click in the reading
+- Milestone 2B complete: one click in the reading
   panel or the board's detail panel downloads a card as a Markdown file, names
   it `YYYY-MM-DD - <title>.md` dated by when the card was saved, records the
   export on the card, and offers to move the card to Processed. A second export
@@ -25,9 +26,8 @@ A local-first Chrome/Edge extension for a deliberate Substack reading workflow: 
 - Not built yet: the write into an Obsidian vault and its settings surface, the
   Saved-list sync with native Save and Unsave, and the backlog import. Until the
   vault write lands, export a JSON backup from the board for a full copy.
-- Next: run the 13-box "Markdown export (Milestone 2B)" section of
-  `extension/MANUAL-CHECKS.md` against an unpacked build, then the Obsidian
-  vault write, which needs its own design.
+- Next: Milestone 3, the Saved-list sync. The Obsidian vault write is deferred;
+  the Markdown download covers the need for now.
 
 ## Development
 

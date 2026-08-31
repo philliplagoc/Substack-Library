@@ -35,29 +35,42 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-08-30
-**Phase:** Milestones 0, 1, and 2A are all complete and all checked against
-their definitions of done. Milestone 2 is split into 2A (capture and the
-companion panel) and 2B (Markdown export and the vault write). All eight 2A
-tasks are done, committed, and pushed to `origin/main`, the last of them at
-`119d057`. Every box in `extension/MANUAL-CHECKS.md` is ticked, including the
-30 added for 2A. Two long-open questions closed in that pass: a custom-domain
-publication captures a real title and publication, so the fourth fixture the
-plan named as its remedy is not needed; and the home feed's reader shell reads
-like the inbox's, so one `readReaderArticle` handles both. A third reader route,
-the profile-scoped `substack.com/@<handle>/p-<id>`, was added to `isReaderRoute`
-on 2026-08-30 after the toolbar button opened the board on it; its box in the
-"Reader routes" manual checks is unticked, pending a run against a loaded build.
-2B was cut from four items to three: the Obsidian vault write left it for a
-spec of its own, so 2B is Markdown serialization, the versioned download, and
-the offer to move a card to Processed. All four 2B tasks are implemented,
-committed, and pushed to `origin/main` (`9b25fb1`, `7daf39a`, `56f4eae`,
-`71faf02`, and the follow-up `933df4c`). The automated gate is green: 213 tests
-and 1 todo across 10 files, `npm run compile` clean, `npm run build` clean bar
-the standing missing-`version` warning, and both dependency greps pass. The 13
-boxes in the new `extension/MANUAL-CHECKS.md` "Markdown export (Milestone 2B)"
-section are unticked, pending a run against a loaded build. That browser pass is
-the only thing between 2B and its definition of done.
+**Date:** 2026-08-31
+**Phase:** Milestones 0, 1, 2A, and 2B are all complete and all checked against
+their definitions of done. Milestone 2 was split into 2A (capture and the
+companion panel) and 2B (Markdown export). All eight 2A tasks are done,
+committed, and pushed to `origin/main`, the last of them at `119d057`. Two
+long-open questions closed in the 2A pass: a custom-domain publication captures
+a real title and publication, so the fourth fixture the plan named as its remedy
+is not needed; and the home feed's reader shell reads like the inbox's, so one
+`readReaderArticle` handles both.
+
+2B was cut from four items to three: the Obsidian vault write left it for a spec
+of its own, so 2B is Markdown serialization, the versioned download, and the
+offer to move a card to Processed. All four 2B tasks are implemented, committed,
+and pushed to `origin/main` (`9b25fb1`, `7daf39a`, `56f4eae`, `71faf02`, and the
+follow-up `933df4c`). The automated gate is green: 213 tests and 1 todo across 10
+files, `npm run compile` clean, `npm run build` clean bar the standing
+missing-`version` warning, and both dependency greps pass. **The 13 "Markdown
+export (Milestone 2B)" boxes in `extension/MANUAL-CHECKS.md` all PASSED and were
+ticked in `344510f`**, which is what closes 2B.
+
+**Every manual check in the repository is now ticked.** The last one, the
+profile-scoped reader route `substack.com/@<handle>/p-<id>`, PASSED on its first
+run on 2026-08-31. All three reader shells - inbox, home, and profile - lay out
+alike, so one `readReaderArticle` reads them all. The open question about
+further shells stays open, but a fourth would now be routine.
+
+**The next milestone is Milestone 3, the Saved-list sync**, chosen on
+2026-08-31. Nothing is designed for it yet.
+
+**2C, the Obsidian vault write, is OUT OF v1.** The developer decided on
+2026-08-31 to defer it to a future update of the extension rather than to later
+in this build. It is not the next thing after Milestone 3 and it does not block
+shipping. The versioned Markdown download covers the need, and the design
+question 2B left open - whether a re-export overwrites the note or sits beside
+it as a `(v2)` - is meant to be answered by looking at real exported notes in a
+real vault, which requires the extension to be in daily use first.
 **Code:** `spike/` and `prototype/` are both finished and both throwaway.
 `spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
 `extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
@@ -129,8 +142,16 @@ Run it from `extension/`. Running Vitest from the repository root also sweeps
 `.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
 `npm run compile` reports
 nothing and `npm run build` is clean. The React layer has no tests by design.
-`extension/MANUAL-CHECKS.md` covers that layer, and every box in it is now
-ticked against a loaded build, Milestone 1's and Milestone 2A's alike.
+`extension/MANUAL-CHECKS.md` covers that layer. All 76 of its boxes are ticked
+against a loaded build, across Milestones 1, 2A, and 2B. NOTE: the plan files under
+`docs/superpowers/plans/` each carry their own frozen COPY of the check list,
+and those copies were never ticked when the checks were run: 13 unticked in the
+2B plan, 25 in the 2A plan, and 26 in the Milestone 1 plan, every one of them a
+duplicate of a box that is ticked here. `MANUAL-CHECKS.md` is the source of
+truth; do not read a plan's copy as outstanding work. The Milestone 1 plan also
+holds one genuinely missed implementation tick at line 2187, Task 7 Step 10, the
+`DndContext` on `Board`; drag and drop demonstrably works, so the code is there
+and the box is not.
 Vite strips types without reading them, so a
 green `npm run build` says nothing about the types. Run `npm run compile` beside
 it.
@@ -195,11 +216,23 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** The 13-box "Markdown export (Milestone 2B)" pass in
-`extension/MANUAL-CHECKS.md`, against an unpacked build from
-`extension/.output/chrome-mv3/`. If every box holds, tick them and 2B meets its
-definition of done. After that, the Obsidian vault write, which needs its own
-design doc.
+**Next up:** The Milestone 3 implementation plan, four tasks, into
+`docs/superpowers/plans/2026-08-31-milestone-3.md`. The design is written and
+approved at `docs/superpowers/specs/2026-08-31-milestone-3-design.md`; read it
+first, and read its "Amendments to earlier documents" section before
+`implementation-plan.md`, because Milestone 3 is now three items rather than
+four.
+
+The four tasks: `domain/saved.ts` (pure, carries a `TODO(human)` on
+`parseItemMeta`), `substack/saved.ts` (injected, fixture-tested), `db/sync.ts`
+(carries a `TODO(human)` on the missing pass), then the wiring and the manual
+checks. Tasks 1 to 3 each land tested and unused; task 4 is the only one whose
+result can be seen only in a browser.
+
+**Ship chores**, cheap and independent of any milestone:
+`extension/package.json` carries no `version` field, which is the standing build
+warning, and there are no icons or install instructions for anyone but the
+developer.
 
 **Known gap in this log:** the entries below jump from Task 1 Step 6 to the
 2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
@@ -243,6 +276,136 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-08-31 - Write the Milestone 3 design: the Saved-list sync
+
+**What changed:** Wrote
+`docs/superpowers/specs/2026-08-31-milestone-3-design.md`. No code changed.
+Milestone 3 is three items, not four: the parser, a manual Sync Saved, and the
+first-run backlog import. The explicit unsave is cut.
+**Why:** Four decisions, each put to the developer and each with a rejected
+alternative worth keeping.
+
+**Milestone 3 is read-only against Substack.** The explicit unsave would be the
+first irreversible outward action the extension takes, and `spike/README.md`
+records it as the most fragile thing on the site: the control does not exist in
+the DOM until a Radix popover mounts, its classes are hashed and regenerated per
+mount, and its label is inverted, reading `Save` when the article is NOT saved.
+
+**Saved is an inbox to drain, not a mirror to reconcile.** The board owns
+status; sync only pulls in. An article in Processed is done and sync must never
+resurrect it, even while it is still saved on Substack. The mirror model was
+rejected because it makes an unsave tapped on a phone a destructive input to a
+card holding notes and quotes.
+
+**Sync fetches nothing over the network.** The first answer in the brainstorm
+was to fetch each new article and run `extractArticleMeta` over it, because a
+synced card would otherwise carry no reading estimate and the board's Max
+minutes filter HIDES cards with no estimate - an 85-article backlog invisible to
+the filter the plan names as a success criterion. Reading the fixture overturned
+that: `.reader2-item-meta` holds `Author∙14 min read` on 58 of 60 entries, so
+the list already yields publication, date, title, subtitle, author, and a
+duration for free. One page load instead of 85 requests, and no partial-failure
+class at all. Substack's estimate wins over `readingMinutes()` for synced cards.
+
+**Podcasts and videos are imported and marked.** Two fixture entries read
+`1 hr 6 min watch`. `Card` gains `medium?: 'read' | 'watch' | 'listen'`,
+optional and unindexed, so the Dexie schema STAYS AT VERSION 2 and there is no
+migration.
+
+**The rule the whole design rests on:** the missing pass runs only on a run
+believed complete. Zero entries parsed, or a scroll loop that stopped on its
+cap, skips it entirely. Without that guard one renamed Substack class turns "I
+could not read the page" into a `syncWarning` on every card on the board. Same
+shape as 2B's write-then-increment: order the steps so a failure leaves a
+recoverable state rather than a confident wrong one.
+
+**Three things the existing code already does**, each read out of the source
+before the spec claimed it. `Card` already carries `lastSeenInSaved`,
+`syncWarning`, and `unsavedFromSubstack`, provisioned in Milestone 1 and never
+written to, and `CardInput`'s doc comment already names Milestone 3's sync as a
+producer. `mergeCard` spreads `...existing` and overwrites only four metadata
+fields, so "never resurrect a Processed card" needs NO code and only a test.
+`ingestCard`'s transaction joins an outer one of compatible scope, so
+`applySync` can wrap the whole run.
+
+**The parse is split across two files** because `substack/saved.ts` is injected
+and may import nothing. The injected side returns raw strings; `parseItemMeta`
+lives in `domain/` where Vitest can reach it. It must match the duration from
+the END of the string rather than split on the `∙`, because one fixture entry
+reads `Wyndo and Dheeraj Sharma∙ 1 hr 6 min watch` and an author name can carry
+the separator.
+
+**Files:** `docs/superpowers/specs/2026-08-31-milestone-3-design.md` (new),
+`changes.log`.
+**Verification:** Not run. No code changed. Every claim about the existing code
+was read out of it: `mergeCard` in `domain/ingest.ts`, `ingestCard` and its
+transaction in `db/cards.ts`, the sync fields on `Card` in `domain/types.ts`.
+Every claim about the Saved list was measured against
+`spike/fixtures/saved-list.html` with linkedom: 60 entries, 58 with
+`.reader2-item-meta`, and the two `watch` items named.
+**State after:** Milestones 0, 1, 2A, and 2B complete, every manual check
+ticked, no Milestone 3 code.
+**Next up:** The Milestone 3 implementation plan, four tasks, into
+`docs/superpowers/plans/`. Task 1 carries a `TODO(human)` on `parseItemMeta`;
+task 3 carries one on the missing pass in `applySync`.
+**Open questions:** Whether `scrollToEnd`'s cap is generous enough for a Saved
+list much longer than 85 entries; only a real long list answers it, and the
+`complete: false` path is what keeps a short run safe meanwhile. The vault
+write, deferred out of v1.
+
+### 2026-08-31 - Correct the record: 2B is done, and 2C is deferred
+
+**What changed:** No code. "Current state" was stale and is rewritten. It had
+claimed the 13 "Markdown export (Milestone 2B)" boxes were unticked and that the
+browser pass was all that stood between 2B and its definition of done. Both
+claims were wrong when written down. `344510f` ran that pass, ticked all 13, and
+said so in its own commit message, but its edit to this file added the
+profile-route entry BELOW without touching the paragraph above it. So the
+handoff record sent the next session to redo finished work, which is what it did
+on 2026-08-31 before the boxes were counted directly.
+
+`CLAUDE.md` tells every assistant to trust "Current state" before the code. A
+stale line there is more expensive than a stale entry, because the entries are
+append-only history and nobody acts on them. When a commit ticks a box, the
+paragraph that counts the boxes has to move in the same commit.
+
+**The count, read out of the files:** `extension/MANUAL-CHECKS.md` holds 76
+boxes and 75 are ticked. The one exception is line 155, the profile-scoped
+reader route. The plan files hold 64 further unticked boxes and 63 of them are
+frozen COPIES of checks already ticked in `MANUAL-CHECKS.md`: the plans predate
+the central check list and each kept its own transcription. The 64th,
+`2026-08-26-milestone-1.md:2187`, is a real missed tick on Task 7 Step 10, the
+`DndContext`; the feature works, so it is bookkeeping too. Future plans should
+POINT at a section of `MANUAL-CHECKS.md` instead of restating it, for the same
+reason `extract.test.ts` reads the fixtures in `spike/` in place rather than
+copying them: a second copy is how a record drifts.
+
+**The scope decision:** the developer deferred Milestone 2C, the Obsidian vault
+write, to get the extension into daily use first. It is deferred, not cancelled.
+The versioned download already gets a note out of the extension, and the vault
+question the 2B design left open - whether a re-export overwrites the note or
+sits beside it as a `(v2)` - is still best answered by looking at real exported
+notes in a real vault.
+
+**The last check passed and the direction is set.** The profile-scoped reader
+route was run against a loaded build on 2026-08-31 and passed on its first try,
+so `MANUAL-CHECKS.md` is now fully ticked and the third reader shell needs no
+code. The developer chose Milestone 3, the Saved-list sync, as the next
+milestone.
+
+**Files:** `changes.log`, `README.md`, `extension/MANUAL-CHECKS.md`.
+**Verification:** Not run. No code changed. Every number above was counted out
+of the files with `grep`, and `344510f` was read with `git show` to confirm it
+carries the ticks. The profile-route check was run by hand in a loaded build.
+**State after:** The record matches the tree. Milestones 0, 1, 2A, and 2B are
+complete and every manual check is ticked. Nothing is outstanding on the built
+code. No milestone is designed past this point.
+**Next up:** The Milestone 3 design doc.
+**Open questions:** The vault write's overwrite-versus-version rule, still
+unanswered and deliberately postponed. Whether Substack serves reader shells
+beyond the three known ones; three now pass with one code path, so a fourth
+would be routine rather than a surprise.
 
 ### 2026-08-30 - Milestone 2B code complete: Markdown export from both panels
 

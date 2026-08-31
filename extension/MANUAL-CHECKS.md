@@ -152,10 +152,12 @@ describes the shell and only the body knows which article is open.
 - [x] A post opened from the home feed, `substack.com/home/post/p-<id>`, does
       the same. Passed 2026-08-30, first run. The home shell and the inbox
       shell lay out alike, so one `readReaderArticle` reads both.
-- [ ] A post opened from a profile-scoped link,
+- [x] A post opened from a profile-scoped link,
       `substack.com/@<handle>/p-<id>`, opens the side panel and makes a card
       with the post's own title and URL. Added 2026-08-30 after the toolbar
-      button opened the board on that shape.
+      button opened the board on that shape. Passed 2026-08-31, first run. All
+      three reader shells lay out alike, so one `readReaderArticle` reads them
+      all.
 - [x] The same article opened from a reader route and from the publication's
       own page is one card, not two.
 - [x] `substack.com/inbox/saved`, `substack.com/home`, and a bare
