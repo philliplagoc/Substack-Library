@@ -1315,9 +1315,25 @@ Every box above is ticked and:
 
 ## Corrections to the design doc
 
-None yet. Add them here as they are found, with the measurement that found each
-one, the way the Milestone 1 and 2A plans do. A correction discovered while
-executing belongs here rather than in a silent edit to the spec.
+### Task 2, Step 3 — the reference `sanitizeTitle` fails two of its own tests
+
+The reference implementation printed in Task 2 Step 3 trims with `/^[.\s]+/`
+and `/[.\s]+$/`. Neither class contains `-`, so a title of nothing but
+forbidden characters survives sanitization as a run of dashes:
+`sanitizeTitle('///')` returns `'---'`, which is truthy and defeats the
+`|| slugFromUrl(card.url) || 'untitled'` fallback in `exportFilename`. That
+breaks two Step 1 tests: `falls back to the article slug when the title
+sanitizes to nothing` and `falls back to untitled when the URL has no slug
+either` (both use `title: '///'`).
+
+**Fix, applied in commit 7daf39a:** the two trim regexes are `/^[.\s-]+/` and
+`/[.\s-]+$/`. This matches the design's own rationale for the trim step (it
+exists to clean up the dashes the replace step injects from leading/trailing
+forbidden characters). Cost: an intentional leading or trailing literal dash
+in a real title is also stripped (`'-30-'` → `'30'`). For Substack article
+titles this is a rare cosmetic loss and the filename stays valid and
+non-empty. Found by the Task 2 implementer running the Step 1 tests against
+the verbatim reference.
 
 ## What is NOT in this milestone
 
