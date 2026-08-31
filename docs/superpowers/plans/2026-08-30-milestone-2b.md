@@ -1260,7 +1260,7 @@ Load the unpacked build from `extension/.output/chrome-mv3/` first.
       previous file is ever lost.
 ```
 
-- [ ] **Step 9: Run every box in that section**
+- [x] **Step 9: Run every box in that section**
 
 Run the section against a loaded build. Tick each box only after seeing it.
 
@@ -1288,7 +1288,7 @@ and rewrite "Current state" to match. Record:
 - The three amendments to `implementation-plan.md` the design named.
 - Next up: the Obsidian vault write, which needs its own design.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add extension/src/ui/exportCard.ts extension/src/ui/ExportButton.tsx \
