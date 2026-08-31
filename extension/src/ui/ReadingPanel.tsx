@@ -10,6 +10,7 @@ import {
   type PanelState,
 } from '../messages';
 import CardEditor from './CardEditor';
+import ExportButton from './ExportButton';
 import type { Status } from '../domain/types';
 
 const COLUMN_LABELS: Record<Status, string> = {
@@ -151,6 +152,9 @@ export default function ReadingPanel() {
               <button onClick={() => void captureQuote()}>Capture quote</button>
             </p>
             {captureError ? <p className="notice error">{captureError}</p> : null}
+
+            <ExportButton key={card.id} card={card} />
+
             <p className="statuses">
               {(Object.keys(COLUMN_LABELS) as Status[]).map((status) => (
                 <button

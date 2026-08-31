@@ -1,5 +1,6 @@
 import { updateCard, deleteCard } from '../db/cards';
 import CardEditor from './CardEditor';
+import ExportButton from './ExportButton';
 import type { Card } from '../domain/types';
 
 interface Props {
@@ -25,6 +26,8 @@ export default function DetailPanel({ card, onClose }: Props) {
         card={card}
         footer={
           <>
+            <ExportButton key={card.id} card={card} />
+
             <h3>Substack</h3>
             <p>
               <label>

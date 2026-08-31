@@ -118,3 +118,10 @@ body {
 .reading h2 { font-size: 15px; margin: 0 0 4px; }
 .reading textarea { width: 100%; font: inherit; }
 .reading .statuses { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.offer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

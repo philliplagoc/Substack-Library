@@ -185,3 +185,39 @@ that pass. Only the reload box is new.
 - [x] Editing the article in DevTools so a quote no longer matches shows
       "location unavailable".
 - [x] A quote whose location is lost still shows its full text.
+
+## Markdown export (Milestone 2B)
+
+Load the unpacked build from `extension/.output/chrome-mv3/` first.
+
+- [ ] Open a Substack article, click the toolbar button, and click **Export
+      Markdown** in the panel. A file appears in Downloads named
+      `YYYY-MM-DD - <title>.md`, dated by when the card was SAVED, not today.
+- [ ] Open that file in a text editor. The frontmatter fences are `---`, the
+      title is double-quoted, and every quote and note on the card is present.
+- [ ] Click **Export Markdown** again on the same card. The second file carries
+      ` (v2)` before `.md` and the first file is untouched.
+- [ ] Open the board, open a card's detail panel, and export from there. Same
+      file shape.
+- [ ] Export a card in To Read, then answer **Yes** to "Move to Processed?".
+      The card appears at the TOP of the Processed column.
+- [ ] Export another card and answer **Not yet**. The card does not move and the
+      plain Export button comes back.
+- [ ] Export a card already in Processed. The file is written and NO offer
+      appears.
+- [ ] Export a card with no notes and no quotes. The file holds frontmatter and
+      nothing else. This is correct, not a bug.
+- [ ] Export a card whose article was paywalled. `reading_minutes` is absent
+      from the frontmatter rather than present and empty.
+- [ ] Export a card that has never been moved to Reading. `read:` is absent.
+- [ ] Copy one exported file into an Obsidian vault, using a card that has been
+      read and has a reading estimate so all eight keys are present. The
+      Properties view reads title, author, publication, url, saved, read,
+      reading_minutes, and tags.
+- [ ] Edit an article after quoting it so the panel shows "location
+      unavailable", then export. The quote text is intact and an italic line
+      under it reads "location no longer resolves in the source article".
+- [ ] NOT A BUG: if a file with the generated name already exists, Chrome
+      appends its own ` (1)`, so a name can land as `... (v2) (1).md`. The
+      extension cannot read the Downloads folder and cannot prevent this. No
+      previous file is ever lost.
