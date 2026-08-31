@@ -6,3 +6,6 @@ Thumbs.db
 .output/
 .wxt/
 .worktrees/
+
+# Cygwin/MSYS crash dumps
+*.stackdump
