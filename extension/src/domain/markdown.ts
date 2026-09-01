@@ -1,4 +1,5 @@
-import type { Card, Quote } from './types';
+import { STATUS_LABELS } from './card';
+import type { Card, Quote, Status } from './types';
 
 /**
  * A YAML double-quoted scalar.
@@ -67,15 +68,28 @@ function quoteBlock(quote: Quote): string {
   return blocks.join('\n\n');
 }
 
-export function toMarkdown(card: Card): string {
-  const blocks: string[] = [frontmatter(card)];
+/**
+ * The quotes and the notes of one card.
+ *
+ * `level` is the heading level the notes heading takes. A single note nests it
+ * under nothing and passes 2. The library nests it under a `###` card heading
+ * and passes 4. One builder rather than two copies: the next change to how a
+ * lost locator is marked has to hold in both files, and the day it is made once
+ * is the day the two disagree.
+ */
+function cardBody(card: Card, level: number): string[] {
+  const blocks: string[] = [];
 
   for (const quote of card.quotes) blocks.push(quoteBlock(quote));
 
   // The heading and the body are omitted together. There is no empty heading.
-  if (card.notes.trim()) blocks.push('## Notes', card.notes.trim());
+  if (card.notes.trim()) blocks.push(`${'#'.repeat(level)} Notes`, card.notes.trim());
 
-  return blocks.join('\n\n') + '\n';
+  return blocks;
+}
+
+export function toMarkdown(card: Card): string {
+  return [frontmatter(card), ...cardBody(card, 2)].join('\n\n') + '\n';
 }
 
 /** Every character Windows forbids in a filename. */
@@ -125,4 +139,76 @@ export function exportFilename(card: Card, version: number): string {
   const stem = sanitizeTitle(card.title) || slugFromUrl(card.url) || 'untitled';
   const suffix = version > 1 ? ` (v${version})` : '';
   return `${date} - ${stem}${suffix}.md`;
+}
+
+/** Board order. Every column is emitted, in this order, empty or not. */
+const STATUS_ORDER: Status[] = ['to_read', 'reading', 'processed'];
+
+/** Author, publication, and reading time, dropping whatever is missing. */
+function metaLine(card: Card): string {
+  const parts = [card.author, card.publication].filter(Boolean);
+  if (typeof card.estimatedReadingMinutes === 'number') {
+    parts.push(`${card.estimatedReadingMinutes} min`);
+  }
+  return parts.join(' · ');
+}
+
+/** One card as it appears inside the library file. */
+function libraryCard(card: Card): string[] {
+  const blocks: string[] = [`### ${card.title}`];
+
+  // Pushed even when empty: a card with no author, publication, or estimate
+  // still gets the blank paragraph, so every card block has the same shape.
+  blocks.push(metaLine(card));
+
+  blocks.push(`[${card.title}](${card.url})`);
+
+  if (card.tags.length > 0) blocks.push(`Tags: ${card.tags.join(', ')}`);
+
+  // Spread, not pushed: cardBody returns the quote blocks and the `#### Notes`
+  // heading as separate paragraphs, already at level four.
+  blocks.push(...cardBody(card, 4));
+
+  return blocks;
+}
+
+/**
+ * Every card the board is showing, as one Markdown file.
+ *
+ * This is a snapshot, not a note for an article, which is why nothing here
+ * touches `exportVersion`. `now` is passed in because `domain/` calls no
+ * `new Date()`.
+ */
+export function toLibraryMarkdown(cards: Card[], now: string): string {
+  const blocks: string[] = [
+    ['---', `exported: ${now.slice(0, 10)}`, `count: ${cards.length}`, '---'].join('\n'),
+    '# Substack Library',
+  ];
+
+  for (const status of STATUS_ORDER) {
+    blocks.push(`## ${STATUS_LABELS[status]}`);
+
+    const inColumn = cards.filter((card) => card.status === status);
+
+    // A missing heading reads as a bug. An empty one reads as an empty column.
+    if (inColumn.length === 0) {
+      blocks.push('*No cards.*');
+      continue;
+    }
+
+    for (const card of inColumn) blocks.push(...libraryCard(card));
+  }
+
+  return blocks.join('\n\n') + '\n';
+}
+
+/**
+ * `YYYY-MM-DD - Substack Library.md`, from the export date.
+ *
+ * Not versioned. Two exports on one day produce one name and Chrome appends its
+ * own ` (1)`, which is the right answer for a snapshot: the copies are dated,
+ * and which one is newer is a question the filesystem already answers.
+ */
+export function libraryFilename(now: string): string {
+  return `${now.slice(0, 10)} - Substack Library.md`;
 }

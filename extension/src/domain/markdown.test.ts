@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { makeCard } from '../test-support/factory';
-import { toMarkdown, exportFilename } from './markdown';
+import { toMarkdown, exportFilename, toLibraryMarkdown, libraryFilename } from './markdown';
 import type { Card, Quote } from './types';
 
 /** The frontmatter block, without its --- fences. */
@@ -260,5 +260,83 @@ describe('exportFilename', () => {
   test('falls back to untitled when the URL is unparseable', () => {
     const subject = card({ title: '   ', url: 'not-a-url' });
     expect(exportFilename(subject, 1)).toBe('2026-08-16 - untitled.md');
+  });
+});
+
+describe('toLibraryMarkdown', () => {
+  const NOW = '2026-08-31T09:30:00.000Z';
+
+  test('writes the frontmatter with the export date and the count', () => {
+    const out = toLibraryMarkdown([makeCard(), makeCard()], NOW);
+    expect(out).toContain('exported: 2026-08-31');
+    expect(out).toContain('count: 2');
+  });
+
+  test('emits all three column headings even when a column is empty', () => {
+    const out = toLibraryMarkdown([makeCard({ status: 'to_read' })], NOW);
+    expect(out).toContain('## To Read');
+    expect(out).toContain('## Reading');
+    expect(out).toContain('## Processed');
+  });
+
+  test('marks an empty column rather than leaving a bare heading', () => {
+    const out = toLibraryMarkdown([makeCard({ status: 'to_read' })], NOW);
+    expect(out).toContain('## Reading\n\n*No cards.*');
+  });
+
+  test('keeps the cards in the order they were given', () => {
+    const out = toLibraryMarkdown(
+      [
+        makeCard({ status: 'to_read', title: 'First' }),
+        makeCard({ status: 'to_read', title: 'Second' }),
+      ],
+      NOW,
+    );
+    expect(out.indexOf('### First')).toBeLessThan(out.indexOf('### Second'));
+  });
+
+  test('nests a card notes heading at level four', () => {
+    const out = toLibraryMarkdown([makeCard({ notes: 'A thought.' })], NOW);
+    expect(out).toContain('#### Notes');
+    expect(out).not.toContain('\n## Notes');
+  });
+
+  test('a single note still writes its notes heading at level two', () => {
+    expect(toMarkdown(makeCard({ notes: 'A thought.' }))).toContain('## Notes');
+  });
+
+  test('a card with no notes and no quotes still appears', () => {
+    const out = toLibraryMarkdown([makeCard({ title: 'Bare', notes: '', quotes: [] })], NOW);
+    expect(out).toContain('### Bare');
+    expect(out).toContain('https://alpha.substack.com/p/post-');
+  });
+
+  test('omits the tag line for a card with no tags', () => {
+    const out = toLibraryMarkdown([makeCard({ tags: [] })], NOW);
+    expect(out).not.toContain('Tags:');
+  });
+
+  test('writes the tag line for a card with tags', () => {
+    const out = toLibraryMarkdown([makeCard({ tags: ['ai', 'economics'] })], NOW);
+    expect(out).toContain('Tags: ai, economics');
+  });
+
+  test('an empty library still writes its frontmatter and its three headings', () => {
+    const out = toLibraryMarkdown([], NOW);
+    expect(out).toContain('count: 0');
+    expect(out).toContain('## To Read');
+    expect(out).toContain('## Processed');
+  });
+
+  test('ends in exactly one newline', () => {
+    const out = toLibraryMarkdown([makeCard()], NOW);
+    expect(out.endsWith('\n')).toBe(true);
+    expect(out.endsWith('\n\n')).toBe(false);
+  });
+});
+
+describe('libraryFilename', () => {
+  test('is the export date and a fixed stem', () => {
+    expect(libraryFilename('2026-08-31T09:30:00.000Z')).toBe('2026-08-31 - Substack Library.md');
   });
 });

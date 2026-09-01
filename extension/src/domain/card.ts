@@ -1,6 +1,20 @@
 import { articleKey } from './url';
 import type { Card, CardInput, Status } from './types';
 
+/**
+ * The label each column carries.
+ *
+ * It lives here rather than in `ui/` because `domain/markdown.ts` needs it for
+ * the library file's headings and `domain/` cannot import from `ui/`. Three
+ * other copies exist in `ui/Board.tsx`, `ui/ReadingPanel.tsx`, and
+ * `ui/CardTile.tsx`; consolidating them is out of scope for this milestone.
+ */
+export const STATUS_LABELS: Record<Status, string> = {
+  to_read: 'To Read',
+  reading: 'Reading',
+  processed: 'Processed',
+};
+
 export interface CardSeed {
   id: string;
   savedAt: string;
