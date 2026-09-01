@@ -68,9 +68,6 @@ export function createCard(input: CardInput & { url: string }, seed: CardSeed): 
     tags: [],
     notes: '',
     quotes: [],
-    liked: false,
-    commented: false,
-    unsavedFromSubstack: false,
     sortOrder: seed.sortOrder,
   };
 }

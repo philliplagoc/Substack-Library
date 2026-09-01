@@ -29,6 +29,24 @@ export class SubstackLibraryDb extends Dexie {
                     card.articleKey = articleKey(card.url) ?? card.url;
                 }),
             );
+
+        // The three Substack flags leave Card in Milestone 4. Nothing outside
+        // three checkboxes in DetailPanel ever read them, and those checkboxes
+        // asked the reader to keep a copy of state Substack already holds.
+        //
+        // The store string is identical to version 2. No index changes; only
+        // the rows do.
+        this.version(3)
+            .stores({
+                cards: 'id, &url, articleKey, status, savedAt, [status+sortOrder]',
+            })
+            .upgrade((tx) =>
+                tx.table('cards').toCollection().modify((card: Record<string, unknown>) => {
+                    delete card.liked;
+                    delete card.commented;
+                    delete card.unsavedFromSubstack;
+                }),
+            );
     }
 }
 

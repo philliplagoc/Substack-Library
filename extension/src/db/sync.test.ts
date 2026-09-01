@@ -148,15 +148,6 @@ describe('applySync flags what has left the list', () => {
     expect(card.lastSeenInSaved).toBe(RAN_AT);
   });
 
-  test('leaves unsavedFromSubstack alone', async () => {
-    await db.cards.add(
-      makeCard({ id: 'flagged', url: 'https://alpha.substack.com/p/gone', title: 'Gone', lastSeenInSaved: EARLIER }),
-    );
-
-    await applySync([entry()], RAN_AT, true);
-
-    expect((await cardByTitle('Gone')).unsavedFromSubstack).toBe(false);
-  });
 });
 
 describe('applySync protects the board from a bad run', () => {

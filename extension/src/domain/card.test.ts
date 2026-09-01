@@ -33,9 +33,6 @@ describe('createCard', () => {
       tags: [],
       notes: '',
       quotes: [],
-      liked: false,
-      commented: false,
-      unsavedFromSubstack: false,
       sortOrder: 3,
     });
   });

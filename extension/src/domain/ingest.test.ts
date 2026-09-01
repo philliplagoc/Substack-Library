@@ -39,9 +39,6 @@ describe('mergeCard', () => {
       readAt: '2026-08-02T00:00:00.000Z',
       exportVersion: 2,
       lastExportedAt: '2026-08-03T00:00:00.000Z',
-      liked: true,
-      commented: true,
-      unsavedFromSubstack: true,
     });
 
     const merged = mergeCard(existing, { url: URL_A, title: 'New Title' });
@@ -54,9 +51,6 @@ describe('mergeCard', () => {
     expect(merged.readAt).toBe('2026-08-02T00:00:00.000Z');
     expect(merged.exportVersion).toBe(2);
     expect(merged.lastExportedAt).toBe('2026-08-03T00:00:00.000Z');
-    expect(merged.liked).toBe(true);
-    expect(merged.commented).toBe(true);
-    expect(merged.unsavedFromSubstack).toBe(true);
   });
 
   test('keeps the id and the saved date', () => {

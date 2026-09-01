@@ -20,9 +20,6 @@ export function makeCard(overrides: Partial<Card> = {}): Card {
     tags: [],
     notes: '',
     quotes: [],
-    liked: false,
-    commented: false,
-    unsavedFromSubstack: false,
     sortOrder: 0,
     ...overrides,
   };

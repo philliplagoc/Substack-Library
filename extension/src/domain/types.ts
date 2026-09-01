@@ -40,9 +40,6 @@ export interface Card {
   tags: string[];
   notes: string;
   quotes: Quote[];
-  liked: boolean;
-  commented: boolean;
-  unsavedFromSubstack: boolean;
   sortOrder: number;
 }
 
