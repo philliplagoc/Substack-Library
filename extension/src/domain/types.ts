@@ -8,6 +8,9 @@ export interface Quote {
   capturedAt: string;
 }
 
+/** What a saved item is. Substack's list says "14 min read" or "1 hr 6 min watch". */
+export type Medium = 'read' | 'watch' | 'listen';
+
 export interface Card {
   id: string;
   /** The URL this card was added with. What the card links to. */
@@ -21,6 +24,12 @@ export interface Card {
   author: string;
   publication: string;
   estimatedReadingMinutes?: number;
+  /**
+   * Read, watch, or listen. Absent on every card written before Milestone 3
+   * and on every card captured by the toolbar button, which reads an article
+   * page and so is always a read.
+   */
+  medium?: Medium;
   status: Status;
   savedAt: string;
   readAt?: string;

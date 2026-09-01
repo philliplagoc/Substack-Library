@@ -74,4 +74,13 @@ describe('fromBackup', () => {
       expect(() => fromBackup(raw)).not.toThrow();
     }
   });
+
+  test('accepts a card carrying a medium, and one without', () => {
+    const withMedium = { ...makeCard({ id: 'm1' }), medium: 'watch' as const };
+    const withoutMedium = makeCard({ id: 'm2' });
+    const raw = JSON.stringify(toBackup([withMedium, withoutMedium], '2026-09-01T00:00:00.000Z'));
+    const result = fromBackup(raw);
+    expect(result.errors).toEqual([]);
+    expect(result.cards).toHaveLength(2);
+  });
 });
