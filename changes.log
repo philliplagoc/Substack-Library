@@ -36,22 +36,22 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-08-31
-**Phase:** Milestones 0, 1, 2A, 2B, and 3 are all complete and all checked
+**Phase:** Milestones 0, 1, 2A, 2B, 3, and 4 are all complete and all checked
 against their definitions of done. Milestone 2 was split into 2A (capture and
 the companion panel) and 2B (Markdown export). Every box in
-`extension/MANUAL-CHECKS.md` through the "Saved sync (Milestone 3)" section is
-ticked against a loaded build; all three reader shells (inbox, home, profile)
-lay out alike, so one `readReaderArticle` reads them all.
+`extension/MANUAL-CHECKS.md` is ticked against a loaded build, with none left
+open; all three reader shells (inbox, home, profile) lay out alike, so one
+`readReaderArticle` reads them all.
 
-**Milestone 4, release polish, is code complete and NOT verified in a browser.**
+**Milestone 4, release polish, is code complete and verified in a browser.**
 All six tasks are committed (`0f3d256`, `83e7d6b`, `97c18fd`, `a43852d`,
 `0785f8b`, and the wrap-up). It adds: a side-panel button that opens the board;
 tags on a card, entered in either editor, with a scrolling filter strip on the
 board; removal of the three Substack checkboxes and their `Card` fields; and an
 "Export all" button writing every card the board is showing into one Markdown
-file. No new permission, no tab opened, no page read. The 30-box "Milestone 4:
-release polish" section of `extension/MANUAL-CHECKS.md` is unticked. See the top
-entry.
+file. No new permission, no tab opened, no page read. All 27 boxes of the
+"Milestone 4: release polish" section were run and passed on 2026-08-31. An
+earlier note here called that section 30 boxes; it holds 27.
 
 **2C, the Obsidian vault write, is OUT OF v1.** The developer decided on
 2026-08-31 to defer it to a future update of the extension rather than to later
@@ -290,6 +290,49 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-08-31 - Milestone 4 verified in a browser
+
+**What changed:** All 27 boxes of the "Milestone 4: release polish" section of
+`extension/MANUAL-CHECKS.md` were run against a loaded build and ticked. No
+code changed. "Current state" now says Milestone 4 is verified rather than
+awaiting a browser.
+**Why:** Milestone 4 was committed code-complete and unverified. `npm test`
+reaches `src/domain/` and `src/db/` and nothing reaches `src/ui/`, so this list
+is the only check the tag editor, the filter strip, and the Export all button
+ever get. Leaving "Current state" claiming the section was unticked would have
+sent the next session to redo a pass that was already done.
+**Files:** `extension/MANUAL-CHECKS.md`, `changes.log`.
+**Verification:** The 27 boxes themselves, by hand, in Chrome. `npx vitest run`
+- 280 passed, 1 todo, 14 files, unchanged by this commit.
+**State after:** No box anywhere in `extension/MANUAL-CHECKS.md` is open.
+Milestones 0 through 4 are all done and all verified. The extension is
+shippable as v1.
+**Next up:** Ship v1, or start the next milestone. 2C, the Obsidian vault
+write, stays out of v1 by the decision recorded below.
+**Open questions:** Whether the list should be split per milestone now that it
+runs to 27 boxes in its last section alone and the instruction at the top says
+to run it whole.
+
+### 2026-08-31 - A tag-matching search box, tried and reverted
+
+**What changed:** Nothing. `visibleCards` briefly folded a card's tags into the
+string its query matched, so the search box found cards by tag. It was built,
+tested, and reverted the same day before any commit. Recorded so it is not
+proposed again as an obvious gap.
+**Why reverted:** The developer tried it and preferred the previous behaviour.
+The search box matching only title, author, and publication keeps it a
+different instrument from the tag strip: one finds an article you half
+remember, the other narrows the board to a subject. Folding tags into the query
+made a word like `economics` mean two things at once.
+**Files:** none. `card.ts`, `card.test.ts`, and `Toolbar.tsx` are at their
+committed state.
+**Verification:** `npx vitest run` after the revert - 280 passed, 1 todo, 14
+files, the same count as before the attempt.
+**State after:** The search box matches title, author, and publication. The tag
+strip requires every selected tag, exactly. They stay independent narrowers.
+**Next up:** Nothing follows from this.
+**Open questions:** none.
 
 ### 2026-08-31 - Milestone 4 implemented: board button, tags, library export
 

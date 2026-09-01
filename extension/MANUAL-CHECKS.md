@@ -252,56 +252,56 @@ accepted.
 
 ## Milestone 4: release polish
 
-Reload the extension first: this milestone changes the Dexie schema to version
+Reload the extension first: this milestone changes the Dexie schema to version  
 3, and the upgrade runs the first time the board opens.
 
 ### The board button
 
-- [ ] The side panel's "Open the board" button opens the board.
-- [ ] With the board already open in another tab, the button focuses that tab
+- [x] The side panel's "Open the board" button opens the board.
+- [x] With the board already open in another tab, the button focuses that tab
       rather than opening a second one.
-- [ ] Close the board tab, then click the button; a new board opens.
+- [x] Close the board tab, then click the button; a new board opens.
 
 ### Tags
 
-- [ ] Type a tag in the side panel and press Enter; the chip appears.
-- [ ] Reload the board; the chip is still there.
-- [ ] Type a tag and press comma; the chip appears and holds no comma.
-- [ ] Type a tag, then click away without pressing Enter; the chip appears.
-- [ ] Type a tag already used on another card; it is offered as a suggestion.
-- [ ] Add the same tag twice; one chip.
-- [ ] Type `AI` on one card and `ai` on another; the filter row shows one button
+- [x] Type a tag in the side panel and press Enter; the chip appears.
+- [x] Reload the board; the chip is still there.
+- [x] Type a tag and press comma; the chip appears and holds no comma.
+- [x] Type a tag, then click away without pressing Enter; the chip appears.
+- [x] Type a tag already used on another card; it is offered as a suggestion.
+- [x] Add the same tag twice; one chip.
+- [x] Type `AI` on one card and `ai` on another; the filter row shows one button
       and both cards match it.
-- [ ] Remove a chip with its ×.
-- [ ] Remove a chip with Backspace in an empty tag input.
-- [ ] The same tag editor works in the board's detail panel.
+- [x] Remove a chip with its ×.
+- [x] Remove a chip with Backspace in an empty tag input.
+- [x] The same tag editor works in the board's detail panel.
 
 ### The tag filter
 
-- [ ] A board with no tags shows no filter row.
-- [ ] Select one tag; only cards carrying it remain.
-- [ ] Select a second tag; only cards carrying BOTH remain.
-- [ ] Click a selected tag again; it deselects.
-- [ ] Select a tag and type in the search box; both filters apply.
-- [ ] Make enough tags to overflow the strip; it scrolls sideways and the board
+- [x] A board with no tags shows no filter row.
+- [x] Select one tag; only cards carrying it remain.
+- [x] Select a second tag; only cards carrying BOTH remain.
+- [x] Click a selected tag again; it deselects.
+- [x] Select a tag and type in the search box; both filters apply.
+- [x] Make enough tags to overflow the strip; it scrolls sideways and the board
       still reaches the bottom of the window.
 
 ### The Substack section
 
-- [ ] The board's detail panel has no Substack heading and no checkboxes.
-- [ ] Every other control in that panel still works: notes, quotes, export,
+- [x] The board's detail panel has no Substack heading and no checkboxes.
+- [x] Every other control in that panel still works: notes, quotes, export,
       delete.
 
 ### Export all
 
-- [ ] Export all on an unfiltered board; every card is in the file under the
+- [x] Export all on an unfiltered board; every card is in the file under the
       right column heading.
-- [ ] Export all with a tag selected; only those cards are in the file, and
+- [x] Export all with a tag selected; only those cards are in the file, and
       `count` matches how many.
-- [ ] Export a single card immediately after an export-all; the file is `v1`,
+- [x] Export a single card immediately after an export-all; the file is `v1`,
       not `v2`.
-- [ ] A board with an empty column exports that heading with `*No cards.*`
+- [x] A board with an empty column exports that heading with `*No cards.*`
       under it.
-- [ ] Filter until nothing is left; the Export all button is disabled.
-- [ ] Open the library file in Obsidian; the frontmatter parses and the card
+- [x] Filter until nothing is left; the Export all button is disabled.
+- [x] Open the library file in Obsidian; the frontmatter parses and the card
       headings nest under the column headings.
