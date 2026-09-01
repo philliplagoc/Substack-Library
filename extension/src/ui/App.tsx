@@ -7,6 +7,7 @@ import Toolbar from './Toolbar';
 import DetailPanel from './DetailPanel';
 import AddByUrlForm from './AddByUrlForm';
 import BackupControls from './BackupControls';
+import SyncButton from './SyncButton';
 
 export default function App() {
   const cards = useLiveQuery(() => allCards(), []);
@@ -20,6 +21,7 @@ export default function App() {
     <>
       <Toolbar filter={filter} onFilterChange={setFilter}>
         <AddByUrlForm />
+        <SyncButton />
         <BackupControls />
       </Toolbar>
       <main className={`layout${selected ? ' with-panel' : ''}`}>

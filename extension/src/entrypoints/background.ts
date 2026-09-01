@@ -16,11 +16,14 @@ import {
   readReaderArticle,
   readSelection,
 } from '../substack/extract';
+import { extractSavedEntries, scrollToEnd } from '../substack/saved';
+import { applySync } from '../db/sync';
 import {
   PANEL_STATE_KEY,
   type CaptureSelectionReply,
   type PanelMessage,
   type PanelState,
+  type SyncSavedReply,
 } from '../messages';
 
 export default defineBackground({
@@ -46,6 +49,53 @@ export default defineBackground({
       if (tab.id != null) {
         await browser.storage.session.set({ boardTabId: tab.id });
       }
+    }
+
+    const SAVED_URL = 'https://substack.com/inbox/saved';
+
+    /** Resolve once the tab has finished loading, or reject rather than hang. */
+    async function waitForComplete(tabId: number): Promise<void> {
+      const tab = await browser.tabs.get(tabId);
+      if (tab.status === 'complete') return;
+
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          browser.tabs.onUpdated.removeListener(listener);
+          reject(new Error('The Saved list did not finish loading.'));
+        }, 30_000);
+
+        function listener(id: number, info: { status?: string }) {
+          if (id !== tabId || info.status !== 'complete') return;
+          clearTimeout(timer);
+          browser.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
+
+        browser.tabs.onUpdated.addListener(listener);
+      });
+    }
+
+    /** The Saved tab, opened or reused and loaded. Visible on purpose. */
+    async function openSavedTab(): Promise<number> {
+      const { savedTabId } = await browser.storage.session.get('savedTabId');
+
+      if (typeof savedTabId === 'number') {
+        try {
+          const tab = await browser.tabs.update(savedTabId, { active: true, url: SAVED_URL });
+          if (tab?.id != null) {
+            await waitForComplete(tab.id);
+            return tab.id;
+          }
+        } catch {
+          // The remembered tab is gone. Fall through and open a new one.
+        }
+      }
+
+      const tab = await browser.tabs.create({ url: SAVED_URL, active: true });
+      if (tab.id == null) throw new Error('Could not open the Saved list.');
+      await browser.storage.session.set({ savedTabId: tab.id });
+      await waitForComplete(tab.id);
+      return tab.id;
     }
 
     async function reject(tabId: number, notice: string) {
@@ -157,6 +207,51 @@ export default defineBackground({
       });
     }
 
+    async function syncSaved(): Promise<SyncSavedReply> {
+      function why(error: unknown): string {
+        return error instanceof Error ? error.message : String(error);
+      }
+
+      let tabId: number;
+      try {
+        tabId = await openSavedTab();
+      } catch (error) {
+        return { ok: false, reason: why(error) };
+      }
+
+      try {
+        // Checked BEFORE the entry count. A sign-in wall and a layout change
+        // both parse to zero entries, and only the order tells them apart.
+        const [signedOut] = await browser.scripting.executeScript({
+          target: { tabId },
+          func: detectSignedOut,
+        });
+        if (signedOut?.result === true) {
+          return { ok: false, reason: 'Sign in to Substack, then sync again.' };
+        }
+
+        // Two injections, not one. The scroll is slow and retryable; the
+        // extract is instant and pure. Fusing them would mean re-scrolling a
+        // loaded list to retry a parse.
+        const [scrolled] = await browser.scripting.executeScript({
+          target: { tabId },
+          func: scrollToEnd,
+        });
+        const complete = scrolled?.result?.complete === true;
+
+        const [parsed] = await browser.scripting.executeScript({
+          target: { tabId },
+          func: extractSavedEntries,
+        });
+        const entries = parsed?.result ?? [];
+
+        const report = await applySync(entries, new Date().toISOString(), complete);
+        return { ok: true, report };
+      } catch (error) {
+        return { ok: false, reason: why(error) };
+      }
+    }
+
     browser.action.onClicked.addListener(async (tab) => {
       if (!shouldCaptureFrom(tab.url) || tab.id == null || !tab.url) {
         await openBoard();
@@ -170,6 +265,11 @@ export default defineBackground({
     });
 
     browser.runtime.onMessage.addListener((message: PanelMessage, _sender, sendResponse) => {
+      if (message?.type === 'sync-saved') {
+        void (async () => sendResponse(await syncSaved()))();
+        return true;
+      }
+
       if (message?.type !== 'capture-selection') return false;
 
       void (async () => {

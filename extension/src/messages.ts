@@ -5,6 +5,7 @@
  * the dependency rule and either side may import it.
  */
 import type { IngestOutcome } from './db/cards';
+import type { SyncReport } from './db/sync';
 
 /** The session-storage key the background writes and the panel reads. */
 export const PANEL_STATE_KEY = 'panel';
@@ -22,8 +23,14 @@ export interface PanelState {
   bodyText: string;
 }
 
-export type PanelMessage = { type: 'capture-selection' };
+export type PanelMessage = { type: 'capture-selection' } | { type: 'sync-saved' };
 
 export type CaptureSelectionReply =
   | { ok: true; text: string; prefix: string }
   | { ok: false; reason: string };
+
+export type SyncSavedReply = { ok: true; report: SyncReport } | { ok: false; reason: string };
+
+// Re-exported so `src/ui/` reads one file for the whole message contract
+// rather than reaching into `src/db/` for half of it.
+export type { SyncReport };

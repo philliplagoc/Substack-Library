@@ -2640,3 +2640,42 @@ Two rules for reading a page built this way:
   returns eight links to eight other publications, because the inbox list is
   still in the DOM behind the post. Starting the walk at `.body.markup` returns
   one.
+
+## 2026-08-31 - Milestone 3, the sync report
+
+### What does `report` have?
+
+`report` is a `SyncReport`. `applySync` builds it in `extension/src/db/sync.ts`,
+the background hands it back in the `sync-saved` reply, and `SyncButton` renders
+it. One object crosses all three layers, and the UI holds no other sync state.
+
+The interface at `src/db/sync.ts:12`:
+
+| Field          | Type                  | Means                                                          |
+| -------------- | --------------------- | -------------------------------------------------------------- |
+| `ranAt`        | `string`              | ISO timestamp of the run. Stamped onto every card it touched.  |
+| `complete`     | `boolean`             | Did the scroll reach the true bottom, or stop on its cap?      |
+| `entriesSeen`  | `number`              | How many entries were parsed off the page.                     |
+| `added`        | `number`              | Entries that became new cards.                                 |
+| `refreshed`    | `number`              | Entries that matched a card already on the board.              |
+| `warned`       | `number`              | Cards flagged as gone from Saved. Always `0` when `complete` is false. |
+| `rejected`     | `number`              | Entries `ingestCard` refused, such as an unparseable URL.      |
+| `problem`      | `string \| undefined` | Set when the run could not be trusted at all.                  |
+
+`summarize` reads five of the eight. `ranAt` is for the database, not the
+reader. `problem` never reaches `summarize` at all, because `SyncButton` tests
+for it first and renders the red notice instead.
+
+Two of the counts carry a rule the type comments state:
+
+```ts
+/** Always 0 when `complete` is false. */
+warned: number;
+```
+
+A capped scroll saw a partial list, so flagging its tail would be a confident
+wrong answer. `applySync` skips the whole reconciliation pass in that case. The
+UI can therefore trust `warned` on its own and never has to ask about
+`complete`. When the layer that produces a number promises something about it,
+the layer that reads the number should take the promise rather than re-derive
+it. Two copies of one rule drift apart.

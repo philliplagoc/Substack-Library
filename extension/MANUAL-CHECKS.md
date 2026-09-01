@@ -227,3 +227,25 @@ Load the unpacked build from `extension/.output/chrome-mv3/` first.
       appends its own ` (1)`, so a name can land as `... (v2) (1).md`. The
       extension cannot read the Downloads folder and cannot prevent this. No
       previous file is ever lost.
+
+## Saved sync (Milestone 3)
+
+Reload the extension first. This milestone adds a host permission, and
+
+Chrome may show it as newly requested or disable the extension until it is
+
+accepted.
+
+- [x] Click **Sync Saved** on the board. A Substack Saved tab opens, visibly scrolls to the bottom, and the board reports counts.
+
+- [x] The reported total matches the number of entries visible on the page after the scroll finishes.
+- [x] New saved articles arrive as cards in To Read with a title, publication, author, and a reading estimate.
+- [x] Sync a second time. The second run reports 0 added and the same number refreshed.
+- [x] A card moved to Processed is STILL in Processed after a sync, even though the article is still saved on Substack.
+- [x] Notes and quotes on a card survive a sync.
+- [x] Unsave an article on Substack, sync, and its card carries the warning and has NOT moved column or been deleted.
+- [x] Re-save it, sync, and the warning is gone.
+- [x] A card added by URL, never in the Saved list, carries no warning after a sync.
+- [x] A saved podcast becomes a card whose face reads its full duration and "watch" or "listen".
+- [x] Sync signed out, in a private window: the message says to sign in, and NO card gains a warning.
+- [x] The first-run backlog: on an empty board, one sync brings in every saved entry.

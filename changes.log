@@ -61,8 +61,8 @@ run on 2026-08-31. All three reader shells - inbox, home, and profile - lay out
 alike, so one `readReaderArticle` reads them all. The open question about
 further shells stays open, but a fourth would now be routine.
 
-**The next milestone is Milestone 3, the Saved-list sync**, chosen on
-2026-08-31. Nothing is designed for it yet.
+**Milestone 3, the Saved-list sync, is designed, planned, and built.** Its
+manual checks have not been run. See the Milestone 3 paragraph below.
 
 **2C, the Obsidian vault write, is OUT OF v1.** The developer decided on
 2026-08-31 to defer it to a future update of the extension rather than to later
@@ -216,18 +216,24 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Next up:** The Milestone 3 implementation plan, four tasks, into
-`docs/superpowers/plans/2026-08-31-milestone-3.md`. The design is written and
-approved at `docs/superpowers/specs/2026-08-31-milestone-3-design.md`; read it
-first, and read its "Amendments to earlier documents" section before
-`implementation-plan.md`, because Milestone 3 is now three items rather than
-four.
+**Milestone 3 is code-complete and unverified by hand.** All four tasks of
+`docs/superpowers/plans/2026-08-31-milestone-3.md` are written and committed:
+`domain/saved.ts` (`d525c9e`), `substack/saved.ts` (`6d5a78f`), `db/sync.ts`
+(`73502a3`), and the wiring. Both `TODO(human)` contributions are done, the
+second (`summarize`) only on 2026-08-31 after its stub crashed the board in real
+use. No `TODO(human)` is open anywhere in `extension/src/`.
 
-The four tasks: `domain/saved.ts` (pure, carries a `TODO(human)` on
-`parseItemMeta`), `substack/saved.ts` (injected, fixture-tested), `db/sync.ts`
-(carries a `TODO(human)` on the missing pass), then the wiring and the manual
-checks. Tasks 1 to 3 each land tested and unused; task 4 is the only one whose
-result can be seen only in a browser.
+The automated gate is green: `npm run compile` clean, `npm test` 244 passed and 1
+todo across 13 files, `npm run build` clean, all three dependency greps OK.
+
+**Next up:** Run the last six "Saved sync (Milestone 3)" checks in
+`extension/MANUAL-CHECKS.md`. Seven of the eleven passed on 2026-08-31; the six
+still open are the warning lifecycle (unsave, re-save, never-saved), the podcast
+medium, the signed-out run, and the empty-board backlog. They are the only thing
+between here and Milestone 3 being done. Nothing tests `src/ui/`, so these
+checks are the whole verification of the button, the card face, and the warning.
+Reload the extension first: this milestone adds a host permission and Chrome may
+disable the extension until it is accepted.
 
 **Ship chores**, cheap and independent of any milestone:
 `extension/package.json` carries no `version` field, which is the standing build
@@ -276,6 +282,60 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-08-31 - Fix the board crash on a finished sync, and show the sync warning
+
+**What changed:** Two bugs, found by tracing one report of the board's error
+boundary firing after a Sync Saved run. First, `summarize` in
+`src/ui/SyncButton.tsx` was still its `throw new Error('not implemented')` stub,
+so every clean sync crashed the whole board. The developer wrote it: four
+guarded `bits.push` calls and an `entriesSeen` fallback for the run that changed
+nothing. Second, `applySync` writes `syncWarning` to the card and no component
+read it, so an unsaved article produced no visible warning anywhere.
+`CardTile` now renders it and `styles.css` gives it the same red as
+`.notice.error`. Also removed a stale `TODO(human)` marker left on
+`parseItemMeta` in `domain/saved.ts`, which has been implemented since `d525c9e`.
+
+**Why:** The crash looked like a board or database fault and was neither. The
+error boundary wraps the whole app and `SyncButton` mounts inside `Toolbar`, so
+one throwing helper in a toolbar child unmounts every column. A reload cleared it
+because `reply` resets to `null` and `summarize` is never reached. The cards were
+never at risk: `applySync` had already committed before the render threw, which
+is the layering doing its job.
+
+The second bug is a hole in the plan rather than a defect in the code. The
+Milestone 3 plan's file table gives `CardTile.tsx` only "show a non-read medium"
+and never assigns the warning to any file, so `applySync` wrote a field with no
+reader. The design's definition of done at line 62 requires it
+("carries a visible warning") and `MANUAL-CHECKS.md` line 246 checks for it.
+The card face was chosen over `DetailPanel` because triage happens on the board,
+and a warning you must open a card to find misses the moment it matters.
+
+The warning text stays in `db/sync.ts`, which owns the rule that decides when it
+applies. `CardTile` only renders it. Rejected: joining it to `statusLabel`'s
+bits, which would have muted a warning into the same grey metadata line as
+"notes · 2 quotes".
+
+**Files:** `extension/src/ui/SyncButton.tsx`, `extension/src/ui/CardTile.tsx`,
+`extension/src/ui/styles.css`, `extension/src/domain/saved.ts`,
+`docs/learning-notes.md`.
+
+**Verification:** `npm run compile` clean. `npm test` 244 passed, 1 todo, 13
+files. `npm run build` clean. All three dependency-rule greps OK. The two manual
+checks that cover the warning (`MANUAL-CHECKS.md` lines 246 and 247) are NOT run
+and stay unticked; nothing tests `src/ui/`.
+
+**State after:** A finished sync reports its counts instead of crashing the
+board, and a card whose article left the Saved list shows the warning in red on
+its face. Seven of the eleven "Saved sync" checks passed on 2026-08-31, all of
+them upstream of the warning. The six remaining are unticked.
+
+**Next up:** Run the eleven "Saved sync (Milestone 3)" manual checks in
+`extension/MANUAL-CHECKS.md`. Lines 246 to 248 are the ones this entry touches.
+
+**Open questions:** Whether the warning also belongs in `DetailPanel` next to
+the "Unsaved from Substack" checkbox. Those are different facts, per the design,
+and showing them side by side may clarify or may confuse. Real use answers it.
 
 ### 2026-08-31 - Write the Milestone 3 design: the Saved-list sync
 

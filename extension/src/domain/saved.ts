@@ -55,8 +55,6 @@ export function savedEntryToInput(entry: SavedEntry): SavedImport {
 
 /**
  * "Hussain Ibarra∙14 min read" into an author, a minute count, and a medium.
- *
- * TODO(human)
  */
 export function parseItemMeta(raw: string | null): ItemMeta {
   const empty: ItemMeta = { author: null, minutes: null, medium: null };

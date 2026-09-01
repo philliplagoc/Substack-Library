@@ -79,6 +79,9 @@ body {
 .card .row,
 .card .status { font-size: 12px; color: var(--muted); margin: 2px 0; }
 .card .status:empty { display: none; }
+/* Not var(--muted): the card face reads as quiet metadata, and a warning that
+   matches it is a warning nobody sees. Same red as .notice.error. */
+.card .warning { font-size: 12px; color: #b00; margin: 4px 0 0; }
 
 .panel {
   border-left: 1px solid #ddd;
@@ -124,4 +127,14 @@ body {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.sync {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sync .notice {
+  margin: 0;
 }
