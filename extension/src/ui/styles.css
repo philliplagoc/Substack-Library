@@ -138,3 +138,65 @@ body {
 .sync .notice {
   margin: 0;
 }
+
+/* Tags on a card, in both editors. */
+.tags { display: block; margin: 8px 0; }
+.tags > label { font-size: 12px; color: var(--muted); }
+.chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+  padding: 0;
+}
+.chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: #fff;
+}
+.chips li button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--muted);
+}
+.tags input { width: 100%; font: inherit; font-size: 12px; }
+
+/*
+ * The board's tag filter.
+ *
+ * A scrolling strip inside the existing toolbar row, NOT a second row.
+ * `.toolbar` has a fixed `height: var(--toolbar-height)` and `.layout` is sized
+ * `calc(100vh - var(--toolbar-height))`, so a toolbar that grows does not push
+ * the board down: it pushes the bottom of the board off the screen.
+ */
+.tag-filter {
+  display: flex;
+  gap: 4px;
+  flex: 0 1 auto;
+  max-width: 40%;
+  overflow-x: auto;
+}
+.tag-filter .tag {
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tag-filter .tag.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}

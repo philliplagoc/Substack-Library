@@ -11,6 +11,13 @@ export interface CardFilter {
   query: string;
   /** null means no maximum. */
   maxMinutes: number | null;
+  /**
+   * Empty means no tag filter. A card must carry EVERY tag listed, not any of
+   * them: each click on the filter row narrows, the way the query and the
+   * maximum do. A row where one control widens while its neighbours narrow is a
+   * row that has to be explained.
+   */
+  tags: string[];
 }
 
 /**
@@ -28,6 +35,12 @@ export function visibleCards(cards: Card[], filter: CardFilter): Card[] {
   if (max != null) {
     if (card.estimatedReadingMinutes == null) return false;
     if (card.estimatedReadingMinutes > max) return false;
+  }
+  if (filter.tags.length > 0) {
+    // `?? []` because a card restored from a hand-edited backup can be missing
+    // the field, and a filter is not the place to throw.
+    const own = card.tags ?? [];
+    if (!filter.tags.every((tag) => own.includes(tag))) return false;
   }
   return true;
  });

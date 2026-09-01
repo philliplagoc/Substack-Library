@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { updateCard, updateQuote } from '../db/cards';
+import TagEditor from './TagEditor';
 import type { Card } from '../domain/types';
 
 interface Props {
@@ -41,6 +42,8 @@ export default function CardEditor({ card, footer }: Props) {
           {card.url}
         </a>
       </p>
+
+      <TagEditor card={card} />
 
       <label>
         Notes
