@@ -9,6 +9,7 @@ import DetailPanel from './DetailPanel';
 import AddByUrlForm from './AddByUrlForm';
 import BackupControls from './BackupControls';
 import SyncButton from './SyncButton';
+import ExportAllButton from './ExportAllButton';
 
 export default function App() {
   const cards = useLiveQuery(() => allCards(), []);
@@ -26,6 +27,7 @@ export default function App() {
       <Toolbar filter={filter} onFilterChange={setFilter} tags={vocabulary}>
         <AddByUrlForm />
         <SyncButton />
+        <ExportAllButton cards={shown} />
         <BackupControls />
       </Toolbar>
       <main className={`layout${selected ? ' with-panel' : ''}`}>

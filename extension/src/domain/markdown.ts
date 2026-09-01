@@ -176,8 +176,8 @@ function libraryCard(card: Card): string[] {
  * Every card the board is showing, as one Markdown file.
  *
  * This is a snapshot, not a note for an article, which is why nothing here
- * touches `exportVersion`. `now` is passed in because `domain/` calls no
- * `new Date()`.
+ * touches `exportVersion`. `now` is passed in because `domain/` reads no clock
+ * of its own.
  */
 export function toLibraryMarkdown(cards: Card[], now: string): string {
   const blocks: string[] = [

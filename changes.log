@@ -36,33 +36,22 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-08-31
-**Phase:** Milestones 0, 1, 2A, and 2B are all complete and all checked against
-their definitions of done. Milestone 2 was split into 2A (capture and the
-companion panel) and 2B (Markdown export). All eight 2A tasks are done,
-committed, and pushed to `origin/main`, the last of them at `119d057`. Two
-long-open questions closed in the 2A pass: a custom-domain publication captures
-a real title and publication, so the fourth fixture the plan named as its remedy
-is not needed; and the home feed's reader shell reads like the inbox's, so one
-`readReaderArticle` handles both.
+**Phase:** Milestones 0, 1, 2A, 2B, and 3 are all complete and all checked
+against their definitions of done. Milestone 2 was split into 2A (capture and
+the companion panel) and 2B (Markdown export). Every box in
+`extension/MANUAL-CHECKS.md` through the "Saved sync (Milestone 3)" section is
+ticked against a loaded build; all three reader shells (inbox, home, profile)
+lay out alike, so one `readReaderArticle` reads them all.
 
-2B was cut from four items to three: the Obsidian vault write left it for a spec
-of its own, so 2B is Markdown serialization, the versioned download, and the
-offer to move a card to Processed. All four 2B tasks are implemented, committed,
-and pushed to `origin/main` (`9b25fb1`, `7daf39a`, `56f4eae`, `71faf02`, and the
-follow-up `933df4c`). The automated gate is green: 213 tests and 1 todo across 10
-files, `npm run compile` clean, `npm run build` clean bar the standing
-missing-`version` warning, and both dependency greps pass. **The 13 "Markdown
-export (Milestone 2B)" boxes in `extension/MANUAL-CHECKS.md` all PASSED and were
-ticked in `344510f`**, which is what closes 2B.
-
-**Every manual check in the repository is now ticked.** The last one, the
-profile-scoped reader route `substack.com/@<handle>/p-<id>`, PASSED on its first
-run on 2026-08-31. All three reader shells - inbox, home, and profile - lay out
-alike, so one `readReaderArticle` reads them all. The open question about
-further shells stays open, but a fourth would now be routine.
-
-**Milestone 3, the Saved-list sync, is designed, planned, and built.** Its
-manual checks have not been run. See the Milestone 3 paragraph below.
+**Milestone 4, release polish, is code complete and NOT verified in a browser.**
+All six tasks are committed (`0f3d256`, `83e7d6b`, `97c18fd`, `a43852d`,
+`0785f8b`, and the wrap-up). It adds: a side-panel button that opens the board;
+tags on a card, entered in either editor, with a scrolling filter strip on the
+board; removal of the three Substack checkboxes and their `Card` fields; and an
+"Export all" button writing every card the board is showing into one Markdown
+file. No new permission, no tab opened, no page read. The 30-box "Milestone 4:
+release polish" section of `extension/MANUAL-CHECKS.md` is unticked. See the top
+entry.
 
 **2C, the Obsidian vault write, is OUT OF v1.** The developer decided on
 2026-08-31 to defer it to a future update of the extension rather than to later
@@ -89,19 +78,28 @@ root), `src/domain/` (`types.ts`, `url.ts` with `canonicalizeUrl`,
 and `readSelection` - every one of them self-contained, because
 `executeScript` ships them by `Function.prototype.toString()`), `src/messages.ts` (types only: `PanelState`,
 `PANEL_STATE_KEY`, `PanelMessage`, `CaptureSelectionReply` — belongs to no
-layer), `src/db/` (`schema.ts` at version 2, `cards.ts` with `allCards`,
-`getCard`, `updateCard`, `deleteCard`, `nextSortOrder`, `applyOrder`,
-`restoreCards`, `updateQuote`, `addQuote`, `cardByArticleKey`, and the
-single-door `ingestCard`), and `src/ui/` (`App.tsx`, `Board.tsx` which also exports
-`COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports `statusLabel`,
-`Toolbar.tsx`, `CardEditor.tsx`, `DetailPanel.tsx`, `ReadingPanel.tsx`). The
-board reads Dexie directly through `useLiveQuery` and renders three columns.
-`domain/card.ts` now also exports `CardFilter` and `visibleCards`, and
-`App.tsx` holds the filter state and passes the narrowed list to the board.
-`ui/CardEditor.tsx` owns the shared title, metadata, notes, and quote-comment
-fields. `DetailPanel.tsx` supplies its Substack flags and delete button through
-the editor footer. `ReadingPanel.tsx` supplies a Capture quote button and three status buttons
-through the same footer and follows the `PanelState` the background writes on
+layer), `src/db/` (`schema.ts` at version 3 - the v3 upgrade deletes `liked`,
+`commented`, and `unsavedFromSubstack` from every row, same store string as v2;
+`cards.ts` with `allCards`, `getCard`, `updateCard`, `deleteCard`,
+`nextSortOrder`, `applyOrder`, `restoreCards`, `updateQuote`, `addQuote`,
+`cardByArticleKey`, `recordExport`, `moveCardTo`, and the single-door
+`ingestCard`; `sync.ts` with `applySync`), and `src/ui/` (`App.tsx`, `Board.tsx`
+which also exports `COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports
+`statusLabel`, `Toolbar.tsx`, `CardEditor.tsx`, `DetailPanel.tsx`,
+`ReadingPanel.tsx`, `TagEditor.tsx`, `SyncButton.tsx`, `ExportButton.tsx`,
+`ExportAllButton.tsx`, `BackupControls.tsx`, `AddByUrlForm.tsx`,
+`exportCard.ts`, `downloadFile.ts`). The board reads Dexie directly through
+`useLiveQuery` and renders three columns. `domain/card.ts` also exports
+`CardFilter`, `visibleCards`, `STATUS_LABELS`, `reorderCards`, and `createCard`;
+`CardFilter` now carries `query`, `maxMinutes`, and `tags`, and `visibleCards`
+requires a card to hold every selected tag. `App.tsx` holds the filter state and
+the tag vocabulary and passes the narrowed list to the board.
+`ui/CardEditor.tsx` owns the shared title, metadata, tags, notes, and
+quote-comment fields, mounting `TagEditor` in its body. `DetailPanel.tsx`
+supplies only a delete button through the editor footer now; the Substack
+checkboxes are gone. `ReadingPanel.tsx` supplies a Capture quote button, an
+Open-the-board button, and three status buttons through the same footer and
+follows the `PanelState` the background writes on
 each toolbar click. It also re-checks every quote against `panel.bodyText` and
 writes `locatorLost`, which is what puts the "location unavailable" label on the
 board's detail panel. No browser check has confirmed the capture button or that
@@ -136,14 +134,15 @@ imports a Node builtin needs `@types/node`, now a dev dependency.
 `src/substack/extract.test.ts` reads `node:fs` and is the only such file.
 `npm test` will not catch a missing type; Vite strips types without reading
 them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 213
-tests and 1 todo across 10 files, on Vitest with `fake-indexeddb` and `linkedom`.
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 280
+tests and 1 todo across 14 files, on Vitest with `fake-indexeddb` and `linkedom`.
 Run it from `extension/`. Running Vitest from the repository root also sweeps
 `.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
 `npm run compile` reports
 nothing and `npm run build` is clean. The React layer has no tests by design.
-`extension/MANUAL-CHECKS.md` covers that layer. All 76 of its boxes are ticked
-against a loaded build, across Milestones 1, 2A, and 2B. NOTE: the plan files under
+`extension/MANUAL-CHECKS.md` covers that layer. Its boxes through the "Saved
+sync (Milestone 3)" section are ticked against a loaded build; the 30-box
+"Milestone 4: release polish" section is unticked. NOTE: the plan files under
 `docs/superpowers/plans/` each carry their own frozen COPY of the check list,
 and those copies were never ticked when the checks were run: 13 unticked in the
 2B plan, 25 in the 2A plan, and 26 in the Milestone 1 plan, every one of them a
@@ -216,24 +215,20 @@ article body.
 - `docs/learning-notes.md` - the questions the developer asked, with short
   answers. No code reads it.
 
-**Milestone 3 is code-complete and unverified by hand.** All four tasks of
-`docs/superpowers/plans/2026-08-31-milestone-3.md` are written and committed:
-`domain/saved.ts` (`d525c9e`), `substack/saved.ts` (`6d5a78f`), `db/sync.ts`
-(`73502a3`), and the wiring. Both `TODO(human)` contributions are done, the
-second (`summarize`) only on 2026-08-31 after its stub crashed the board in real
-use. No `TODO(human)` is open anywhere in `extension/src/`.
+**Milestone 3, the Saved-list sync, is done.** All four tasks of
+`docs/superpowers/plans/2026-08-31-milestone-3.md` are committed
+(`domain/saved.ts` `d525c9e`, `substack/saved.ts` `6d5a78f`, `db/sync.ts`
+`73502a3`, the wiring `f1f7e38`), and every "Saved sync (Milestone 3)" box in
+`extension/MANUAL-CHECKS.md` is ticked against a loaded build. No `TODO(human)`
+is open anywhere in `extension/src/`.
 
-The automated gate is green: `npm run compile` clean, `npm test` 244 passed and 1
-todo across 13 files, `npm run build` clean, all three dependency greps OK.
-
-**Next up:** Run the last six "Saved sync (Milestone 3)" checks in
-`extension/MANUAL-CHECKS.md`. Seven of the eleven passed on 2026-08-31; the six
-still open are the warning lifecycle (unsave, re-save, never-saved), the podcast
-medium, the signed-out run, and the empty-board backlog. They are the only thing
-between here and Milestone 3 being done. Nothing tests `src/ui/`, so these
-checks are the whole verification of the button, the card face, and the warning.
-Reload the extension first: this milestone adds a host permission and Chrome may
-disable the extension until it is accepted.
+**Next up:** Load `extension/.output/chrome-mv3/` as an unpacked extension and
+work through the "Milestone 4: release polish" section of
+`extension/MANUAL-CHECKS.md` (30 boxes, all unticked). Reload the extension
+first: the Dexie `version(3)` upgrade runs the first time the board opens. Then
+Milestone 5, the self-filling Add-by-URL form; its mechanism is chosen (open a
+tab, inject `extractArticleMeta` and `readReaderArticle` unchanged, close the
+tab), its install-time permission question is open and wants its own spec.
 
 **Ship chores**, cheap and independent of any milestone:
 `extension/package.json` carries no `version` field, which is the standing build
@@ -269,6 +264,19 @@ asked for; worth a cleanup pass before Task 2.
   synthetic HTML, so the tests pin the walk against a model of the page rather
   than the page. Both shells passed by hand on 2026-08-30. Capture a fixture if
   Substack changes either layout.
+- The column labels `To Read`, `Reading`, `Processed` exist in four places now.
+  `domain/card.ts` holds the canonical `STATUS_LABELS`; `ui/Board.tsx`,
+  `ui/ReadingPanel.tsx`, and `ui/CardTile.tsx` still hold their own. A small
+  three-file consolidation Milestone 4 chose not to make.
+- The toolbar has a fixed `height: var(--toolbar-height)` and the tag filter is
+  a sideways-scrolling strip inside that row rather than a second row, because a
+  taller toolbar pushes the bottom of the board off the screen instead of
+  pushing the board down. A page laid out as a column flex container would fix
+  this and needs a board root element that does not exist yet.
+- The tag filter matches ALL selected tags. ANY-matching is the better browse;
+  revisit once the board holds enough tags to browse rather than narrow.
+- Tags are not shown on the card face in `CardTile`. Cut on purpose; the filter
+  strip already says which tags are in play.
 
 Four questions closed. Custom-domain article metadata was checked by hand on
 2026-08-30 and reads correctly, so the fourth fixture is unnecessary; the
@@ -282,6 +290,97 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-08-31 - Milestone 4 implemented: board button, tags, library export
+
+**What changed:** All six tasks of
+`docs/superpowers/plans/2026-08-31-milestone-4.md` are written and committed
+(`0f3d256`, `83e7d6b`, `97c18fd`, `a43852d`, `0785f8b`, and this one). The
+manual checks are NOT run.
+
+1. **Board button.** `PanelMessage` gains `{ type: 'open-board' }`; the reading
+   panel footer has an "Open the board" button that sends it, and the
+   background answers by calling the existing `openBoard()`. The panel does not
+   open the tab itself, because `openBoard()` owns the `boardTabId` key and a
+   second writer produces a duplicate tab.
+2. **Tags.** New pure `domain/tags.ts` (`normalizeTag`, `addTag`, `removeTag`,
+   `allTags`). `normalizeTag` strips `,` `[` `]` `"` before it trims, because
+   `domain/markdown.ts` writes tags as a YAML flow sequence and any of those
+   four breaks the whole frontmatter block. `CardFilter` gains `tags: string[]`
+   and `visibleCards` requires a card to carry EVERY selected tag, the same
+   narrowing direction as the query and the maximum. `ui/TagEditor.tsx` mounts
+   in `CardEditor`'s body so both editors get it from one edit; it reads the
+   vocabulary with its own `useLiveQuery(allCards)` rather than taking a prop.
+   `Toolbar` renders a horizontally scrolling tag strip INSIDE the fixed-height
+   toolbar row, hidden when the board has no tags. See "Corrections" 2 and 4 in
+   the plan.
+3. **Substack section removed.** `liked`, `commented`, and `unsavedFromSubstack`
+   are gone from `Card`, `createCard`, the factory, and stored rows, the last
+   by a Dexie `version(3)` upgrade whose store string is identical to v2. The
+   detail panel loses its Substack heading and three checkboxes. A backup
+   written before this milestone still restores; its cards land carrying three
+   dead booleans that nothing reads. Accepted, per the design.
+4. **Library export.** `STATUS_LABELS` moves to `domain/card.ts` so
+   `domain/markdown.ts` can title the columns without importing from `ui/`
+   (three older copies stay in `ui/Board.tsx`, `ui/ReadingPanel.tsx`,
+   `ui/CardTile.tsx`; consolidating them is an open question). `toMarkdown`'s
+   quote-and-notes body is factored into `cardBody(card, level)`, shared with
+   the new `toLibraryMarkdown(cards, now)` at heading level four.
+   `ui/downloadFile.ts` holds the blob-and-anchor sequence, now shared by
+   `exportCard`, `BackupControls`, and the new `ui/ExportAllButton.tsx`.
+   `ExportAllButton` takes `App`'s already-filtered `shown` array, so the
+   export composes with every filter, and records nothing: a bulk snapshot is
+   not a note for an article and must not touch `exportVersion`.
+
+**Why:** Milestone 4 is release polish. Every item moves data across a boundary
+the extension already sits on both sides of: no new permission, no tab opened,
+no page read. The fifth named item, the self-filling Add-by-URL form, needs a
+page nobody is looking at and became Milestone 5.
+
+**The two `TODO(human)` contributions:** `normalizeTag` (strip, collapse, trim,
+lowercase, emptiness check last so `[,]` becomes `null` not `''`) and
+`libraryCard` (heading at `###`; an empty meta line still emits a blank
+paragraph; `Tags:` sits after the URL; the URL is a `[title](url)` link).
+
+**Correction made while executing (not in the plan):** the plan's Step 5
+comment for `toLibraryMarkdown` contained the literal text `new Date()`, which
+tripped the `src/domain/` dependency-rule grep. Reworded to "reads no clock of
+its own". The rule was never violated; only its grep was.
+
+**Files:** `src/messages.ts`, `src/entrypoints/background.ts`,
+`src/domain/tags.ts` (new), `src/domain/tags.test.ts` (new),
+`src/domain/card.ts`, `src/domain/card.test.ts`, `src/domain/types.ts`,
+`src/domain/ingest.test.ts`, `src/domain/markdown.ts`,
+`src/domain/markdown.test.ts`, `src/db/schema.ts`, `src/db/schema.test.ts`,
+`src/db/sync.test.ts`, `src/test-support/factory.ts`, `src/ui/TagEditor.tsx`
+(new), `src/ui/ExportAllButton.tsx` (new), `src/ui/downloadFile.ts` (new),
+`src/ui/exportCard.ts`, `src/ui/BackupControls.tsx`, `src/ui/CardEditor.tsx`,
+`src/ui/DetailPanel.tsx`, `src/ui/ReadingPanel.tsx`, `src/ui/Toolbar.tsx`,
+`src/ui/App.tsx`, `src/ui/styles.css`, `extension/MANUAL-CHECKS.md`,
+`docs/superpowers/plans/2026-08-31-milestone-4.md`.
+
+**Verification:** `cd extension; npm test` passes, 280 tests and 1 todo across
+14 files. `npm run compile` clean. `npm run build` clean bar the standing
+missing-`version` warning. Both dependency-rule greps print nothing. The new
+"Milestone 4: release polish" section in `extension/MANUAL-CHECKS.md` is NOT
+run: 30 boxes, all unticked.
+
+**State after:** Milestone 4 code complete and unverified in a browser. Nothing
+tests `src/ui/`, so the tag editor, the filter strip, the board button, and the
+export button have had no automated exercise.
+
+**Next up:** Load `extension/.output/chrome-mv3/` as an unpacked extension and
+work through the "Milestone 4: release polish" section of
+`extension/MANUAL-CHECKS.md`. Reload first: the `version(3)` upgrade runs the
+first time the board opens. Then Milestone 5, the self-filling Add-by-URL form:
+its mechanism is chosen (open a tab, inject `extractArticleMeta` and
+`readReaderArticle` unchanged, close the tab), its install-time permission
+question is open.
+
+**Open questions:** The four copies of the column labels (`domain/card.ts` now
+holds the canonical one). The toolbar's fixed height, which the tag strip works
+around. ANY-matching for the tag filter, once the board holds enough tags to
+browse rather than narrow. Tags on the card face, cut on purpose.
 
 ### 2026-08-31 - Fix the board crash on a finished sync, and show the sync warning
 

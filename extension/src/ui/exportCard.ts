@@ -1,5 +1,6 @@
 import { getCard, recordExport } from '../db/cards';
 import { exportFilename, toMarkdown } from '../domain/markdown';
+import { downloadFile } from './downloadFile';
 import type { Card } from '../domain/types';
 
 export type ExportOutcome =
@@ -34,14 +35,7 @@ export async function exportCard(card: Card, now: string): Promise<ExportOutcome
     const fresh = (await getCard(card.id)) ?? card;
     filename = exportFilename(fresh, fresh.exportVersion + 1);
 
-    const blob = new Blob([toMarkdown(fresh)], { type: 'text/markdown' });
-    const href = URL.createObjectURL(blob);
-
-    const anchor = document.createElement('a');
-    anchor.href = href;
-    anchor.download = filename;
-    anchor.click();
-    URL.revokeObjectURL(href);
+    downloadFile(filename, toMarkdown(fresh), 'text/markdown');
   } catch (error) {
     return { kind: 'failed', reason: describe(error) };
   }

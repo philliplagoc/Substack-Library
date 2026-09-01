@@ -200,3 +200,10 @@ body {
   border-color: var(--accent);
   color: #fff;
 }
+
+.export-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.export-all .notice { margin: 0; }

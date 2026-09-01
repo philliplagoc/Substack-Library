@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { allCards, restoreCards } from '../db/cards';
 import { toBackup, fromBackup } from '../domain/backup';
+import { downloadFile } from './downloadFile';
 
 export default function BackupControls() {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -8,14 +9,11 @@ export default function BackupControls() {
 
   async function handleExport() {
     const file = toBackup(await allCards(), new Date().toISOString());
-    const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
-    const href = URL.createObjectURL(blob);
-
-    const anchor = document.createElement('a');
-    anchor.href = href;
-    anchor.download = `substack-library-${file.exportedAt.slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(href);
+    downloadFile(
+      `substack-library-${file.exportedAt.slice(0, 10)}.json`,
+      JSON.stringify(file, null, 2),
+      'application/json',
+    );
 
     setNotice({ text: `Exported ${file.cards.length} cards.`, error: false });
   }
