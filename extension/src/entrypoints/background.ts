@@ -265,6 +265,13 @@ export default defineBackground({
     });
 
     browser.runtime.onMessage.addListener((message: PanelMessage, _sender, sendResponse) => {
+      // Returns false, not true: there is no reply to wait for, so the message
+      // channel closes at once.
+      if (message?.type === 'open-board') {
+        void openBoard();
+        return false;
+      }
+
       if (message?.type === 'sync-saved') {
         void (async () => sendResponse(await syncSaved()))();
         return true;

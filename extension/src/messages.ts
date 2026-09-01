@@ -23,7 +23,10 @@ export interface PanelState {
   bodyText: string;
 }
 
-export type PanelMessage = { type: 'capture-selection' } | { type: 'sync-saved' };
+export type PanelMessage =
+  | { type: 'capture-selection' }
+  | { type: 'sync-saved' }
+  | { type: 'open-board' };
 
 export type CaptureSelectionReply =
   | { ok: true; text: string; prefix: string }

@@ -149,7 +149,14 @@ export default function ReadingPanel() {
         footer={
           <>
             <p>
-              <button onClick={() => void captureQuote()}>Capture quote</button>
+              <button onClick={() => void captureQuote()}>Capture quote</button>{' '}
+              <button
+                onClick={() =>
+                  void browser.runtime.sendMessage({ type: 'open-board' } satisfies PanelMessage)
+                }
+              >
+                Open the board
+              </button>
             </p>
             {captureError ? <p className="notice error">{captureError}</p> : null}
 
