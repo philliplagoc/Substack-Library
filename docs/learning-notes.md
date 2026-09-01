@@ -2679,3 +2679,113 @@ UI can therefore trust `warned` on its own and never has to ask about
 `complete`. When the layer that produces a number promises something about it,
 the layer that reads the number should take the promise rather than re-derive
 it. Two copies of one rule drift apart.
+
+## 2026-08-31 - Milestone 4, where Saved lives
+
+### Where does Substack pull the Saved articles from? I found another link, `https://substack.com/saved`
+
+Saved lives on Substack's servers, attached to your account. When you click
+`Save` in the `...` menu on a post, Substack writes a bookmark row for your
+account. The browser keeps nothing. Sign in on your phone and the same list
+appears, which is the whole reason this project can capture on one device and
+triage on another.
+
+Checked signed out on 2026-08-31:
+
+| URL                              | Status | Canonical                        |
+| -------------------------------- | ------ | -------------------------------- |
+| `https://substack.com/saved`     | 200    | `https://substack.com/saved`     |
+| `https://substack.com/inbox/saved` | 200  | `https://substack.com/inbox/saved` |
+
+Neither redirects to the other. Each names itself as canonical, so Substack
+treats both as real routes rather than one alias of the other.
+
+Two facts show the data comes from the server rather than from the page:
+
+- The list needs a signed-in session. A signed-out fetch returns the app shell
+  with no entries in it.
+- The list grows as you scroll. The app requests the next page each time you
+  reach the end. A page holding a finished list would not need to.
+
+`shouldCaptureFrom` rejects both routes. It anchors its article pattern at both
+ends, `/^\/p\/[^/]+$/`, so no list page can match on a suffix.
+
+### How come `substack.com/inbox/saved` shows less saved articles than `substack.com/saved`?
+
+Because they are two different pages, not two views of one page. The first
+guess, that both routes render one list, was wrong.
+
+Counted on the same account on the same day, each page scrolled to the bottom:
+
+| Page                | Articles | Components                                  |
+| ------------------- | -------- | ------------------------------------------- |
+| `/inbox/saved`      | 20       | `reader2-*`, `visibility-check`             |
+| `/saved`            | **47**   | `feedItem-*`, `feedUnit-*`, `postAttachment-*` |
+
+Not one class in common. The old selectors match 0 elements on `/saved`.
+
+`/inbox/saved` is the older reader view, and it shows saves that came through
+your inbox: publications you subscribe to. `/saved` is the whole account. Save
+something from search or from a publication you do not subscribe to and only
+`/saved` knows about it.
+
+It is also shrinking. `spike/fixtures/manifest.json` recorded 60 entries on
+`/inbox/saved` on 2026-08-25. Six days later the same page showed 20.
+
+The extension now reads `/saved`.
+
+#### How the two pages are built
+
+`/inbox/saved` gives one row per save. `/saved` gives a **feed unit** per save,
+the same component the home feed uses: an avatar, the writer's name, a
+Subscribe button, like and comment counts. The article hangs off it as an
+attachment card.
+
+That shape has a consequence. 48 feed units, 47 articles. The 48th is a Note
+somebody wrote, saved with no article attached. Counting units over-counts by
+one and produces an entry with no URL, so the parser reads the unit, looks for
+an attachment, and skips the unit when there is none.
+
+#### What the switch cost
+
+| Field           | `/inbox/saved`       | `/saved`                  |
+| --------------- | -------------------- | ------------------------- |
+| url             | `a[href*="/p/"]`     | the attachment `<a>` itself |
+| title           | `.reader2-post-title` | `[class*="clamp-2-"]`    |
+| publication     | `.pub-name`          | `[class*="hoverLink-"]`   |
+| author          | parsed out of a string | `a[href^="/@"]`         |
+| reading minutes | yes                  | **not on the page**       |
+| medium          | yes                  | **not on the page**       |
+
+`/inbox/saved` printed one string under each entry, `Hussain Ibarra∙14 min
+read`, and `parseItemMeta` split it into an author, a minute count, and a
+medium. `/saved` prints no such string: `min read` appears 0 times on its
+fixture and 58 times on the old one. So `parseItemMeta` was deleted along with
+the page that fed it.
+
+Nothing breaks, for a reason already in the code. A missing field arrives as
+`undefined`, and `mergeCard` keeps a card's existing value when the incoming
+one is falsy. A sync cannot blank a reading time it does not have. And
+`background.ts` already computes `estimatedReadingMinutes` from the article's
+real word count when you capture it, which beats Substack's estimate. A synced
+card shows `— min` until you open it once.
+
+#### Matching a class that is a hash
+
+Every class on `/saved` is a webpack build hash: `feedItem-ONDKv3`,
+`postAttachment-eYV3fM`, `clamp-2-kM02pu`. The hash changes when Substack
+ships a build.
+
+Two ways to write the selector:
+
+```js
+'.feedItem-ONDKv3'        // exact. Never matches the wrong thing.
+                          // Stops working on the next Substack deploy.
+'[class*="feedItem-"]'    // the component name. Survives the hash rotating.
+                          // A future feedItemHeader-XYZ would also match.
+```
+
+The code uses the second, the same choice `spike/README.md` already made for
+the sign-in prompt. The trailing hyphen narrows it, and the fixture test
+asserts exactly 47 entries, so an extra match fails the suite instead of
+quietly inflating the board.

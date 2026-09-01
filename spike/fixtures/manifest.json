@@ -26,9 +26,25 @@
     }
   },
   {
+    "file": "saved-page.html",
+    "kind": "saved-page",
+    "capturedAt": "2026-08-31",
+    "note": "substack.com/saved, the route the extension reads. Scrolled to the bottom before capture. 48 feed units, 47 of them articles; the 48th is a Note.",
+    "expected": {
+      "entries": 47,
+      "firstEntry": {
+        "url": "https://champenoise.substack.com/p/22-profitable-niches-for-your-current",
+        "title": "22 Profitable Niches for your Current (or Next) Substack + 240 Substack Ideas You Can Steal Right Now.",
+        "publication": "Champenoise",
+        "author": "Christina"
+      }
+    }
+  },
+  {
     "file": "saved-list.html",
     "kind": "saved-list",
     "capturedAt": "2026-08-25",
+    "note": "substack.com/inbox/saved, the legacy reader view. Held 60 entries at capture; the same account showed 20 there on 2026-08-31 against 47 on /saved. Kept as the record of that route, no longer read by the extension.",
     "expected": {
       "minEntries": 50,
       "firstEntry": {

@@ -1,6 +1,10 @@
 /**
- * The code that knows the Saved list's DOM. Every selector here is sourced to
- * `spike/README.md`, "Saved list read paths".
+ * The code that knows the Saved page's DOM. Every selector here is sourced to
+ * `spike/README.md`, "Saved page read paths".
+ *
+ * Reads `substack.com/saved`, not `substack.com/inbox/saved`. The two are
+ * different pages sharing no class: the reader view held 20 entries on
+ * 2026-08-31 where this one held 47, and it is shrinking. See the README.
  *
  * THIS FILE IMPORTS NOTHING, AND EVERY FUNCTION BELOW DEFINES EVERYTHING IT
  * USES INSIDE ITS OWN BODY.
@@ -13,7 +17,7 @@
  */
 
 /**
- * One row of the Saved list.
+ * One saved article.
  *
  * Not exported, and deliberately a second declaration of `SavedEntry` in
  * `domain/saved.ts`. This file may not import that one, and `domain/` may not
@@ -24,25 +28,35 @@ interface SavedEntry {
   url: string;
   title: string | null;
   publication: string | null;
-  itemMeta: string | null;
+  author: string | null;
 }
 
 export function extractSavedEntries(doc: Document = document): SavedEntry[] {
+  // Every class on this page is a webpack build hash: the fixture carried
+  // `feedItem-ONDKv3`, `postAttachment-eYV3fM`, `clamp-2-kM02pu`,
+  // `hoverLink-g45pgX`. The hash is regenerated on a Substack build; the name
+  // in front of it is the component, and that is what is matched here. Same
+  // decision, and the same reasoning, as the sign-in prompt read in
+  // `spike/README.md`, which matches `[class*="mainMenuContent"]`.
+  //
+  // The risk this accepts: a future `feedItemHeader-XYZ` would also match
+  // `[class*="feedItem-"]`. The trailing hyphen is what keeps that narrow, and
+  // the fixture test asserts an exact count of 47, so an extra match fails
+  // loudly rather than inflating the board.
   const SELECTORS = {
-    // spike/README.md: matches exactly 60 elements on the fixture, one per
-    // entry, with title, publication, and link counts all agreeing at 60.
-    entry: '.visibility-check',
-    // Each entry holds two anchors: the article and the publication's home
-    // page. Only the article's href contains "/p/". The selector names no
-    // host, which is why the two custom-domain entries resolve.
-    link: 'a[href*="/p/"]',
-    title: '.reader2-post-title.reader2-clamp-lines',
-    publication: '.pub-name',
-    // "Hussain Ibarra∙14 min read". Present on all 60 fixture entries, the two
-    // "1 hr 6 min watch" entries included. Kept nullable: a later capture may
-    // drop it, and `domain/saved.ts` already treats a null as "no author, no
-    // minutes, no medium".
-    itemMeta: '.reader2-item-meta',
+    // The feed unit wrapping one save. 48 on the fixture: 47 articles and a Note.
+    unit: '[class*="feedItem-"]',
+    // The article card. An <a>, so its href IS the article url. 47.
+    attachment: '[class*="postAttachment-"]',
+    // Inside the attachment. A line-clamp class, but textContent holds the
+    // untruncated title. 47.
+    title: '[class*="clamp-2-"]',
+    // Inside the attachment. The publication, not the author. 47.
+    publication: '[class*="hoverLink-"]',
+    // Inside the unit, outside the attachment. Not a class at all: the href
+    // shape is the durable thing here. 48. The avatar link shares this href
+    // and has no text, so the loop below takes the first non-empty one.
+    author: 'a[href^="/@"]',
   };
 
   function text(el: Element, selector: string): string | null {
@@ -53,9 +67,13 @@ export function extractSavedEntries(doc: Document = document): SavedEntry[] {
 
   const out: SavedEntry[] = [];
 
-  for (const el of Array.from(doc.querySelectorAll(SELECTORS.entry))) {
-    const link = el.querySelector(SELECTORS.link);
-    const href = link ? link.getAttribute('href') : null;
+  for (const unit of Array.from(doc.querySelectorAll(SELECTORS.unit))) {
+    // A feed unit with no article card is a Note. 48 units, 47 articles on the
+    // fixture. Skipping here is what keeps the count honest.
+    const attachment = unit.querySelector(SELECTORS.attachment);
+    if (!attachment) continue;
+
+    const href = attachment.getAttribute('href');
     if (!href) continue;
 
     let url: string;
@@ -65,11 +83,22 @@ export function extractSavedEntries(doc: Document = document): SavedEntry[] {
       continue;
     }
 
+    // The avatar and the name are two links to the same profile, and the
+    // avatar's text is empty. Take the first one that says something.
+    let author: string | null = null;
+    for (const link of Array.from(unit.querySelectorAll(SELECTORS.author))) {
+      const value = link.textContent ? link.textContent.trim() : '';
+      if (value) {
+        author = value;
+        break;
+      }
+    }
+
     out.push({
       url,
-      title: text(el, SELECTORS.title),
-      publication: text(el, SELECTORS.publication),
-      itemMeta: text(el, SELECTORS.itemMeta),
+      title: text(attachment, SELECTORS.title),
+      publication: text(attachment, SELECTORS.publication),
+      author,
     });
   }
 
@@ -77,12 +106,13 @@ export function extractSavedEntries(doc: Document = document): SavedEntry[] {
 }
 
 /**
- * Scroll the Saved list until it stops growing, and say whether it finished.
+ * Scroll the Saved page until it stops growing, and say whether it finished.
  *
- * `spike/README.md`, "Risks found": the list loads more entries on scroll and
- * does NOT virtualize. 20 entries at the top of the page, 85 at the bottom,
- * still 85 back at the top. Entries loaded once stay in the DOM, so the count
- * only ever grows and nothing has to be tracked as it scrolls away.
+ * `spike/README.md`: the page loads more entries on scroll and does NOT
+ * virtualize. Entries loaded once stay in the DOM, so the count only ever
+ * grows and nothing has to be tracked as it scrolls away. The window is the
+ * scroller: `document.documentElement` measured 22639 tall against a 911
+ * viewport, and `scrollTop` reached its maximum.
  *
  * The stop condition is TWO flat readings, not one. A single flat count cannot
  * tell "the list ended" from "the next page has not landed yet", and a growing
@@ -92,10 +122,14 @@ export function extractSavedEntries(doc: Document = document): SavedEntry[] {
  * as missing on that result: a partial list would flag its whole tail.
  */
 export async function scrollToEnd(): Promise<{ count: number; complete: boolean }> {
-  const ENTRY = '.visibility-check';
+  // Must stay equal to SELECTORS.unit in the TODO(human) above: this counts
+  // the same elements that parser reads. The injection boundary forbids
+  // sharing a constant between these two functions, because each is
+  // stringified on its own, so the value is written twice on purpose.
+  const ENTRY = '[class*="feedItem-"]';
   const SETTLE_MS = 1200;
   // 60 rounds at 20 new entries a round is 1200 entries, and at worst 72
-  // seconds. Long enough for any real Saved list, bounded enough that a page
+  // seconds. Long enough for any real Saved page, bounded enough that a page
   // that never settles still returns.
   const MAX_ROUNDS = 60;
 

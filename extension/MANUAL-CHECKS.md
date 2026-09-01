@@ -162,6 +162,13 @@ describes the shell and only the body knows which article is open.
       own page is one card, not two.
 - [x] `substack.com/inbox/saved`, `substack.com/home`, and a bare
       `substack.com/@<handle>` profile page still open the board.
+- [x] `substack.com/saved` opens the board rather than attempting a capture.
+- [x] Sync opens `substack.com/saved`, not `substack.com/inbox/saved`, and the
+      run reports roughly the number of articles that page shows. Re-check
+      after the route change of 2026-08-31.
+- [x] A card added by that sync shows `— min` on its tile, and opening the
+      article once fills the reading time in. The Saved page carries no
+      estimate; the capture computes one from the body.
 
 ## Reading panel
 

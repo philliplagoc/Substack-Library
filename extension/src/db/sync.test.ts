@@ -14,7 +14,7 @@ function entry(overrides: Partial<SavedEntry> = {}): SavedEntry {
     url: 'https://alpha.substack.com/p/one',
     title: 'One',
     publication: 'Alpha Notes',
-    itemMeta: 'A. Writer∙7 min read',
+    author: 'A. Writer',
     ...overrides,
   };
 }
@@ -40,16 +40,30 @@ describe('applySync imports', () => {
     expect(card.status).toBe('to_read');
     expect(card.author).toBe('A. Writer');
     expect(card.publication).toBe('Alpha Notes');
-    expect(card.estimatedReadingMinutes).toBe(7);
+    // substack.com/saved carries no reading estimate. A card added by a sync
+    // and never opened has none until a capture reads the article's own body.
+    expect(card.estimatedReadingMinutes).toBeUndefined();
     expect(card.lastSeenInSaved).toBe(RAN_AT);
   });
 
-  test('records the medium on a watch entry', async () => {
-    await applySync([entry({ title: 'Pod', itemMeta: 'A. Host∙1 hr 6 min watch' })], RAN_AT, true);
+  // The other half of that: a sync must not blank what a capture worked out.
+  test('leaves an existing reading time and medium alone', async () => {
+    await db.cards.add(
+      makeCard({
+        id: 'known',
+        url: 'https://alpha.substack.com/p/one',
+        title: 'One',
+        estimatedReadingMinutes: 66,
+        medium: 'watch',
+        lastSeenInSaved: EARLIER,
+      }),
+    );
 
-    const card = await cardByTitle('Pod');
-    expect(card.medium).toBe('watch');
+    await applySync([entry()], RAN_AT, true);
+
+    const card = await cardByTitle('One');
     expect(card.estimatedReadingMinutes).toBe(66);
+    expect(card.medium).toBe('watch');
   });
 
   test('refreshes a known entry and keeps its notes and quotes', async () => {

@@ -20,14 +20,8 @@ export interface SavedEntry {
   url: string;
   title: string | null;
   publication: string | null;
-  /** ".reader2-item-meta", e.g. "Hussain Ibarra∙14 min read". */
-  itemMeta: string | null;
-}
-
-export interface ItemMeta {
+  /** The profile behind the avatar, e.g. "Daniel Parris". Not the publication. */
   author: string | null;
-  minutes: number | null;
-  medium: Medium | null;
 }
 
 export interface SavedImport {
@@ -36,8 +30,6 @@ export interface SavedImport {
 }
 
 export function savedEntryToInput(entry: SavedEntry): SavedImport {
-  const meta = parseItemMeta(entry.itemMeta);
-
   return {
     input: {
       url: entry.url,
@@ -45,42 +37,17 @@ export function savedEntryToInput(entry: SavedEntry): SavedImport {
       // when the incoming one is falsy, and a missing field must not blank a
       // good one on a card the board already holds.
       title: entry.title?.trim() || undefined,
-      author: meta.author ?? undefined,
+      author: entry.author?.trim() || undefined,
       publication: entry.publication?.trim() || undefined,
-      estimatedReadingMinutes: meta.minutes ?? undefined,
+      // Absent from substack.com/saved. `spike/README.md`, "Saved page read
+      // paths": the page carries no reading estimate and no read/watch/listen
+      // word, so neither can be read here. `background.ts` fills
+      // `estimatedReadingMinutes` from the real body word count on capture,
+      // which is a better number than Substack's estimate anyway. A card
+      // synced and never opened shows "— min" until it is.
+      estimatedReadingMinutes: undefined,
     },
-    medium: meta.medium,
-  };
-}
-
-/**
- * "Hussain Ibarra∙14 min read" into an author, a minute count, and a medium.
- */
-export function parseItemMeta(raw: string | null): ItemMeta {
-  const empty: ItemMeta = { author: null, minutes: null, medium: null };
-  if (!raw) return empty;
-
-  const text = raw.replace(/\s+/g, ' ').trim();
-  if (!text) return empty;
-
-  // Anchored at the end. Both counts are optional so "∙read" still names a
-  // medium, and the medium word is required so "14 min" alone is not a
-  // reading estimate.
-  const match = /(?:(\d+)\s*hr)?\s*(?:(\d+)\s*min)?\s*(read|watch|listen)$/i.exec(text);
-
-  if (!match) return { ...empty, author: text };
-
-  const hours = Number(match[1] ?? 0);
-  const mins = Number(match[2] ?? 0);
-  const minutes = hours * 60 + mins;
-
-  // Whatever precedes the duration is the author, once the separator that
-  // joined them is dropped.
-  const author = text.slice(0, match.index).replace(/[∙·•\-\s]+$/, '').trim();
-
-  return {
-    author: author || null,
-    minutes: minutes > 0 ? minutes : null,
-    medium: match[3]!.toLowerCase() as Medium,
+    // Same reason. Null leaves whatever the card already carries in place.
+    medium: null,
   };
 }

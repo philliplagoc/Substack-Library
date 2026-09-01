@@ -35,7 +35,7 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-08-31
+**Date:** 2026-09-01
 **Phase:** Milestones 0, 1, 2A, 2B, 3, and 4 are all complete and all checked
 against their definitions of done. Milestone 2 was split into 2A (capture and
 the companion panel) and 2B (Markdown export). Every box in
@@ -52,6 +52,13 @@ board; removal of the three Substack checkboxes and their `Card` fields; and an
 file. No new permission, no tab opened, no page read. All 27 boxes of the
 "Milestone 4: release polish" section were run and passed on 2026-08-31. An
 earlier note here called that section 30 boxes; it holds 27.
+
+**Sync reads `substack.com/saved` as of 2026-08-31.** It used to read
+`substack.com/inbox/saved`, which turned out to hold a subset: 20 articles
+against 47 on the same account the same day, with no DOM in common. See the
+entry below and `spike/README.md`, "Saved page read paths". Code complete, the
+suite is green, and verified in a browser on 2026-09-01. Every box in
+`extension/MANUAL-CHECKS.md` is ticked, the three new ones included.
 
 **2C, the Obsidian vault write, is OUT OF v1.** The developer decided on
 2026-08-31 to defer it to a future update of the extension rather than to later
@@ -290,6 +297,46 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-08-31 - Sync reads substack.com/saved, not substack.com/inbox/saved
+
+**What changed:** The Saved-list sync now opens `substack.com/saved` and parses
+its feed-unit DOM. `extractSavedEntries` was rewritten against a new fixture,
+`SavedEntry` gained an `author` field and lost `itemMeta`, and `parseItemMeta`
+was deleted with the page that fed it. `capture-fixture.js` now scrubs URLs out
+of `style` attributes.
+**Why:** The developer noticed `/saved` listing articles that `/inbox/saved`
+did not. Measured on one account on one day, scrolled to the bottom both times:
+`/inbox/saved` 20 articles, `/saved` 47, and no class in common between the two
+pages. `/inbox/saved` is the older reader view showing only saves that came
+through the inbox, and it is shrinking - `manifest.json` recorded 60 entries
+there on 2026-08-25. Rejected: syncing both routes to recover the reading-time
+and medium fields that `/saved` does not carry. That is a second page load to
+enrich 20 of 47 cards with a number `background.ts` already computes more
+accurately from the article body on capture.
+**Files:** `extension/src/substack/saved.ts`, `extension/src/substack/saved.test.ts`,
+`extension/src/domain/saved.ts`, `extension/src/domain/saved.test.ts`,
+`extension/src/db/sync.test.ts`, `extension/src/domain/url.test.ts`,
+`extension/src/entrypoints/background.ts`, `extension/MANUAL-CHECKS.md`,
+`spike/README.md`, `spike/capture-fixture.js`, `spike/fixtures/manifest.json`,
+`spike/fixtures/saved-page.html` (new), `docs/learning-notes.md`.
+**Verification:** `npx tsc --noEmit` clean. `npx vitest run`: 14 files, 275
+passed, 1 todo. Verified in a browser on 2026-09-01: the three new boxes in
+`MANUAL-CHECKS.md` were run and ticked, so no box in that file is open.
+**State after:** Sync parses the fixture to exactly 47 entries with a title,
+publication, and author on every one, and skips the one feed unit that is a
+Note rather than an article. Cards added by a sync carry no
+`estimatedReadingMinutes` and no `medium`, because `/saved` prints neither;
+`mergeCard` keeps whatever an existing card already holds, and a capture fills
+the reading time from the real word count. The old `saved-list.html` fixture
+stays as the record of the retired route.
+**Next up:** Run the three new boxes in `MANUAL-CHECKS.md` against a loaded
+build: `/saved` opens the board rather than capturing, sync reports roughly the
+count the page shows, and a synced card's `— min` fills in after one capture.
+**Open questions:** Every `/saved` class is a build hash, matched by component
+prefix (`[class*="feedItem-"]`). Whether that survives a Substack deploy is
+unknown until one happens. The fixture test asserts an exact 47, so a prefix
+that starts over-matching fails the suite rather than inflating the board.
 
 ### 2026-08-31 - Milestone 4 verified in a browser
 

@@ -8,7 +8,8 @@ Captured: 2026-08-21. Free article fixture re-captured 2026-08-24 to strip a sha
 | --------------------------------- | --------------------------------------------- | ---------- | ------------------------------- |
 | Free article                      | `https://<publication>.substack.com/p/<slug>` | yes        | fixtures/article-free.html      |
 | Paywalled article, not subscribed | `https://<publication>.substack.com/p/<slug>` | yes        | fixtures/article-paywalled.html |
-| Saved list                        | `https://substack.com/inbox/saved`            | yes        | fixtures/saved-list.html        |
+| Saved page (the one we read)      | `https://substack.com/saved`                  | yes        | fixtures/saved-page.html        |
+| Saved list, legacy reader view    | `https://substack.com/inbox/saved`            | yes        | fixtures/saved-list.html        |
 
 Out of scope for v1: a paid article read as a subscriber. The reader pays for no publication.
 
@@ -31,6 +32,51 @@ Out of scope for v1: a paid article read as a subscriber. The reader pays for no
 | entry url         | `a[href*="/p/"]` (inside the entry container) | Each entry holds two anchors: the article link and a link to the publication's home page. Only the article link's `href` contains `/p/`, so scoping to the entry container and matching on `/p/` is unambiguous. 58 of 60 entries link to a `*.substack.com` subdomain; the other two use a custom domain (`theworkthatholds.com`, `freyaindia.co.uk`) and still resolve correctly, because the selector never hardcodes the `substack.com` host. First evidence that custom-domain publications work, at least for the Saved list link — contrast the "untested" caveat on article metadata below. |
 | entry title       | `.reader2-post-title.reader2-clamp-lines`     | Present and non-empty on all 60 entries, including the two custom-domain ones. `reader2-clamp-lines` looks like a CSS line-clamp class for on-screen truncation; the DOM node still holds the untruncated title text, so `.textContent` reads the full string.                                                                                                                                                                                                                                                                                                                                      |
 | entry publication | `.pub-name`                                   | Present and non-empty on all 60 entries. No entry in this fixture omitted a publication name.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+
+## Saved page read paths (`substack.com/saved`)
+
+Captured 2026-08-31 as `fixtures/saved-page.html`, scrolled to the bottom first.
+
+**This is the route the extension reads.** `/inbox/saved` above is the older
+reader view and holds a subset: 20 entries against 47 on the same account, on
+the same day. `manifest.json` recorded 60 on `/inbox/saved` on 2026-08-25, so
+that view is shrinking while `/saved` is not. The two routes do not redirect to
+each other and each names itself canonical.
+
+The DOM shares nothing with `/inbox/saved`. `.visibility-check`,
+`.reader2-post-title`, `.pub-name`, and `.reader2-item-meta` all match **0**.
+
+Each save is a feed unit. The article hangs off it as an attachment card.
+
+| Field             | Path                                                | Notes                                                                                                                                                                                                                                     |
+| ----------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| feed unit         | `[class*="feedItem-"]`                              | 48 on the fixture. Also `[class*="feedUnit-"]` at 48. One unit is a Note with no article, so the unit count is not the entry count.                                                                                                       |
+| entry (an article) | `[class*="postAttachment-"]`                        | 47, matching `a[href*="/p/"]` at 47 exactly. The attachment **is** an `<a>`, so it is both the container and the link. No separate link selector.                                                                                        |
+| entry url         | the attachment's own `href`                         | Absolute on the fixture, custom domains included (`www.statsignificant.com`).                                                                                                                                                             |
+| entry title       | `[class*="clamp-2-"]` inside the attachment         | 47 of 47, and 47 in the whole document, so the class belongs to this slot alone. A line-clamp class again; `.textContent` still reads the full string.                                                                                    |
+| entry publication | `[class*="hoverLink-"]` inside the attachment       | 47 of 47, 47 in the document. Reads the publication (`Champenoise`), not the author.                                                                                                                                                      |
+| entry author      | first `a[href^="/@"]` with non-empty text, in the **unit** | 48 of 48. The profile link wraps the avatar and repeats as a text link. Lives outside the attachment card, so the read must start at the feed unit. Samples: `Christina`, `Daniel Parris`, `Pixels for Breakfast`.                    |
+| reading minutes   | **absent**                                          | `min read` appears 0 times on this fixture, against 58 on `saved-list.html`. There is no reading estimate on this page.                                                                                                                    |
+| medium            | **absent**                                          | No `read` / `watch` / `listen` word anywhere. A video save cannot be told from an article save here.                                                                                                                                      |
+| save state        | `button[class*="saveButton-"]`, class `saved-*`     | 47 of 47 carry the `saved-` class. Not read by the extension, but this page states each item's save state inline, unlike the article page where it hides behind a popover.                                                                |
+
+### Risks specific to this route
+
+- **Every class is a build hash.** `feedItem-ONDKv3`, `postAttachment-eYV3fM`,
+  `clamp-2-kM02pu`, `hoverLink-g45pgX`. `/inbox/saved` gave semantic names.
+  Match on the prefix (`[class*="feedItem-"]`), never the full hash, the same
+  way the sign-in prompt is read.
+- **A feed unit is not always an article.** 48 units, 47 attachments. The odd
+  one is a plain Note. A parser that counts units over-counts by one and yields
+  an entry with no URL.
+- **Two fields are gone, not moved.** Author survives; reading minutes and
+  medium do not exist on this page at all. `parseItemMeta(null)` already returns
+  all-nulls and `mergeCard` keeps a card's existing values against a falsy
+  incoming one, so the loss does not blank a card that already has them.
+- The author link is `a[href^="/@"]` and the avatar shares that href. On the
+  fixture the avatar anchor is empty because the capture strips images; on the
+  live page it holds an `<img>`, which still has no `textContent`. Take the
+  first non-empty one either way.
 
 ## Native controls
 
@@ -88,6 +134,13 @@ Checked 2026-08-24 in a private window on the free article. No fixture captured.
 - Comment Like buttons did not appear in a census taken right after load. They may mount on scroll. The parser must not assume a fixed button count.
 - **The fixtures are anonymized, so they are not byte-faithful.** `capture-fixture.js` removes every `data-attrs` attribute, deletes every query string from `href`, `src`, `data-href`, and `action`, and replaces any run of 6 or more digits in a URL path with `0`. A test that asserts on a query parameter, on a numeric profile id, or on in-body button metadata will pass against the live page and fail against the fixture. The word count is unaffected: 1599 before and after.
 - A signed share token rides in the article body, inside a JSON blob in `data-attrs`: `{"url":"…?…&token=eyJ1c2VyX2lk…"}`. Its payload holds the reader's numeric `user_id`, a `post_id`, and an expiry roughly 30 days out. Base64 hides it from any literal string match, and JSON hides it from any URL parser, so two anonymization passes missed it before the third caught it. Re-check this whenever the capture snippet changes.
+- **A signed token can ride in a `style` attribute.** The 2026-08-31 `/saved`
+  capture carried two Mux tokens in `style="background-image: url("…?token=eyJ…")"`.
+  `scrubIdentifiers` walked `href`, `src`, `data-href`, and `action`, so every
+  pass missed them, and the name and email scan came back clean while the file
+  still held signed JWTs. `cleanStyle` now rewrites `url(...)` inside `style`.
+  A URL is wherever a page can put one, not only where an attribute is named
+  for it.
 - `new URL(value, base)` does not throw on plain text. It reads the text as a relative path and returns a valid URL, so a sanitizer guarded only by `try`/`catch` rewrote `og:title` to `/p/I%20Posted%20on%20Substack…` and raised nothing. Any code that cleans an attribute must first confirm the value looks like a URL.
 - `grep -c` counts matching lines, and this page ships its `<head>` on one line. It reported 1 JSON-LD block where `querySelectorAll` finds 2. Count fixture elements with a DOM parser, never with a line-based tool.
 - **The paywall prints the reader's first name.** `.paywall-intro` on the paywalled fixture read `Hi <b>Phillip</b>`. `PRIVATE_STRINGS` held the full name `Phillip Lagoc`, and a literal match on the full name does not match the first name on its own, so the 2026-08-24 capture leaked it and it was redacted by hand afterwards. A page prints the reader's name in whatever shape its own database holds, not the shape the reader typed into the snippet. Every capture needs a read of the fixture before it is committed.

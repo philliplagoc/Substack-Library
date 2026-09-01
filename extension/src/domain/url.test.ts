@@ -137,6 +137,12 @@ describe('shouldCaptureFrom', () => {
     expect(shouldCaptureFrom('https://substack.com/inbox/saved')).toBe(false);
   });
 
+  // The page sync opens. The toolbar button must show the board there rather
+  // than try to capture the list as though it were an article.
+  test('ignores the Saved page', () => {
+    expect(shouldCaptureFrom('https://substack.com/saved')).toBe(false);
+  });
+
   test('ignores the board itself', () => {
     expect(shouldCaptureFrom('chrome-extension://abcdefg/board.html')).toBe(false);
   });

@@ -69,6 +69,17 @@
     // attributes that hold serialized JSON through cleanEmbedded.
     // Note: 'content' is NOT in URL_ATTRS. It holds og:title and og:description,
     // which are prose. The 15:12 capture proved what happens when it is.
+    // A URL hiding inside a CSS declaration. The /saved capture on 2026-08-31
+    // shipped two signed Mux tokens this way:
+    //   style="background-image: url(&quot;https://image.mux.com/...?token=eyJ...&quot;)"
+    // URL_ATTRS never looks at `style`, so every other pass missed them.
+    function cleanStyle(value) {
+        return value.replace(/url\((["']?)([^"')]+)\1\)/gi, (whole, quote, inner) => {
+            const cleaned = cleanUrl(inner);
+            return 'url(' + quote + cleaned + quote + ')';
+        });
+    }
+
     function scrubIdentifiers(root) {
         const URL_ATTRS = ['href', 'src', 'data-href', 'action'];
         const JSON_ATTRS = ['data-attrs'];
@@ -77,6 +88,10 @@
                 const value = el.getAttribute(name);
                 if (!value) continue;
                 el.setAttribute(name, cleanUrl(value));
+            }
+            const style = el.getAttribute('style');
+            if (style && style.includes('url(')) {
+                el.setAttribute('style', cleanStyle(style));
             }
             for (const name of JSON_ATTRS) {
                 const value = el.getAttribute(name);

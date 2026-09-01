@@ -1,92 +1,22 @@
 import { describe, test, expect } from 'vitest';
-import { parseItemMeta, savedEntryToInput } from './saved';
+import { savedEntryToInput } from './saved';
 
-describe('parseItemMeta', () => {
-  test('reads an author and a minute count', () => {
-    expect(parseItemMeta('Hussain Ibarra∙14 min read')).toEqual({
-      author: 'Hussain Ibarra',
-      minutes: 14,
-      medium: 'read',
-    });
-  });
-
-  test('accumulates hours into minutes', () => {
-    expect(parseItemMeta('Wyndo and Dheeraj Sharma∙ 1 hr 6 min watch')).toEqual({
-      author: 'Wyndo and Dheeraj Sharma',
-      minutes: 66,
-      medium: 'watch',
-    });
-  });
-
-  test('reads a whole number of hours', () => {
-    expect(parseItemMeta('A. Writer∙2 hr listen')).toEqual({
-      author: 'A. Writer',
-      minutes: 120,
-      medium: 'listen',
-    });
-  });
-
-  // The reason the duration is matched from the END of the string rather than
-  // split on the separator: the separator can appear in a name.
-  test('keeps an author name that contains the separator', () => {
-    expect(parseItemMeta('Bar∙Foo Collective∙9 min read')).toEqual({
-      author: 'Bar∙Foo Collective',
-      minutes: 9,
-      medium: 'read',
-    });
-  });
-
-  test('collapses whitespace runs before matching', () => {
-    expect(parseItemMeta('  A. Writer ∙  12   min   read  ')).toEqual({
-      author: 'A. Writer',
-      minutes: 12,
-      medium: 'read',
-    });
-  });
-
-  test('returns nothing at all for null, because 58 of 60 entries is not all of them', () => {
-    expect(parseItemMeta(null)).toEqual({ author: null, minutes: null, medium: null });
-  });
-
-  test('returns nothing at all for an empty string', () => {
-    expect(parseItemMeta('   ')).toEqual({ author: null, minutes: null, medium: null });
-  });
-
-  // An unrecognized medium is not a guess. A duration with no medium word is
-  // not a reading estimate, so the whole string stays the author's problem.
-  test('gives no minutes when no medium word closes the string', () => {
-    expect(parseItemMeta('A. Writer∙14 min')).toEqual({
-      author: 'A. Writer∙14 min',
-      minutes: null,
-      medium: null,
-    });
-  });
-
-  test('gives no minutes for an unknown medium word', () => {
-    expect(parseItemMeta('A. Writer∙14 min skim')).toEqual({
-      author: 'A. Writer∙14 min skim',
-      minutes: null,
-      medium: null,
-    });
-  });
-
-  test('reads a medium with no duration as a medium with no minutes', () => {
-    expect(parseItemMeta('A. Writer∙read')).toEqual({
-      author: 'A. Writer',
-      minutes: null,
-      medium: 'read',
-    });
-  });
-});
-
+/**
+ * `parseItemMeta` is gone with the route it served. `substack.com/inbox/saved`
+ * printed "Hussain Ibarra∙14 min read" under each entry and that string held
+ * the author, the minutes, and the medium. `substack.com/saved` prints no such
+ * string: `spike/README.md`, "Saved page read paths", records 0 occurrences of
+ * "min read" on its fixture against 58 on the reader-view one. The author now
+ * arrives as its own field, and the other two are not on the page to read.
+ */
 describe('savedEntryToInput', () => {
-  test('maps a full entry to a CardInput and a medium', () => {
+  test('maps a full entry to a CardInput', () => {
     expect(
       savedEntryToInput({
         url: 'https://alpha.substack.com/p/one',
         title: 'One',
         publication: 'Alpha Notes',
-        itemMeta: 'A. Writer∙7 min read',
+        author: 'A. Writer',
       }),
     ).toEqual({
       input: {
@@ -94,9 +24,9 @@ describe('savedEntryToInput', () => {
         title: 'One',
         author: 'A. Writer',
         publication: 'Alpha Notes',
-        estimatedReadingMinutes: 7,
+        estimatedReadingMinutes: undefined,
       },
-      medium: 'read',
+      medium: null,
     });
   });
 
@@ -108,7 +38,7 @@ describe('savedEntryToInput', () => {
         url: 'https://alpha.substack.com/p/two',
         title: null,
         publication: null,
-        itemMeta: null,
+        author: null,
       }),
     ).toEqual({
       input: {
@@ -122,14 +52,28 @@ describe('savedEntryToInput', () => {
     });
   });
 
-  test('trims a padded title and publication', () => {
+  test('trims a padded title, publication, and author', () => {
     const result = savedEntryToInput({
       url: 'https://alpha.substack.com/p/three',
       title: '  Three  ',
       publication: '  Alpha Notes  ',
-      itemMeta: null,
+      author: '  A. Writer  ',
     });
     expect(result.input.title).toBe('Three');
     expect(result.input.publication).toBe('Alpha Notes');
+    expect(result.input.author).toBe('A. Writer');
+  });
+
+  // The reason this matters: a sync must never blank a reading time that a
+  // capture already worked out from the article's own body.
+  test('never carries a reading time, because the page has none', () => {
+    const result = savedEntryToInput({
+      url: 'https://alpha.substack.com/p/four',
+      title: 'Four',
+      publication: 'Alpha Notes',
+      author: 'A. Writer',
+    });
+    expect(result.input.estimatedReadingMinutes).toBeUndefined();
+    expect(result.medium).toBeNull();
   });
 });
