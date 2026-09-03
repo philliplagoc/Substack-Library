@@ -130,6 +130,15 @@ So all of it goes:
 | `.quotes .lost` | `ui/styles.css` |
 | `LOST_MARKER` and its branch | `domain/markdown.ts` |
 | `bodyText` | `messages.ts`, and the two writes in `entrypoints/background.ts` |
+| `prefix` | `CaptureSelectionReply` in `messages.ts`, the `sendResponse` in `entrypoints/background.ts`, and the `createQuote` call in `ui/ReadingPanel.tsx` |
+| the prefix half of `readSelection` | `substack/extract.ts` |
+
+**Amendment, 2026-09-03, while writing the plan:** the `prefix` chain was not in
+the first draft of this table. `quote.locator` is only ever fed by it, so with
+the locator gone every link in that chain is dead: the Range walk in
+`readSelection`, the field on `CaptureSelectionReply`, and the argument to
+`createQuote`. `readSelection` becomes `(win?) => string | null`, which is what
+its one caller wanted all along.
 
 Rejected: hiding the label and keeping the machinery, in case jump-to-quote is
 wanted later. It leaves an effect writing to the database on every panel open to
