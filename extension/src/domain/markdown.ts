@@ -66,21 +66,30 @@ function quoteBlock(quote: Quote): string {
 }
 
 /**
- * The quotes and the notes of one card.
+ * The notes and the quotes of one card, in that order.
  *
- * `level` is the heading level the notes heading takes. A single note nests it
- * under nothing and passes 2. The library nests it under a `###` card heading
- * and passes 4. One builder rather than two copies: the next change to how a
- * quote or its comment is rendered has to hold in both files, and the day it is
- * made once is the day the two disagree.
+ * Notes first because they are what the reader wrote about the article as a
+ * whole; the quotes are the evidence under it.
+ *
+ * `level` is the heading level both headings take. A single note nests them
+ * under nothing and passes 2. The library nests them under a `###` card heading
+ * and passes 4. One builder rather than two copies: the next change to this
+ * shape has to hold in both files, and the day it is made once is the day the
+ * two disagree.
+ *
+ * A section with no content emits no heading. There is no empty heading and no
+ * heading with nothing under it.
  */
 function cardBody(card: Card, level: number): string[] {
   const blocks: string[] = [];
+  const heading = '#'.repeat(level);
 
-  for (const quote of card.quotes) blocks.push(quoteBlock(quote));
+  if (card.notes.trim()) blocks.push(`${heading} Notes`, card.notes.trim());
 
-  // The heading and the body are omitted together. There is no empty heading.
-  if (card.notes.trim()) blocks.push(`${'#'.repeat(level)} Notes`, card.notes.trim());
+  if (card.quotes.length > 0) {
+    blocks.push(`${heading} Quotes`);
+    for (const quote of card.quotes) blocks.push(quoteBlock(quote));
+  }
 
   return blocks;
 }

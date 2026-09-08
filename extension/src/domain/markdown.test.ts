@@ -10,6 +10,13 @@ function frontmatterOf(markdown: string): string[] {
   return match[1]!.split('\n');
 }
 
+const quote = (text: string, extra: Partial<Quote> = {}): Quote => ({
+  id: `id-${text}`,
+  text,
+  capturedAt: '2026-08-17T00:00:00.000Z',
+  ...extra,
+});
+
 describe('toMarkdown frontmatter', () => {
   test('carries the five always-present keys', () => {
     const card = makeCard({
@@ -85,13 +92,6 @@ describe('toMarkdown frontmatter', () => {
 });
 
 describe('toMarkdown body', () => {
-  const quote = (text: string, extra: Partial<Quote> = {}): Quote => ({
-    id: `id-${text}`,
-    text,
-    capturedAt: '2026-08-17T00:00:00.000Z',
-    ...extra,
-  });
-
   test('renders a quote with no comment as a bare blockquote', () => {
     const card = makeCard({ notes: '', quotes: [quote('First captured quote text.')] });
     expect(toMarkdown(card)).toContain('\n> First captured quote text.\n');
@@ -139,7 +139,7 @@ describe('toMarkdown body', () => {
     expect(markdown.endsWith('\n\n')).toBe(false);
   });
 
-  test('renders two quotes and notes in order', () => {
+  test('puts Notes before Quotes, each under its own heading', () => {
     const card = makeCard({
       notes: 'Freeform notes body from the card.',
       quotes: [
@@ -149,15 +149,38 @@ describe('toMarkdown body', () => {
     });
     const markdown = toMarkdown(card);
 
+    const notesHeading = markdown.indexOf('## Notes');
+    const notesBody = markdown.indexOf('Freeform notes body from the card.');
+    const quotesHeading = markdown.indexOf('## Quotes');
     const first = markdown.indexOf('> First captured quote text.');
     const reaction = markdown.indexOf('My reaction to that quote.');
     const second = markdown.indexOf('> Second captured quote.');
-    const notes = markdown.indexOf('## Notes');
 
-    expect(first).toBeGreaterThan(0);
+    expect(notesHeading).toBeGreaterThan(0);
+    expect(notesBody).toBeGreaterThan(notesHeading);
+    expect(quotesHeading).toBeGreaterThan(notesBody);
+    expect(first).toBeGreaterThan(quotesHeading);
     expect(reaction).toBeGreaterThan(first);
     expect(second).toBeGreaterThan(reaction);
-    expect(notes).toBeGreaterThan(second);
+  });
+
+  test('drops the Quotes heading when there are no quotes', () => {
+    const markdown = toMarkdown(makeCard({ notes: 'A thought.', quotes: [] }));
+    expect(markdown).toContain('## Notes');
+    expect(markdown).not.toContain('## Quotes');
+  });
+
+  test('drops the Notes heading but keeps Quotes when only quotes were taken', () => {
+    const markdown = toMarkdown(makeCard({ notes: '', quotes: [quote('A passage.')] }));
+    expect(markdown).not.toContain('## Notes');
+    expect(markdown).toContain('## Quotes');
+    expect(markdown).toContain('> A passage.');
+  });
+
+  test('emits neither heading for a card with no notes and no quotes', () => {
+    const markdown = toMarkdown(makeCard({ notes: '', quotes: [] }));
+    expect(markdown).not.toContain('## Notes');
+    expect(markdown).not.toContain('## Quotes');
   });
 });
 
@@ -279,6 +302,20 @@ describe('toLibraryMarkdown', () => {
     const out = toLibraryMarkdown([makeCard({ notes: 'A thought.' })], NOW);
     expect(out).toContain('#### Notes');
     expect(out).not.toContain('\n## Notes');
+  });
+
+  test('nests both headings under the card heading at level four', () => {
+    const out = toLibraryMarkdown(
+      [makeCard({ title: 'One', notes: 'A thought.', quotes: [quote('A passage.')] })],
+      '2026-09-03T00:00:00.000Z',
+    );
+
+    expect(out).toContain('#### Notes');
+    expect(out).toContain('#### Quotes');
+    expect(out).not.toContain('\n## Notes');
+    expect(out).not.toContain('\n## Quotes');
+    expect(out.indexOf('#### Notes')).toBeGreaterThan(out.indexOf('### One'));
+    expect(out.indexOf('#### Quotes')).toBeGreaterThan(out.indexOf('#### Notes'));
   });
 
   test('a single note still writes its notes heading at level two', () => {
