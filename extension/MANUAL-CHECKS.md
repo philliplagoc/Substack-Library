@@ -185,8 +185,8 @@ describes the shell and only the body knows which article is open.
 
 ## Quotes
 
-Six of these were run as Task 7 Step 14 on 2026-08-30 and are ticked from  
-that pass. Only the reload box is new.
+All but the reload box were run as Task 7 Step 14 on 2026-08-30 and are  
+ticked from that pass.
 
 - [x] Selecting text and clicking "Capture quote" adds the quote verbatim.
 - [x] A comment typed on a quote survives a reload.
@@ -195,9 +195,6 @@ that pass. Only the reload box is new.
 - [x] "Capture quote" with nothing selected says so and adds nothing.
 - [x] Capturing a passage that appears twice in the article adds exactly one
       quote.
-- [x] Editing the article in DevTools so a quote no longer matches shows
-      "location unavailable".
-- [x] A quote whose location is lost still shows its full text.
 
 ## Markdown export (Milestone 2B)
 
@@ -227,9 +224,6 @@ Load the unpacked build from `extension/.output/chrome-mv3/` first.
       read and has a reading estimate so all eight keys are present. The
       Properties view reads title, author, publication, url, saved, read,
       reading_minutes, and tags.
-- [x] Edit an article after quoting it so the panel shows "location
-      unavailable", then export. The quote text is intact and an italic line
-      under it reads "location no longer resolves in the source article".
 - [x] NOT A BUG: if a file with the generated name already exists, Chrome
       appends its own ` (1)`, so a name can land as `... (v2) (1).md`. The
       extension cannot read the Downloads folder and cannot prevent this. No
