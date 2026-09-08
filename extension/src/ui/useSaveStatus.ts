@@ -29,20 +29,43 @@ export function useSaveStatus() {
 
   useEffect(() => {
     return () => {
-      if (timer.current) clearTimeout(timer.current);
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
     };
   }, []);
 
   function beginSave() {
-    if (timer.current) clearTimeout(timer.current);
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
     setStatus('saving');
   }
 
   function endSave() {
     setStatus('saved');
-    if (timer.current) clearTimeout(timer.current);
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
     timer.current = setTimeout(() => setStatus('idle'), SAVED_MS);
   }
 
-  return { status, beginSave, endSave };
+  /**
+   * A save that was announced with `beginSave` is no longer coming: the field
+   * unmounted, or the selected card changed under it, before the debounced
+   * write fired. Land the indicator back on idle rather than stranding it on
+   * "saving" until the next real edit.
+   */
+  function abortSave() {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    setStatus('idle');
+  }
+
+  return { status, beginSave, endSave, abortSave };
 }

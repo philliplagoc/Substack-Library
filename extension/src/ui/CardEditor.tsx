@@ -42,10 +42,15 @@ export default function CardEditor({ card, footer }: Props) {
   useEffect(() => {
     if (notes === card.notes) return;
     save.beginSave();
+    let fired = false;
     const timer = setTimeout(() => {
-      void updateCard(card.id, { notes }).then(save.endSave);
+      fired = true;
+      void updateCard(card.id, { notes }).then(save.endSave).catch(() => {});
     }, DEBOUNCE_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (!fired) save.abortSave();
+    };
   }, [notes, card.id, card.notes]);
 
   async function handleRemoveQuote(quoteId: string, text: string) {
@@ -93,6 +98,7 @@ export default function CardEditor({ card, footer }: Props) {
                 initial={quote.comment ?? ''}
                 onSaveStart={save.beginSave}
                 onSaveEnd={save.endSave}
+                onAbort={save.abortSave}
               />
               <p>
                 <button
@@ -129,12 +135,14 @@ function QuoteComment({
   initial,
   onSaveStart,
   onSaveEnd,
+  onAbort,
 }: {
   cardId: string;
   quoteId: string;
   initial: string;
   onSaveStart: () => void;
   onSaveEnd: () => void;
+  onAbort: () => void;
 }) {
   const [comment, setComment] = useState(initial);
 
@@ -145,10 +153,15 @@ function QuoteComment({
   useEffect(() => {
     if (comment === initial) return;
     onSaveStart();
+    let fired = false;
     const timer = setTimeout(() => {
-      void updateQuote(cardId, quoteId, { comment }).then(onSaveEnd);
+      fired = true;
+      void updateQuote(cardId, quoteId, { comment }).then(onSaveEnd).catch(() => {});
     }, DEBOUNCE_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (!fired) onAbort();
+    };
   }, [comment, cardId, quoteId, initial]);
 
   return (
