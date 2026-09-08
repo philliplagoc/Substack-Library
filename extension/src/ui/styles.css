@@ -206,3 +206,21 @@ body {
   gap: 0.5rem;
 }
 .export-all .notice { margin: 0; }
+
+/*
+ * The title row carries the save indicator. Space-between rather than a float,
+ * so a long title wraps under the indicator instead of behind it.
+ */
+.editor-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.save-status {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+.remove-quote { font-size: 11px; }

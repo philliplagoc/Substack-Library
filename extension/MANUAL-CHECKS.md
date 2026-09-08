@@ -306,3 +306,24 @@ Reload the extension first: this milestone changes the Dexie schema to version
 - [x] Filter until nothing is left; the Export all button is disabled.
 - [x] Open the library file in Obsidian; the frontmatter parses and the card
       headings nest under the column headings.
+
+## 2026-09-03: reading workflow feedback
+
+### Removing a quote
+
+- [ ] Capture three quotes and write a different comment on each. Remove the
+      first; the other two keep their own comments.
+- [ ] Remove a quote and cancel the confirmation; nothing is removed.
+- [ ] Remove the only quote on a card; the panel shows "No quotes yet."
+- [ ] Remove a quote in the side panel while the board's detail panel shows the
+      same card; the board updates without a refresh.
+
+### The saved indicator
+
+- [ ] Type in Notes and stop. "Saving…" appears, becomes "✓ Saved", and goes
+      away after about two seconds.
+- [ ] Type in a quote comment; the same indicator runs, next to the title.
+- [ ] Type continuously for ten seconds; the indicator stays on "Saving…" and
+      does not flicker between states on every keystroke.
+- [ ] Open the panel and touch nothing; no indicator is shown.
+- [ ] Type a comment, then reopen the card; the comment is there.
