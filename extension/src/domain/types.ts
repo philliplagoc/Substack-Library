@@ -1,6 +1,11 @@
 export type Status = 'to_read' | 'reading' | 'processed';
 
 export interface Quote {
+  /**
+   * Stable across a removal. Quotes used to be addressed by their index into
+   * `card.quotes`, which was sound only while quotes were append-only.
+   */
+  id: string;
   text: string;
   comment?: string;
   locator?: string;

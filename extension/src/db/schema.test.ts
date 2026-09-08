@@ -82,3 +82,75 @@ describe('the version 3 upgrade', () => {
     expect(row?.tags).toEqual(['ai']);
   });
 });
+
+/** The version 3 store definition, frozen. History does not change. */
+const V3_STORES = { cards: 'id, &url, articleKey, status, savedAt, [status+sortOrder]' };
+
+describe('the version 4 upgrade', () => {
+  test('gives every stored quote an id and strips the dead locator fields', async () => {
+    const name = `migration-${Math.random().toString(36).slice(2)}`;
+
+    const v3 = new Dexie(name);
+    v3.version(1).stores(V1_STORES);
+    v3.version(2).stores(V2_STORES);
+    v3.version(3).stores(V3_STORES);
+    await v3.open();
+    await v3.table('cards').add({
+      ...makeCard({ id: 'quoted' }),
+      quotes: [
+        {
+          text: 'first passage',
+          comment: 'my reaction',
+          locator: 'words before ',
+          locatorLost: true,
+          capturedAt: '2026-08-29T00:00:00.000Z',
+        },
+        {
+          text: 'second passage',
+          locator: '',
+          locatorLost: false,
+          capturedAt: '2026-08-29T00:00:00.000Z',
+        },
+      ],
+    });
+    v3.close();
+
+    const v4 = new SubstackLibraryDb(name);
+    await v4.open();
+    const row = await v4.cards.get('quoted');
+    v4.close();
+
+    const quotes = (row?.quotes ?? []) as unknown as Record<string, unknown>[];
+    expect(quotes).toHaveLength(2);
+    // Ids exist and are distinct. Their values are nanoid's business.
+    expect(typeof quotes[0]?.id).toBe('string');
+    expect(quotes[0]?.id).not.toBe(quotes[1]?.id);
+    for (const quote of quotes) {
+      expect('locator' in quote).toBe(false);
+      expect('locatorLost' in quote).toBe(false);
+    }
+    // Everything the reader wrote survives.
+    expect(quotes[0]?.text).toBe('first passage');
+    expect(quotes[0]?.comment).toBe('my reaction');
+    expect(quotes[1]?.text).toBe('second passage');
+  });
+
+  test('leaves a card with no quotes alone', async () => {
+    const name = `migration-${Math.random().toString(36).slice(2)}`;
+
+    const v3 = new Dexie(name);
+    v3.version(1).stores(V1_STORES);
+    v3.version(2).stores(V2_STORES);
+    v3.version(3).stores(V3_STORES);
+    await v3.open();
+    await v3.table('cards').add(makeCard({ id: 'bare', quotes: [] }));
+    v3.close();
+
+    const v4 = new SubstackLibraryDb(name);
+    await v4.open();
+    const row = await v4.cards.get('bare');
+    v4.close();
+
+    expect(row?.quotes).toEqual([]);
+  });
+});

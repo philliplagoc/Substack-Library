@@ -88,6 +88,24 @@ export async function applyOrder(changes: OrderChange[]): Promise<void> {
 }
 
 /**
+ * One quote from a backup file, brought up to the current shape.
+ *
+ * restoreCards writes whole cards and runs no migration, so a file written
+ * before schema version 4 arrives with idless quotes carrying the two dead
+ * locator fields. This is the same reason articleKey is recomputed below
+ * rather than trusted: a file is a record of the past, not of the schema.
+ */
+function normalizeQuote(quote: Quote): Quote {
+  const { locator: _locator, locatorLost: _locatorLost, ...rest } = quote as Quote & {
+    locator?: string;
+    locatorLost?: boolean;
+  };
+  // `locatorLost` is still required on Quote until task 3 drops it, but a
+  // normalized quote no longer carries it. The cast bridges that gap.
+  return { ...rest, id: rest.id ?? nanoid() } as unknown as Quote;
+}
+
+/**
  * Write whole cards from a backup file.
  *
  * A card with the same canonical URL is replaced, keeping the id already on
@@ -110,13 +128,14 @@ export async function restoreCards(cards: Card[]): Promise<{ added: number; repl
       // A file written before articleKey existed carries no key. Compute it
       // rather than trust the file, so an old backup restores correctly.
       const key = articleKey(url) ?? url;
+      const quotes = (card.quotes ?? []).map(normalizeQuote);
 
       const existing = await db.cards.where('articleKey').equals(key).first();
       if (existing) {
-        await db.cards.put({ ...card, id: existing.id, url, articleKey: key });
+        await db.cards.put({ ...card, id: existing.id, url, articleKey: key, quotes });
         replaced += 1;
       } else {
-        await db.cards.put({ ...card, url, articleKey: key });
+        await db.cards.put({ ...card, url, articleKey: key, quotes });
         added += 1;
       }
     }
@@ -128,23 +147,27 @@ export async function restoreCards(cards: Card[]): Promise<{ added: number; repl
 /**
  * Change one quote on one card.
  *
- * Quotes have no id, so the index is the address. It is stable because quotes
- * are only ever appended, never inserted or reordered. Read, patch, write, in
- * one transaction, because two panels can hold the same card open at once.
+ * Addressed by `quote.id`, not by position. Removal means a quote's index is
+ * no longer stable, and an index that shifts under a mounted textarea writes
+ * the reader's reaction onto the wrong passage.
+ *
+ * Read, patch, write, in one transaction, because two panels can hold the same
+ * card open at once.
  */
 export async function updateQuote(
   cardId: string,
-  index: number,
+  quoteId: string,
   changes: Partial<Quote>,
 ): Promise<void> {
   await db.transaction('rw', db.cards, async () => {
     const card = await db.cards.get(cardId);
     if (!card) return;
-    const quote = card.quotes[index];
-    if (!quote) return;
+
+    const index = card.quotes.findIndex((quote) => quote.id === quoteId);
+    if (index === -1) return;
 
     const quotes = card.quotes.slice();
-    quotes[index] = { ...quote, ...changes };
+    quotes[index] = { ...quotes[index]!, ...changes };
     await db.cards.update(cardId, { quotes });
   });
 }
@@ -164,9 +187,9 @@ export async function cardByArticleKey(key: string): Promise<Card | undefined> {
 /**
  * Append a quote to a card.
  *
- * Read, append, write, in one transaction. Quotes are only ever appended, so
- * the index of an existing quote never moves, which is what lets updateQuote
- * address one by position.
+ * Read, append, write, in one transaction. Position no longer addresses
+ * anything, so appending is simply where a new quote reads best: last captured,
+ * last shown.
  */
 export async function addQuote(cardId: string, quote: Quote): Promise<void> {
   await db.transaction('rw', db.cards, async () => {

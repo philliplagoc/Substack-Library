@@ -86,6 +86,7 @@ describe('toMarkdown frontmatter', () => {
 
 describe('toMarkdown body', () => {
   const quote = (text: string, extra: Partial<Quote> = {}): Quote => ({
+    id: `q-${text}`,
     text,
     locatorLost: false,
     capturedAt: '2026-08-17T00:00:00.000Z',

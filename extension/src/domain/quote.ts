@@ -3,14 +3,16 @@ import type { Quote } from './types';
 /**
  * Build a quote from what the reader selected.
  *
- * Pure: the timestamp comes in through `deps`, so the same arguments always
- * give the same quote.
+ * Pure: the id and the timestamp both come in through `deps`, so the same
+ * arguments always give the same quote. `db/cards.ts` owns the nanoid call,
+ * the same way it owns the one for a card id.
  */
 export function createQuote(
   input: { text: string; prefix: string },
-  deps: { capturedAt: string },
+  deps: { id: string; capturedAt: string },
 ): Quote {
   return {
+    id: deps.id,
     text: input.text,
     locator: input.prefix,
     // It was on the page a moment ago. Nothing is lost yet.

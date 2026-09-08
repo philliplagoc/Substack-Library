@@ -55,8 +55,8 @@ export default function CardEditor({ card, footer }: Props) {
         <p className="meta">No quotes yet.</p>
       ) : (
         <ul className="quotes">
-          {card.quotes.map((quote, i) => (
-            <li key={i}>
+          {card.quotes.map((quote) => (
+            <li key={quote.id}>
               <blockquote>{quote.text}</blockquote>
               {quote.locatorLost ? (
                 <span className="lost">location unavailable</span>
@@ -65,7 +65,7 @@ export default function CardEditor({ card, footer }: Props) {
                 rows={2}
                 placeholder="Your reaction"
                 value={quote.comment ?? ''}
-                onChange={(e) => void updateQuote(card.id, i, { comment: e.target.value })}
+                onChange={(e) => void updateQuote(card.id, quote.id, { comment: e.target.value })}
               />
             </li>
           ))}

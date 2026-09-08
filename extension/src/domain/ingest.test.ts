@@ -33,7 +33,7 @@ describe('mergeCard', () => {
       url: URL_A,
       notes: 'my notes',
       tags: ['keep'],
-      quotes: [{ text: 'q', locatorLost: false, capturedAt: '2026-08-01' }],
+      quotes: [{ id: 'q', text: 'q', locatorLost: false, capturedAt: '2026-08-01' }],
       status: 'processed',
       sortOrder: 7,
       readAt: '2026-08-02T00:00:00.000Z',

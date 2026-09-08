@@ -3,13 +3,14 @@ import { createQuote, resolveQuote } from './quote';
 import type { Quote } from './types';
 
 describe('createQuote', () => {
-  test('is deterministic given an injected timestamp', () => {
+  test('is deterministic given an injected id and timestamp', () => {
     expect(
       createQuote(
         { text: 'the quoted sentence', prefix: 'words before it. ' },
-        { capturedAt: '2026-08-29T10:00:00.000Z' },
+        { id: 'q1', capturedAt: '2026-08-29T10:00:00.000Z' },
       ),
     ).toEqual({
+      id: 'q1',
       text: 'the quoted sentence',
       locator: 'words before it. ',
       locatorLost: false,
@@ -18,13 +19,16 @@ describe('createQuote', () => {
   });
 
   test('starts life resolved, because it was just seen in the article', () => {
-    const q = createQuote({ text: 'x', prefix: '' }, { capturedAt: '2026-08-29T10:00:00.000Z' });
+    const q = createQuote(
+      { text: 'x', prefix: '' },
+      { id: 'q2', capturedAt: '2026-08-29T10:00:00.000Z' },
+    );
     expect(q.locatorLost).toBe(false);
   });
 });
 
 function q(text: string, locator = ''): Quote {
-  return { text, locator, locatorLost: false, capturedAt: '2026-08-29T10:00:00.000Z' };
+  return { id: `q-${text}`, text, locator, locatorLost: false, capturedAt: '2026-08-29T10:00:00.000Z' };
 }
 
 describe('resolveQuote', () => {

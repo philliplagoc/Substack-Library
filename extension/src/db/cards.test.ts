@@ -199,7 +199,7 @@ describe('restoreCards', () => {
         id: 'a',
         url: 'https://alpha.substack.com/p/one',
         notes: 'notes from the backup',
-        quotes: [{ text: 'q', locatorLost: false, capturedAt: '2026-08-01' }],
+        quotes: [{ id: 'q', text: 'q', locatorLost: false, capturedAt: '2026-08-01' }],
       }),
     ]);
     const card = await onlyCard();
@@ -233,6 +233,32 @@ describe('restoreCards', () => {
     const result = await restoreCards([makeCard({ id: 'a', url: 'not a url' })]);
     expect(result).toEqual({ added: 0, replaced: 0 });
     expect(await db.cards.count()).toBe(0);
+  });
+
+  test('gives an id to a quote from a file written before quotes had one', async () => {
+    const older = makeCard({ id: 'a' });
+    // The shape a pre-version-4 backup holds: no id, and the two dead fields.
+    const legacy = {
+      ...older,
+      quotes: [
+        {
+          text: 'a passage',
+          comment: 'kept',
+          locator: 'before it ',
+          locatorLost: true,
+          capturedAt: '2026-08-29T00:00:00.000Z',
+        },
+      ],
+    } as unknown as Card;
+
+    await restoreCards([legacy]);
+
+    const quote = (await onlyCard()).quotes[0] as Record<string, unknown> | undefined;
+    expect(typeof quote?.id).toBe('string');
+    expect(quote?.text).toBe('a passage');
+    expect(quote?.comment).toBe('kept');
+    expect('locator' in (quote ?? {})).toBe(false);
+    expect('locatorLost' in (quote ?? {})).toBe(false);
   });
 });
 describe('ingestCard and the routes to one article', () => {
@@ -318,16 +344,17 @@ describe('restoreCards and the routes to one article', () => {
 });
 
 describe('updateQuote', () => {
-  const q = (text: string): Quote => ({
+  const q = (id: string, text: string): Quote => ({
+    id,
     text,
     locatorLost: false,
     capturedAt: '2026-08-29T00:00:00.000Z',
   });
 
   test('writes a comment onto one quote and leaves its neighbours alone', async () => {
-    await db.cards.add(makeCard({ id: 'a', quotes: [q('first'), q('second')] }));
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('q1', 'first'), q('q2', 'second')] }));
 
-    await updateQuote('a', 1, { comment: 'my reaction' });
+    await updateQuote('a', 'q2', { comment: 'my reaction' });
 
     const card = await getCard('a');
     expect(card?.quotes[0]?.comment).toBeUndefined();
@@ -335,20 +362,28 @@ describe('updateQuote', () => {
     expect(card?.quotes[1]?.text).toBe('second');
   });
 
-  test('flips locatorLost without disturbing the verbatim text', async () => {
-    await db.cards.add(makeCard({ id: 'a', quotes: [q('gone from the article')] }));
+  test('finds a quote by id, not by position', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('q1', 'first'), q('q2', 'second')] }));
 
-    await updateQuote('a', 0, { locatorLost: true });
+    await updateQuote('a', 'q1', { comment: 'on the first' });
 
     const card = await getCard('a');
-    expect(card?.quotes[0]?.locatorLost).toBe(true);
-    expect(card?.quotes[0]?.text).toBe('gone from the article');
+    expect(card?.quotes[0]?.comment).toBe('on the first');
+    expect(card?.quotes[1]?.comment).toBeUndefined();
   });
 
-  test('does nothing when the index is out of range', async () => {
-    await db.cards.add(makeCard({ id: 'a', quotes: [q('only')] }));
+  test('leaves the verbatim text alone', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('q1', 'the exact words')] }));
 
-    await updateQuote('a', 7, { comment: 'nowhere' });
+    await updateQuote('a', 'q1', { comment: 'hm' });
+
+    expect((await getCard('a'))?.quotes[0]?.text).toBe('the exact words');
+  });
+
+  test('does nothing when no quote carries that id', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('q1', 'only')] }));
+
+    await updateQuote('a', 'gone', { comment: 'nowhere' });
 
     const card = await getCard('a');
     expect(card?.quotes).toHaveLength(1);
@@ -356,7 +391,7 @@ describe('updateQuote', () => {
   });
 
   test('does nothing when the card is gone', async () => {
-    await expect(updateQuote('missing', 0, { comment: 'x' })).resolves.toBeUndefined();
+    await expect(updateQuote('missing', 'q1', { comment: 'x' })).resolves.toBeUndefined();
   });
 });
 
@@ -382,6 +417,7 @@ describe('cardByArticleKey', () => {
 
 describe('addQuote', () => {
   const q = (text: string): Quote => ({
+    id: `id-${text}`,
     text,
     locatorLost: false,
     capturedAt: '2026-08-29T00:00:00.000Z',

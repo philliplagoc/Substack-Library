@@ -73,7 +73,7 @@ describe('applySync imports', () => {
         url: 'https://alpha.substack.com/p/one',
         title: 'Stale title',
         notes: 'my notes',
-        quotes: [{ text: 'a quote', locatorLost: false, capturedAt: EARLIER }],
+        quotes: [{ id: 'q', text: 'a quote', locatorLost: false, capturedAt: EARLIER }],
       }),
     );
 

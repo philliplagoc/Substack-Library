@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { nanoid } from 'nanoid';
 import { browser } from 'wxt/browser';
 import { addQuote, cardByArticleKey, moveCardTo, updateQuote } from '../db/cards';
 import { createQuote, resolveQuote } from '../domain/quote';
@@ -82,10 +83,10 @@ export default function ReadingPanel() {
   useEffect(() => {
     if (!card || !panel?.bodyText) return;
 
-    card.quotes.forEach((quote, i) => {
+    card.quotes.forEach((quote) => {
       const lost = resolveQuote(panel.bodyText, quote) === null;
       if (lost !== quote.locatorLost) {
-        void updateQuote(card.id, i, { locatorLost: lost });
+        void updateQuote(card.id, quote.id, { locatorLost: lost });
       }
     });
   }, [card?.id, card?.quotes.length, panel?.bodyText]);
@@ -130,7 +131,7 @@ export default function ReadingPanel() {
       card.id,
       createQuote(
         { text: reply.text, prefix: reply.prefix },
-        { capturedAt: new Date().toISOString() },
+        { id: nanoid(), capturedAt: new Date().toISOString() },
       ),
     );
   }
