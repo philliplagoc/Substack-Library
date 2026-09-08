@@ -175,9 +175,6 @@ describes the shell and only the body knows which article is open.
 - [x] Notes typed in the panel appear on the board's detail panel after a
       reload.
 - [x] Notes typed on the board appear in the panel without a reload.
-- [x] The three status buttons move the card, and the current status is
-      disabled.
-- [x] Moving to Reading puts the card at the TOP of the Reading column.
 - [x] The panel keeps showing the previous article when you switch tabs
       without clicking.
 - [x] Narrowing the panel to its minimum leaves the quote comment boxes
@@ -209,12 +206,7 @@ Load the unpacked build from `extension/.output/chrome-mv3/` first.
       ` (v2)` before `.md` and the first file is untouched.
 - [x] Open the board, open a card's detail panel, and export from there. Same
       file shape.
-- [x] Export a card in To Read, then answer **Yes** to "Move to Processed?".
-      The card appears at the TOP of the Processed column.
-- [x] Export another card and answer **Not yet**. The card does not move and the
-      plain Export button comes back.
-- [x] Export a card already in Processed. The file is written and NO offer
-      appears.
+- [x] Export a card already in Processed. The file is written.
 - [x] Export a card with no notes and no quotes. The file holds frontmatter and
       nothing else. This is correct, not a bug.
 - [x] Export a card whose article was paywalled. `reading_minutes` is absent
