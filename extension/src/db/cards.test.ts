@@ -9,6 +9,7 @@ import {
   nextSortOrder,
   ingestCard,
   updateQuote,
+  removeQuote,
   addQuote,
   cardByArticleKey,
   recordExport,
@@ -534,5 +535,86 @@ describe('moveCardTo', () => {
     await moveCardTo('missing', 'processed', '2026-08-30T10:00:00.000Z');
 
     expect((await db.cards.get('a'))?.status).toBe('to_read');
+  });
+});
+
+describe('removeQuote', () => {
+  const q = (id: string, text: string): Quote => ({
+    id,
+    text,
+    locatorLost: false,
+    capturedAt: '2026-08-29T00:00:00.000Z',
+  });
+
+  test('removes the named quote and leaves the others in order', async () => {
+    await db.cards.add(
+      makeCard({ id: 'a', quotes: [q('q1', 'first'), q('q2', 'second'), q('q3', 'third')] }),
+    );
+
+    await removeQuote('a', 'q2');
+
+    const card = await getCard('a');
+    expect(card?.quotes.map((x) => x.id)).toEqual(['q1', 'q3']);
+    expect(card?.quotes.map((x) => x.text)).toEqual(['first', 'third']);
+  });
+
+  test('leaves every surviving comment on its own quote', async () => {
+    await db.cards.add(
+      makeCard({
+        id: 'a',
+        quotes: [
+          { ...q('q1', 'first'), comment: 'on the first' },
+          { ...q('q2', 'second'), comment: 'on the second' },
+          { ...q('q3', 'third'), comment: 'on the third' },
+        ],
+      }),
+    );
+
+    await removeQuote('a', 'q1');
+
+    const card = await getCard('a');
+    expect(card?.quotes[0]?.comment).toBe('on the second');
+    expect(card?.quotes[1]?.comment).toBe('on the third');
+  });
+
+  test('removes the only quote, leaving an empty list rather than undefined', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('q1', 'only')] }));
+
+    await removeQuote('a', 'q1');
+
+    expect((await getCard('a'))?.quotes).toEqual([]);
+  });
+
+  test('leaves the notes and the status alone', async () => {
+    await db.cards.add(
+      makeCard({ id: 'a', notes: 'kept', status: 'reading', quotes: [q('q1', 'x')] }),
+    );
+
+    await removeQuote('a', 'q1');
+
+    const card = await getCard('a');
+    expect(card?.notes).toBe('kept');
+    expect(card?.status).toBe('reading');
+  });
+
+  test('does nothing when no quote carries that id', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('q1', 'only')] }));
+
+    await removeQuote('a', 'gone');
+
+    expect((await getCard('a'))?.quotes).toHaveLength(1);
+  });
+
+  test('does nothing when the card is gone', async () => {
+    await expect(removeQuote('missing', 'q1')).resolves.toBeUndefined();
+  });
+
+  test('is idempotent, so two panels removing the same quote is one removal', async () => {
+    await db.cards.add(makeCard({ id: 'a', quotes: [q('q1', 'first'), q('q2', 'second')] }));
+
+    await removeQuote('a', 'q1');
+    await removeQuote('a', 'q1');
+
+    expect((await getCard('a'))?.quotes.map((x) => x.id)).toEqual(['q2']);
   });
 });

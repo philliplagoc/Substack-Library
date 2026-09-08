@@ -173,6 +173,28 @@ export async function updateQuote(
 }
 
 /**
+ * Remove one quote from a card.
+ *
+ * Filtering by id rather than splicing an index is what makes this idempotent:
+ * two panels holding the same card and both removing the same quote produce
+ * one removal and one no-op, instead of a second removal taking a neighbour.
+ *
+ * A card that is gone is not an error, and neither is a quote that is already
+ * gone. In both cases there is nothing left to remove.
+ */
+export async function removeQuote(cardId: string, quoteId: string): Promise<void> {
+  await db.transaction('rw', db.cards, async () => {
+    const card = await db.cards.get(cardId);
+    if (!card) return;
+
+    const quotes = card.quotes.filter((quote) => quote.id !== quoteId);
+    if (quotes.length === card.quotes.length) return;
+
+    await db.cards.update(cardId, { quotes });
+  });
+}
+
+/**
  * The card for one article, whichever of Substack's routes it was added by.
  *
  * `articleKey` is indexed but not unique, because a board written before
