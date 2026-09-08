@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { nanoid } from 'nanoid';
 import { browser } from 'wxt/browser';
-import { addQuote, cardByArticleKey, moveCardTo } from '../db/cards';
+import { addQuote, cardByArticleKey } from '../db/cards';
 import { createQuote } from '../domain/quote';
 import {
   PANEL_STATE_KEY,
@@ -12,13 +12,6 @@ import {
 } from '../messages';
 import CardEditor from './CardEditor';
 import ExportButton from './ExportButton';
-import type { Status } from '../domain/types';
-
-const COLUMN_LABELS: Record<Status, string> = {
-  to_read: 'To Read',
-  reading: 'Reading',
-  processed: 'Processed',
-};
 
 /**
  * Follow the state the background writes on each toolbar click.
@@ -139,18 +132,6 @@ export default function ReadingPanel() {
             {captureError ? <p className="notice error">{captureError}</p> : null}
 
             <ExportButton key={card.id} card={card} />
-
-            <p className="statuses">
-              {(Object.keys(COLUMN_LABELS) as Status[]).map((status) => (
-                <button
-                  key={status}
-                  disabled={card.status === status}
-                  onClick={() => void moveCardTo(card.id, status, new Date().toISOString())}
-                >
-                  {COLUMN_LABELS[status]}
-                </button>
-              ))}
-            </p>
           </>
         }
       />

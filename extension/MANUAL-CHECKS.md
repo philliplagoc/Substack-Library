@@ -327,3 +327,11 @@ Reload the extension first: this milestone changes the Dexie schema to version
       does not flicker between states on every keystroke.
 - [ ] Open the panel and touch nothing; no indicator is shown.
 - [ ] Type a comment, then reopen the card; the comment is there.
+
+### No button moves a card
+
+- [ ] The side panel has no To Read / Reading / Processed buttons.
+- [ ] Export a card from the side panel; no "Move to Processed?" offer appears.
+- [ ] Export a card from the board's detail panel; same.
+- [ ] Drag a card from To Read to Reading on the board; it moves and stays there
+      after a refresh.

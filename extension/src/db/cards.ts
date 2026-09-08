@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { articleKey, canonicalizeUrl } from '../domain/url';
-import { createCard, reorderCards } from '../domain/card';
+import { createCard } from '../domain/card';
 import { mergeCard } from '../domain/ingest';
 import { db } from './schema';
 import Dexie from 'dexie';
@@ -236,32 +236,5 @@ export async function recordExport(cardId: string, at: string): Promise<void> {
       exportVersion: card.exportVersion + 1,
       lastExportedAt: at,
     });
-  });
-}
-
-/**
- * Move one card to the top of another column.
- *
- * This was `ReadingPanel`'s private `moveTo`. It moved down here because the
- * Processed offer needs the same move from a second component, and because
- * src/ui/ has no automated tests: a behaviour living in a component is a
- * behaviour only a manual check can verify.
- *
- * reorderCards renumbers whole columns, so it needs every card. Reading them
- * inside the transaction is what makes the renumber safe against a concurrent
- * drag on the board. applyOrder called in here joins this transaction rather
- * than opening its own; Dexie reuses an active transaction of a compatible
- * scope.
- */
-export async function moveCardTo(
-  cardId: string,
-  toStatus: Status,
-  now: string,
-): Promise<void> {
-  await db.transaction('rw', db.cards, async () => {
-    const cards = await db.cards.orderBy('[status+sortOrder]').toArray();
-    // reorderCards returns [] for a card it cannot find, and applyOrder returns
-    // early on an empty list, so a deleted card falls through both.
-    await applyOrder(reorderCards(cards, { cardId, toStatus, toIndex: 0 }, now));
   });
 }

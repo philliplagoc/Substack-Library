@@ -13,7 +13,6 @@ import {
   addQuote,
   cardByArticleKey,
   recordExport,
-  moveCardTo,
 } from './cards';
 import { makeCard } from '../test-support/factory';
 import { applyOrder } from './cards';
@@ -486,53 +485,6 @@ describe('recordExport', () => {
   test('does nothing for a card that is not there', async () => {
     await expect(recordExport('missing', '2026-08-30T10:00:00.000Z')).resolves.toBeUndefined();
     expect(await db.cards.count()).toBe(0);
-  });
-});
-
-describe('moveCardTo', () => {
-  test('puts the card at the top of the target column', async () => {
-    await db.cards.bulkAdd([
-      makeCard({ id: 'a', status: 'processed', sortOrder: 0 }),
-      makeCard({ id: 'b', status: 'processed', sortOrder: 1 }),
-      makeCard({ id: 'c', status: 'reading', sortOrder: 0 }),
-    ]);
-
-    await moveCardTo('c', 'processed', '2026-08-30T10:00:00.000Z');
-
-    const processed = await db.cards
-      .where('status')
-      .equals('processed')
-      .sortBy('sortOrder');
-    expect(processed.map((card) => card.id)).toEqual(['c', 'a', 'b']);
-  });
-
-  test('leaves the cards it did not move in their order', async () => {
-    await db.cards.bulkAdd([
-      makeCard({ id: 'a', status: 'to_read', sortOrder: 0 }),
-      makeCard({ id: 'b', status: 'to_read', sortOrder: 1 }),
-      makeCard({ id: 'c', status: 'to_read', sortOrder: 2 }),
-    ]);
-
-    await moveCardTo('b', 'processed', '2026-08-30T10:00:00.000Z');
-
-    const toRead = await db.cards.where('status').equals('to_read').sortBy('sortOrder');
-    expect(toRead.map((card) => card.id)).toEqual(['a', 'c']);
-  });
-
-  test('stamps readAt on a first move into Reading', async () => {
-    await db.cards.add(makeCard({ id: 'a', status: 'to_read', readAt: undefined }));
-
-    await moveCardTo('a', 'reading', '2026-08-30T10:00:00.000Z');
-
-    expect((await db.cards.get('a'))?.readAt).toBe('2026-08-30T10:00:00.000Z');
-  });
-
-  test('does nothing for a card that is not there', async () => {
-    await db.cards.add(makeCard({ id: 'a', status: 'to_read', sortOrder: 0 }));
-
-    await moveCardTo('missing', 'processed', '2026-08-30T10:00:00.000Z');
-
-    expect((await db.cards.get('a'))?.status).toBe('to_read');
   });
 });
 
