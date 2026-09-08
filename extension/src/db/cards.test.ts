@@ -200,7 +200,7 @@ describe('restoreCards', () => {
         id: 'a',
         url: 'https://alpha.substack.com/p/one',
         notes: 'notes from the backup',
-        quotes: [{ id: 'q', text: 'q', locatorLost: false, capturedAt: '2026-08-01' }],
+        quotes: [{ id: 'q', text: 'q', capturedAt: '2026-08-01' }],
       }),
     ]);
     const card = await onlyCard();
@@ -348,7 +348,6 @@ describe('updateQuote', () => {
   const q = (id: string, text: string): Quote => ({
     id,
     text,
-    locatorLost: false,
     capturedAt: '2026-08-29T00:00:00.000Z',
   });
 
@@ -420,7 +419,6 @@ describe('addQuote', () => {
   const q = (text: string): Quote => ({
     id: `id-${text}`,
     text,
-    locatorLost: false,
     capturedAt: '2026-08-29T00:00:00.000Z',
   });
 
@@ -542,7 +540,6 @@ describe('removeQuote', () => {
   const q = (id: string, text: string): Quote => ({
     id,
     text,
-    locatorLost: false,
     capturedAt: '2026-08-29T00:00:00.000Z',
   });
 

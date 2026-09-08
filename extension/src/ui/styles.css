@@ -102,7 +102,6 @@ body {
   padding-left: 8px;
   border-left: 3px solid var(--accent);
 }
-.quotes .lost { color: #b00; font-size: 11px; display: block; margin-bottom: 4px; }
 .quotes textarea { width: 100%; font: inherit; font-size: 12px; }
 
 .notice { font-size: 12px; margin: 4px 0; }

@@ -8,8 +8,6 @@ export interface Quote {
   id: string;
   text: string;
   comment?: string;
-  locator?: string;
-  locatorLost: boolean;
   capturedAt: string;
 }
 

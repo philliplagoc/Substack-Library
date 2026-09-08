@@ -110,7 +110,6 @@ export default defineBackground({
           tabId,
           outcome: 'rejected',
           notices: [notice],
-          bodyText: '',
         } satisfies PanelState,
       });
     }
@@ -207,7 +206,6 @@ export default defineBackground({
           tabId,
           outcome: outcome.kind,
           notices: outcome.kind === 'rejected' ? [outcome.reason] : notices,
-          bodyText: meta.bodyText,
         } satisfies PanelState,
       });
     }
@@ -302,7 +300,7 @@ export default defineBackground({
 
           sendResponse(
             found
-              ? { ok: true, text: found.text, prefix: found.prefix }
+              ? { ok: true, text: found }
               : { ok: false, reason: 'Select some text in the article first.' },
           );
         } catch {

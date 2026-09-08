@@ -45,8 +45,6 @@ function frontmatter(card: Card): string {
   return ['---', ...lines, '---'].join('\n');
 }
 
-const LOST_MARKER = '*— location no longer resolves in the source article*';
-
 /**
  * One quote as a Markdown block.
  *
@@ -63,7 +61,6 @@ function quoteBlock(quote: Quote): string {
   ];
 
   if (quote.comment?.trim()) blocks.push(quote.comment.trim());
-  if (quote.locatorLost) blocks.push(LOST_MARKER);
 
   return blocks.join('\n\n');
 }
@@ -74,8 +71,8 @@ function quoteBlock(quote: Quote): string {
  * `level` is the heading level the notes heading takes. A single note nests it
  * under nothing and passes 2. The library nests it under a `###` card heading
  * and passes 4. One builder rather than two copies: the next change to how a
- * lost locator is marked has to hold in both files, and the day it is made once
- * is the day the two disagree.
+ * quote or its comment is rendered has to hold in both files, and the day it is
+ * made once is the day the two disagree.
  */
 function cardBody(card: Card, level: number): string[] {
   const blocks: string[] = [];

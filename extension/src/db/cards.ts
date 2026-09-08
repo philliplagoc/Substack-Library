@@ -95,14 +95,11 @@ export async function applyOrder(changes: OrderChange[]): Promise<void> {
  * locator fields. This is the same reason articleKey is recomputed below
  * rather than trusted: a file is a record of the past, not of the schema.
  */
-function normalizeQuote(quote: Quote): Quote {
-  const { locator: _locator, locatorLost: _locatorLost, ...rest } = quote as Quote & {
-    locator?: string;
-    locatorLost?: boolean;
-  };
-  // `locatorLost` is still required on Quote until task 3 drops it, but a
-  // normalized quote no longer carries it. The cast bridges that gap.
-  return { ...rest, id: rest.id ?? nanoid() } as unknown as Quote;
+function normalizeQuote(
+  quote: Quote & { locator?: string; locatorLost?: boolean },
+): Quote {
+  const { locator: _locator, locatorLost: _locatorLost, ...rest } = quote;
+  return { ...rest, id: rest.id ?? nanoid() };
 }
 
 /**

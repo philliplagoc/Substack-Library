@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { nanoid } from 'nanoid';
 import { browser } from 'wxt/browser';
-import { addQuote, cardByArticleKey, moveCardTo, updateQuote } from '../db/cards';
-import { createQuote, resolveQuote } from '../domain/quote';
+import { addQuote, cardByArticleKey, moveCardTo } from '../db/cards';
+import { createQuote } from '../domain/quote';
 import {
   PANEL_STATE_KEY,
   type CaptureSelectionReply,
@@ -71,26 +71,6 @@ export default function ReadingPanel() {
   );
   const [captureError, setCaptureError] = useState<string | null>(null);
 
-  // Re-check every quote against the article as it stands now. Persisted
-  // rather than derived, because the BOARD has no article text: if this flag
-  // were computed on render, the board's detail panel could never show the
-  // "location unavailable" label it already renders.
-  //
-  // This hook sits ABOVE the early returns below, not beside the handlers. The
-  // plan put it after `moveTo`, which is past three conditional returns, and a
-  // hook that runs on some renders and not others is the "rendered fewer hooks
-  // than expected" crash.
-  useEffect(() => {
-    if (!card || !panel?.bodyText) return;
-
-    card.quotes.forEach((quote) => {
-      const lost = resolveQuote(panel.bodyText, quote) === null;
-      if (lost !== quote.locatorLost) {
-        void updateQuote(card.id, quote.id, { locatorLost: lost });
-      }
-    });
-  }, [card?.id, card?.quotes.length, panel?.bodyText]);
-
   if (panel === undefined) return <p className="notice">Loading…</p>;
 
   if (panel === null) {
@@ -129,10 +109,7 @@ export default function ReadingPanel() {
 
     await addQuote(
       card.id,
-      createQuote(
-        { text: reply.text, prefix: reply.prefix },
-        { id: nanoid(), capturedAt: new Date().toISOString() },
-      ),
+      createQuote({ text: reply.text }, { id: nanoid(), capturedAt: new Date().toISOString() }),
     );
   }
 

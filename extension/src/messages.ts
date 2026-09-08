@@ -19,8 +19,6 @@ export interface PanelState {
   outcome: IngestOutcome['kind'];
   /** Everything the reader needs told: signed out, paywalled, no title. */
   notices: string[];
-  /** The article body as plain text, for locating quotes. */
-  bodyText: string;
 }
 
 export type PanelMessage =
@@ -29,7 +27,7 @@ export type PanelMessage =
   | { type: 'open-board' };
 
 export type CaptureSelectionReply =
-  | { ok: true; text: string; prefix: string }
+  | { ok: true; text: string }
   | { ok: false; reason: string };
 
 export type SyncSavedReply = { ok: true; report: SyncReport } | { ok: false; reason: string };

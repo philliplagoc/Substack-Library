@@ -58,9 +58,6 @@ export default function CardEditor({ card, footer }: Props) {
           {card.quotes.map((quote) => (
             <li key={quote.id}>
               <blockquote>{quote.text}</blockquote>
-              {quote.locatorLost ? (
-                <span className="lost">location unavailable</span>
-              ) : null}
               <textarea
                 rows={2}
                 placeholder="Your reaction"

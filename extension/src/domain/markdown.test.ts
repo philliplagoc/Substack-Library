@@ -86,9 +86,8 @@ describe('toMarkdown frontmatter', () => {
 
 describe('toMarkdown body', () => {
   const quote = (text: string, extra: Partial<Quote> = {}): Quote => ({
-    id: `q-${text}`,
+    id: `id-${text}`,
     text,
-    locatorLost: false,
     capturedAt: '2026-08-17T00:00:00.000Z',
     ...extra,
   });
@@ -111,26 +110,6 @@ describe('toMarkdown body', () => {
   test('keeps a quote spanning a paragraph break as one blockquote', () => {
     const card = makeCard({ notes: '', quotes: [quote('First line.\n\nSecond line.')] });
     expect(toMarkdown(card)).toContain('> First line.\n>\n> Second line.');
-  });
-
-  test('marks a quote whose location no longer resolves', () => {
-    const card = makeCard({
-      notes: '',
-      quotes: [quote('Second captured quote.', { locatorLost: true })],
-    });
-    expect(toMarkdown(card)).toContain(
-      '> Second captured quote.\n\n*— location no longer resolves in the source article*',
-    );
-  });
-
-  test('puts the lost marker after the comment when a quote has both', () => {
-    const card = makeCard({
-      notes: '',
-      quotes: [quote('Second captured quote.', { comment: 'Still true.', locatorLost: true })],
-    });
-    expect(toMarkdown(card)).toContain(
-      '> Second captured quote.\n\nStill true.\n\n*— location no longer resolves in the source article*',
-    );
   });
 
   test('renders the notes under a Notes heading', () => {
