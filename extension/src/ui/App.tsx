@@ -6,7 +6,6 @@ import { allTags } from '../domain/tags';
 import Board from './Board';
 import Toolbar from './Toolbar';
 import DetailPanel from './DetailPanel';
-import AddByUrlForm from './AddByUrlForm';
 import BackupControls from './BackupControls';
 import SyncButton from './SyncButton';
 import ExportAllButton from './ExportAllButton';
@@ -25,7 +24,6 @@ export default function App() {
   return (
     <>
       <Toolbar filter={filter} onFilterChange={setFilter} tags={vocabulary}>
-        <AddByUrlForm />
         <SyncButton />
         <ExportAllButton cards={shown} />
         <BackupControls />
