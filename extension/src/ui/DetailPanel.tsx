@@ -26,7 +26,10 @@ export default function DetailPanel({ card, onClose }: Props) {
         card={card}
         footer={
           <>
-            <ExportButton key={card.id} card={card} />
+            <h3>Export</h3>
+            <div className="export-row">
+              <ExportButton key={card.id} card={card} />
+            </div>
 
             <p>
               <button onClick={handleDelete}>Delete card</button>

@@ -272,3 +272,5 @@ body {
  */
 .panel .section-icon { display: none; }
 .section-head .count { margin-left: 6px; }
+/* ExportButton no longer carries a paragraph of its own. Keep the board's. */
+.panel .export-row { margin: 12px 0; }

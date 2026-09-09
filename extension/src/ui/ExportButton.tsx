@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { exportCard, type ExportOutcome } from './exportCard';
+import { UploadIcon } from './icons';
 import type { Card } from '../domain/types';
 
 interface Props {
@@ -17,6 +18,10 @@ interface Props {
  *
  * Mount this with key={card.id} so switching articles in the reading panel
  * clears the notice rather than showing the previous card's.
+ *
+ * It renders a bare button and its notices, with no heading of its own. The
+ * side panel wants it as one cell of a two-button footer; the board still wants
+ * a section, and supplies the heading itself.
  */
 export default function ExportButton({ card }: Props) {
   const [outcome, setOutcome] = useState<ExportOutcome | null>(null);
@@ -31,12 +36,10 @@ export default function ExportButton({ card }: Props) {
 
   return (
     <>
-      <h3>Export</h3>
-      <p>
-        <button disabled={busy} onClick={() => void handleExport()}>
-          Export Markdown
-        </button>
-      </p>
+      <button className="export" disabled={busy} onClick={() => void handleExport()}>
+        <UploadIcon className="section-icon" />
+        <span>Export Markdown</span>
+      </button>
 
       {outcome?.kind === 'ok' ? (
         <p className="notice">Exported as “{outcome.filename}”.</p>
