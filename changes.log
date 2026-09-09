@@ -37,7 +37,7 @@ Then update the "Current state" section to match.
 
 **Date:** 2026-09-08
 **The side panel redesign is code complete and NOT yet verified by hand.** It
-lives on the branch `side-panel-redesign`, seven commits from `9430277`. The
+lives on the branch `side-panel-redesign`, eight commits from `9430277`. The
 panel is a parchment column of four white cards with a footer that does not
 scroll away; `extension/src/ui/icons.tsx` is new. The board is untouched by
 design: every new rule is scoped to `.reading`, and the shared `CardEditor`
@@ -342,6 +342,21 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-09-08 - Loosen the article header card and drop the first-tag accent
+
+**What changed:** The article header card gained an 18px bottom padding so the
+URL link is no longer tight against the card edge. The rule that gave the first
+tag chip the orange treatment is deleted, so every tag now looks the same.
+**Why:** Both were asked for after a look at the panel. The first-tag accent
+implied a rank that tags do not have; the reader does not file a card under its
+first tag, so the colour was claiming a meaning the data never carried.
+**Files:** `extension/src/ui/styles.css`
+**Verification:** `npm run build` green. Not checked in a browser yet.
+**State after:** Same as the entry below, with those two corrections.
+**Next up:** Run the "2026-09-08: side panel redesign" section of
+`extension/MANUAL-CHECKS.md` against a loaded build.
+**Open questions:** none
 
 ### 2026-09-08 - Redesign the side panel
 

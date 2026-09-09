@@ -398,12 +398,6 @@ body {
   font-size: 11px;
   font-weight: 500;
 }
-/* The first tag is the one the reader filed this under. Give it the accent. */
-.reading .chips li:first-child {
-  background: var(--orange-light);
-  border-color: rgba(255, 103, 25, 0.3);
-  color: var(--orange-dark);
-}
 .reading .chips li button { color: inherit; }
 .reading .chips li button:hover { color: #b00; }
 .reading .tags input {
@@ -613,6 +607,8 @@ body {
     0 2px 8px -2px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(255, 103, 25, 0.12);
   padding-top: 14px;
+  /* The URL sits last in this card. Give it room so it does not touch the edge. */
+  padding-bottom: 18px;
 }
 .reading .editor-header::before {
   content: '';
