@@ -93,7 +93,7 @@ body {
 .panel .close { position: absolute; top: 8px; right: 8px; }
 .panel h2 { font-size: 16px; margin: 0 24px 4px 0; }
 .panel .meta { color: var(--muted); font-size: 12px; word-break: break-all; }
-.panel textarea { width: 100%; font: inherit; }
+.panel textarea { width: 100%; font: inherit; resize: vertical; }
 .panel li,
 .reading li { font-size: 13px; margin-bottom: 12px; }
 .quotes { list-style: none; padding: 0; margin: 0; }
@@ -102,7 +102,7 @@ body {
   padding-left: 8px;
   border-left: 3px solid var(--accent);
 }
-.quotes textarea { width: 100%; font: inherit; font-size: 12px; }
+.quotes textarea { width: 100%; font: inherit; font-size: 12px; resize: vertical; }
 
 .notice { font-size: 12px; margin: 4px 0; }
 .notice.error { color: #b00; }
@@ -118,7 +118,7 @@ body {
   min-width: 260px;
 }
 .reading h2 { font-size: 15px; margin: 0 0 4px; }
-.reading textarea { width: 100%; font: inherit; }
+.reading textarea { width: 100%; font: inherit; resize: vertical; }
 
 .sync {
   display: flex;

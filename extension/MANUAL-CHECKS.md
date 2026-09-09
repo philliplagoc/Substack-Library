@@ -327,3 +327,34 @@ Reload the extension first: this milestone changes the Dexie schema to version
 - [ ] Export a card from the board's detail panel; same.
 - [ ] Drag a card from To Read to Reading on the board; it moves and stays there
       after a refresh.
+
+### Textarea resize
+
+- [ ] Drag the corner of the Notes box in the side panel; it grows and shrinks
+      vertically only.
+- [ ] Same for a quote comment box.
+- [ ] Same for both boxes in the board's detail panel.
+
+### Export format
+
+- [ ] Export a card with notes and quotes; the file has `## Notes` above
+      `## Quotes`.
+- [ ] Export a card with quotes and no notes; there is no `## Notes` heading.
+- [ ] Export a card with notes and no quotes; there is no `## Quotes` heading.
+- [ ] Export all; each card has `#### Notes` and `#### Quotes` under its `###`
+      title.
+- [ ] Open both files in Obsidian; the frontmatter parses and the headings nest.
+
+### No quote location label
+
+- [ ] Open a card with quotes while its article tab is closed; no quote shows
+      "location unavailable".
+- [ ] Capture a quote, close the article tab, refresh the board, and reopen the
+      card; still no label.
+- [ ] An exported file contains no "location no longer resolves" line.
+
+### Already done in Milestone 4, verified against this build
+
+- [ ] Build with `npm run build`, reload the unpacked extension from
+      `extension/.output/chrome-mv3`, and open the board's detail panel. There
+      is no Substack heading and no Liked / Commented / Unsaved checkbox.

@@ -35,13 +35,28 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-09-01
+**Date:** 2026-09-08
 **Phase:** Milestones 0, 1, 2A, 2B, 3, and 4 are all complete and all checked
 against their definitions of done. Milestone 2 was split into 2A (capture and
-the companion panel) and 2B (Markdown export). Every box in
-`extension/MANUAL-CHECKS.md` is ticked against a loaded build, with none left
-open; all three reader shells (inbox, home, profile) lay out alike, so one
-`readReaderArticle` reads them all.
+the companion panel) and 2B (Markdown export). The reading workflow feedback
+run is code complete on top of them. All boxes through "Milestone 4: release
+polish" are ticked against a loaded build; the new "2026-09-03: reading
+workflow feedback" section is written and not yet ticked. All three reader
+shells (inbox, home, profile) lay out alike, so one `readReaderArticle` reads
+them all.
+
+**The reading workflow feedback run is done in code, schema version 4.** All
+seven tasks of `.superpowers/sdd/2026-09-03-reading-workflow-feedback/` are
+committed. Quotes carry an `id` and can be removed. The quote-location
+subsystem is deleted, `resolveQuote` and the content-script `prefix` included,
+so nothing writes or reads `locatorLost` any more. `CardEditor` shows one save
+indicator for the whole card and debounces quote comments the way it already
+debounced notes. Exported Markdown puts Notes before Quotes, each under its own
+heading. Every textarea resizes vertically only. No button moves a card between
+columns; dragging on the board is the only way. `npm test` (274 passing, 1
+todo) and `npm run compile` are green. The "2026-09-03: reading workflow
+feedback" section of `extension/MANUAL-CHECKS.md` is written but not yet run
+against a loaded build.
 
 **Milestone 4, release polish, is code complete and verified in a browser.**
 All six tasks are committed (`0f3d256`, `83e7d6b`, `97c18fd`, `a43852d`,
@@ -79,18 +94,20 @@ page), `src/entrypoints/sidepanel/` (the reading panel document and React
 root), `src/domain/` (`types.ts`, `url.ts` with `canonicalizeUrl`,
 `articleKey`, `resolveArticleUrl`, `shouldCaptureFrom`, `isReaderRoute`,
 `publicationFromHost`;
-`article.ts` with `readingMinutes`; `quote.ts` with `createQuote` and
-`resolveQuote`), `src/substack/` (`extract.ts`, holding
+`article.ts` with `readingMinutes`; `quote.ts` with `createQuote` only, the
+quote-location code deleted), `src/substack/` (`extract.ts`, holding
 `ArticleMeta`, `extractArticleMeta`, `detectSignedOut`, `readReaderArticle`,
 and `readSelection` - every one of them self-contained, because
 `executeScript` ships them by `Function.prototype.toString()`), `src/messages.ts` (types only: `PanelState`,
 `PANEL_STATE_KEY`, `PanelMessage`, `CaptureSelectionReply` — belongs to no
-layer), `src/db/` (`schema.ts` at version 3 - the v3 upgrade deletes `liked`,
-`commented`, and `unsavedFromSubstack` from every row, same store string as v2;
+layer), `src/db/` (`schema.ts` at version 4 - the v3 upgrade deletes `liked`,
+`commented`, and `unsavedFromSubstack` from every row, the v4 upgrade gives
+every stored quote an `id`, same store string as v2;
 `cards.ts` with `allCards`, `getCard`, `updateCard`, `deleteCard`,
 `nextSortOrder`, `applyOrder`, `restoreCards`, `updateQuote`, `addQuote`,
-`cardByArticleKey`, `recordExport`, `moveCardTo`, and the single-door
-`ingestCard`; `sync.ts` with `applySync`), and `src/ui/` (`App.tsx`, `Board.tsx`
+`removeQuote`, `cardByArticleKey`, `recordExport`, `moveCardTo`, and the
+single-door `ingestCard`; `sync.ts` with `applySync`), and `src/ui/` (`App.tsx`,
+`Board.tsx`
 which also exports `COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports
 `statusLabel`, `Toolbar.tsx`, `CardEditor.tsx`, `DetailPanel.tsx`,
 `ReadingPanel.tsx`, `TagEditor.tsx`, `SyncButton.tsx`, `ExportButton.tsx`,
@@ -102,16 +119,18 @@ which also exports `COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports
 requires a card to hold every selected tag. `App.tsx` holds the filter state and
 the tag vocabulary and passes the narrowed list to the board.
 `ui/CardEditor.tsx` owns the shared title, metadata, tags, notes, and
-quote-comment fields, mounting `TagEditor` in its body. `DetailPanel.tsx`
+quote-comment fields, mounting `TagEditor` in its body. It shows one save
+indicator next to the title for the whole card, driven by `ui/useSaveStatus.ts`,
+and debounces quote comments the way it debounces notes. `DetailPanel.tsx`
 supplies only a delete button through the editor footer now; the Substack
-checkboxes are gone. `ReadingPanel.tsx` supplies a Capture quote button, an
-Open-the-board button, and three status buttons through the same footer and
-follows the `PanelState` the background writes on
-each toolbar click. It also re-checks every quote against `panel.bodyText` and
-writes `locatorLost`, which is what puts the "location unavailable" label on the
-board's detail panel. No browser check has confirmed the capture button or that
-effect. The UI writes through the add-by-URL form, dnd-kit drag and drop,
-the card detail panel, and JSON backup and restore.
+checkboxes are gone. `ReadingPanel.tsx` supplies a Capture quote button and an
+Open-the-board button through the same footer and follows the `PanelState` the
+background writes on each toolbar click. It no longer offers status buttons; a
+column move happens by dragging on the board. It no longer re-checks quotes
+against `panel.bodyText`; the quote-location subsystem and its "location
+unavailable" label are gone. No browser check has confirmed the capture button.
+The UI writes through the add-by-URL form, dnd-kit drag and drop, the card
+detail panel, and JSON backup and restore.
 **Card identity:** A card carries `url` and `articleKey`. `url` is the address
 the card was added with and links to. `articleKey` is what dedup compares, so
 Substack's several routes to one article resolve to one card. `articleKey` is
@@ -141,15 +160,16 @@ imports a Node builtin needs `@types/node`, now a dev dependency.
 `src/substack/extract.test.ts` reads `node:fs` and is the only such file.
 `npm test` will not catch a missing type; Vite strips types without reading
 them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 280
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 274
 tests and 1 todo across 14 files, on Vitest with `fake-indexeddb` and `linkedom`.
 Run it from `extension/`. Running Vitest from the repository root also sweeps
 `.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
 `npm run compile` reports
 nothing and `npm run build` is clean. The React layer has no tests by design.
-`extension/MANUAL-CHECKS.md` covers that layer. Its boxes through the "Saved
-sync (Milestone 3)" section are ticked against a loaded build; the 30-box
-"Milestone 4: release polish" section is unticked. NOTE: the plan files under
+`extension/MANUAL-CHECKS.md` covers that layer. Its boxes through the
+"Milestone 4: release polish" section are ticked against a loaded build; the
+new "2026-09-03: reading workflow feedback" section is written and unticked.
+NOTE: the plan files under
 `docs/superpowers/plans/` each carry their own frozen COPY of the check list,
 and those copies were never ticked when the checks were run: 13 unticked in the
 2B plan, 25 in the 2A plan, and 26 in the Milestone 1 plan, every one of them a
@@ -230,12 +250,13 @@ article body.
 is open anywhere in `extension/src/`.
 
 **Next up:** Load `extension/.output/chrome-mv3/` as an unpacked extension and
-work through the "Milestone 4: release polish" section of
-`extension/MANUAL-CHECKS.md` (30 boxes, all unticked). Reload the extension
-first: the Dexie `version(3)` upgrade runs the first time the board opens. Then
-Milestone 5, the self-filling Add-by-URL form; its mechanism is chosen (open a
-tab, inject `extractArticleMeta` and `readReaderArticle` unchanged, close the
-tab), its install-time permission question is open and wants its own spec.
+work through the "2026-09-03: reading workflow feedback" section of
+`extension/MANUAL-CHECKS.md` (the four new subsections plus the Task 5 and 6
+ones above them, all unticked). Reload the extension first: the Dexie
+`version(4)` upgrade runs the first time the board opens. Then Milestone 5, the
+self-filling Add-by-URL form; its mechanism is chosen (open a tab, inject
+`extractArticleMeta` and `readReaderArticle` unchanged, close the tab), its
+install-time permission question is open and wants its own spec.
 
 **Ship chores**, cheap and independent of any milestone:
 `extension/package.json` carries no `version` field, which is the standing build
@@ -262,11 +283,10 @@ asked for; worth a cleanup pass before Task 2.
 
 - Milestone 2A's panel follows deliberate toolbar clicks, not tab focus. Whether
   that is right is a question only real use answers. Revisit around 2026-09-13.
-- `resolveQuote` reads `panel.bodyText`, the copy the background captured at
-  click time. An article edited after that click resolves against the stale
-  copy, so "location unavailable" can lag an edit by one toolbar click. This is
-  intended, and Task 7 Step 14 check 5 depends on it, which is why that check
-  says to click the button again.
+- The quote-location subsystem is gone as of the 2026-09-03 feedback run.
+  `resolveQuote`, the persisted `locatorLost` flag, and the "location
+  unavailable" label are all deleted. A quote is plain text with a comment and
+  an `id`. The old worry about a stale `panel.bodyText` copy no longer applies.
 - Neither reader shell has a fixture. `readReaderArticle` is unit-tested against
   synthetic HTML, so the tests pin the walk against a model of the page rather
   than the page. Both shells passed by hand on 2026-08-30. Capture a fixture if
@@ -297,6 +317,36 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-09-03 - Reading workflow feedback
+
+**What changed:** Quotes carry an id and can be removed. The quote-location
+subsystem is deleted, from `resolveQuote` down to the `prefix` the content
+script read. `CardEditor` shows one save indicator for the card and debounces
+quote comments the way it already debounced notes. Exported Markdown puts Notes
+before Quotes, each under its own heading. Every textarea resizes vertically
+only. No button moves a card between columns; dragging on the board is the only
+way.
+**Why:** Feedback after several days of real reading. The location label was the
+sharpest item: it said "unavailable" when it meant "not checked recently",
+because `locatorLost` was persisted and only a panel holding live article text
+could ever clear it. Rejected: hiding the label and keeping the machinery, which
+leaves an effect writing to the database to maintain a field nothing reads.
+**Files:** `src/domain/{types,quote,markdown}.ts`, `src/db/{schema,cards}.ts`,
+`src/messages.ts`, `src/substack/extract.ts`, `src/entrypoints/background.ts`,
+`src/ui/{CardEditor,ReadingPanel,ExportButton,useSaveStatus.ts,styles.css}`,
+their tests, `extension/MANUAL-CHECKS.md`.
+**Verification:** `npm test` (274 tests, all passing, plus 1 todo) and
+`npm run compile`, both green. The "2026-09-03: reading workflow feedback"
+manual-check boxes are written but not yet ticked against a loaded build.
+**State after:** Schema version 4. Quotes are id-addressed everywhere. The
+quote-location subsystem is gone. The three Substack checkboxes were already
+removed in Milestone 4; a manual check to re-confirm them against a fresh build
+is written and not yet run.
+**Next up:** Run the "2026-09-03: reading workflow feedback" manual checks
+against a loaded build, then Milestone 5, the self-filling Add-by-URL form,
+unchanged by this work.
+**Open questions:** none.
 
 ### 2026-08-31 - Sync reads substack.com/saved, not substack.com/inbox/saved
 
