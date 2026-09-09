@@ -12,26 +12,6 @@ Setup: `cd extension; npm run build`, then reload the extension on
 - [x] A second click focuses that tab. No second tab opens.
 - [x] Close the tab, click again. A new tab opens.
 
-## Capture
-
-- [x] Add by URL with a title, author, publication, and minutes. The card
-      appears in To Read.
-- [x] Add the same URL again. The message says it is already on the board.
-      No second card appears.
-- [x] Add `hello`. A red message names the problem. No card appears.
-- [x] Add a URL with `?utm_source=x` on the end of a URL already added.
-      It refreshes the existing card.
-- [x] Add `https://www.<pub>.com/p/<slug>`, then
-      `https://open.substack.com/pub/<pub>/p/<slug>`. One card, not two.
-      The message says it is already on the board.
-- [x] The card still links to the URL you added it with, not the share route.
-- [x] Add `https://<pub>.substack.com/p/<slug>` for that same article.
-      Still one card.
-- [x] Two publications that both use the same slug stay two cards.
-      Skipped by hand. Covered by `url.test.ts` ("separates the same slug in
-      two publications") and `cards.test.ts` ("still separates the same slug
-      in two publications"), which reach the same dedup index the UI writes to.
-
 ## Migration to schema version 2
 
 Run these once, on a board that holds cards from before the article-key fix.

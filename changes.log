@@ -36,6 +36,12 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-09-08
+**"Add by URL" is removed.** `AddByUrlForm.tsx` is deleted and `App.tsx` no
+longer mounts it. A card can now only reach the board through the content
+script on a Substack page or through a sync pull; there is no longer a manual
+entry point. The "## Capture" section of `extension/MANUAL-CHECKS.md`, which
+tested only that form, is deleted with it. `npm test` (275 passing, 1 todo)
+and `npm run build` are green.
 **Phase:** Milestones 0, 1, 2A, 2B, 3, and 4 are all complete and all checked
 against their definitions of done. Milestone 2 was split into 2A (capture and
 the companion panel) and 2B (Markdown export). The reading workflow feedback
@@ -115,7 +121,7 @@ single-door `ingestCard`; `sync.ts` with `applySync`), and `src/ui/` (`App.tsx`,
 which also exports `COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports
 `statusLabel`, `Toolbar.tsx`, `CardEditor.tsx`, `DetailPanel.tsx`,
 `ReadingPanel.tsx`, `TagEditor.tsx`, `SyncButton.tsx`, `ExportButton.tsx`,
-`ExportAllButton.tsx`, `BackupControls.tsx`, `AddByUrlForm.tsx`,
+`ExportAllButton.tsx`, `BackupControls.tsx`,
 `exportCard.ts`, `downloadFile.ts`). The board reads Dexie directly through
 `useLiveQuery` and renders three columns. `domain/card.ts` also exports
 `CardFilter`, `visibleCards`, `STATUS_LABELS`, `reorderCards`, and `createCard`;
@@ -324,6 +330,26 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-09-08 - Remove Add by URL
+
+**What changed:** Deleted `extension/src/ui/AddByUrlForm.tsx` and its mount
+in `App.tsx`'s toolbar. Deleted the "## Capture" section of
+`extension/MANUAL-CHECKS.md`, whose boxes all exercised that form.
+**Why:** The developer asked to remove manual URL entry as a way to add a
+card. `ingestCard()` itself is untouched: the content script (`background.ts`)
+and the sync pull (`sync.ts`) both still call it, and `cards.test.ts` still
+covers it directly. No other code imported the form or the `.notice` styling
+it used, which several other toolbar buttons still share.
+**Files:** `extension/src/ui/AddByUrlForm.tsx` (deleted), `extension/src/ui/App.tsx`,
+`extension/MANUAL-CHECKS.md`, `changes.log`.
+**Verification:** `npm test` (275 passing, 1 todo) and `npm run build`, both
+green.
+**State after:** A card can only reach the board through the content script
+on a Substack page or through a sync pull. There is no manual add-by-URL path
+in the UI.
+**Next up:** None assigned.
+**Open questions:** None.
 
 ### 2026-09-03 - Reading workflow feedback
 
