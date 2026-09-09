@@ -36,6 +36,18 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-09-08
+**The side panel redesign is code complete and NOT yet verified by hand.** It
+lives on the branch `side-panel-redesign`, seven commits from `9430277`. The
+panel is a parchment column of four white cards with a footer that does not
+scroll away; `extension/src/ui/icons.tsx` is new. The board is untouched by
+design: every new rule is scoped to `.reading`, and the shared `CardEditor`
+grew only neutral structure that each stylesheet reads its own way. Four parts
+of the mockup were deliberately left out, and the entry below says which and
+why. `npm run compile`, `npm test` (275 passing, 1 todo) and `npm run build`
+are all green, but no suite covers `src/ui/`. The next step is to run the
+"2026-09-08: side panel redesign" section of `extension/MANUAL-CHECKS.md`
+against a loaded build; its boxes are unticked.
+
 **"Add by URL" is removed.** `AddByUrlForm.tsx` is deleted and `App.tsx` no
 longer mounts it. A card can now only reach the board through the content
 script on a Substack page or through a sync pull; there is no longer a manual
@@ -330,6 +342,59 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-09-08 - Redesign the side panel
+
+**What changed:** The side panel is now a designed surface: a parchment ground,
+four white cards (article header, tags, notes, quotes), a serif article title,
+Substack orange as the only accent, and a footer holding Export Markdown and
+Open the board that does not scroll away. Capture moved from the footer into
+the Quotes heading, next to a count badge, and takes its error message with it.
+The outcome line became a banner with two tones, green for added and refreshed
+and orange for could-not-read. Added `extension/src/ui/icons.tsx`, nine
+hand-written SVG glyphs.
+**Why:** The developer supplied a mockup (`docs/side-panel.png`). The panel had
+three CSS rules to the board's two hundred and looked like an unstyled form.
+Four decisions shaped the build. The mockup's Tailwind CDN tag cannot ship, so
+the CSS is hand-written on the existing stylesheet; its Google Fonts import
+cannot ship either, so Georgia leads the editorial serif instead of Newsreader.
+The redesign is scoped to the panel, so every new rule is under `.reading` and
+the board keeps its look. And the mockup's dark titlebar is gone: Chrome draws
+its own side-panel header, and a pin button inside the page pins nothing.
+Four parts of the mockup were deliberately not built. The To Read / Reading /
+Processed segment stays out, per the 2026-09-03 decision that a card moves
+column only by dragging on the board; the mockup's own HTML leaves that block
+empty. The "Saved" chip stays beside the title rather than moving into the
+Notes heading, because one indicator covers quote comments too and would lie
+there. The footer statistics and the sync age are new behaviour and the panel
+reads one card. The Markdown toolbar and the quote copy button do not exist.
+`CardEditor` is shared with the board's detail panel, so the markup did not
+fork. It grew neutral structure, sections, heads and icons, and each stylesheet
+takes what it uses: the board hides the icons, the panel hides the
+remove-quote wording. The byline stays after the title in the DOM and is drawn
+above it with `order`, so a screen reader still hears the article first.
+`quotesAction` is a second slot on the same reasoning as the existing `footer`
+slot. `ExportButton` lost its `<h3>Export</h3>`, which `DetailPanel` now
+supplies, because the panel wants a bare button in a two-cell footer.
+**Files:** `extension/src/ui/styles.css`, `extension/src/ui/icons.tsx` (new),
+`extension/src/ui/CardEditor.tsx`, `extension/src/ui/TagEditor.tsx`,
+`extension/src/ui/ExportButton.tsx`, `extension/src/ui/DetailPanel.tsx`,
+`extension/src/ui/ReadingPanel.tsx`, `extension/MANUAL-CHECKS.md`,
+`docs/side-panel.png` (new).
+**Verification:** `npm run compile` clean, `npm test` 275 passing and 1 todo,
+unchanged, `npm run build` green. `src/ui/` has no automated tests by design and
+`vitest.config.ts` collects `src/**/*.test.ts` only, so the unchanged count says
+nothing outside the UI moved and nothing more. The new
+"2026-09-08: side panel redesign" section of `extension/MANUAL-CHECKS.md` is
+written and NOT yet run.
+**State after:** Code complete, typechecked and built, verified by nobody.
+Earlier MANUAL-CHECKS sections stay ticked; they record what passed when they
+were run, and the behaviours whose markup changed are listed again in the new
+section rather than unticked in place.
+**Next up:** Run the "2026-09-08: side panel redesign" section against a loaded
+build. The board-is-unchanged boxes matter most: they are the only check on the
+claim that the shared editor's new structure is inert on the board.
+**Open questions:** none.
 
 ### 2026-09-08 - Remove Add by URL
 

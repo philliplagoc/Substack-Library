@@ -340,3 +340,72 @@ Reload the extension first: this milestone changes the Dexie schema to version
 - [x] Build with `npm run build`, reload the unpacked extension from
       `extension/.output/chrome-mv3`, and open the board's detail panel. There
       is no Substack heading and no Liked / Commented / Unsaved checkbox.
+
+## 2026-09-08: side panel redesign
+
+Build with `npm run build` and reload the unpacked extension from
+`extension/.output/chrome-mv3` first.
+
+The earlier sections stay ticked: they record what passed when they were run.
+The markup under the reading panel, quotes and tags changed in this work, so
+those behaviours are listed again here and checked against the new build.
+
+### The look
+
+- [ ] Open a Substack article and click the toolbar button. The panel shows a
+      green banner, an article card with an orange rule across its top, then
+      plain white cards for tags, notes and quotes, on a parchment background.
+- [ ] The publication is uppercase orange, the author is muted beside it, and
+      the reading time sits right as a filled grey chip.
+- [ ] The article title is in a serif face.
+- [ ] The URL is a bordered pill that truncates with an ellipsis, and it turns
+      orange on hover.
+- [ ] Export Markdown and Open the board sit in a footer at the bottom of the
+      panel. Scrolling the body does not move them.
+- [ ] Capture sits in the Quotes heading, next to a count badge.
+- [ ] No dark titlebar, no status buttons, no statistics line, no sync age.
+
+### Fluid width
+
+- [ ] Drag the panel to its narrowest. Nothing overflows sideways, no
+      horizontal scrollbar appears, and the quote comment boxes stay usable.
+- [ ] The article title still wraps to a readable number of lines at that
+      width.
+- [ ] Drag the panel wide. The cards fill it and the footer buttons stay even.
+
+### Behaviour that moved
+
+- [ ] Type in notes. The indicator beside the title reads "Saving…" then
+      "✓ Saved". Reload; the text is there.
+- [ ] Select text in the article and click Capture. The quote lands.
+- [ ] Click Capture with nothing selected. The message appears under the
+      button, in the Quotes heading, not at the foot of the panel.
+- [ ] Write a comment on a quote, then remove the quote with its trash icon.
+      The confirmation names the quote.
+- [ ] Add a tag and remove it. The suggestion list still drops down, and the
+      count beside the Tags heading follows.
+- [ ] Export Markdown from the footer. The file lands and the message appears
+      across the full width beneath both buttons.
+- [ ] Click Open the board. The board opens or focuses as before.
+
+### Empty and error states
+
+- [ ] Open the side panel with no article behind it. The prompt sits on the
+      same parchment background, centred, not on a white page.
+- [ ] Open the panel on a page that is not a Substack article. The banner is
+      the warning tone, not green.
+
+### The board is unchanged
+
+- [ ] Open the board. Same colours, same three columns, same card faces.
+- [ ] Open a card's detail panel. No icons, no uppercase section headings, no
+      parchment. The Export heading is still above its button, and the quote
+      remove control still reads "Remove quote" in words.
+- [ ] Notes, quotes, tags, export and delete all still work from the board.
+- [ ] Open the same card in the panel and the board's detail panel. Type in
+      one; the other does not revert it.
+
+### Keyboard
+
+- [ ] Tab through the panel. Every link, button, input and textarea shows an
+      orange focus ring.
