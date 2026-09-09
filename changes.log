@@ -39,24 +39,28 @@ Then update the "Current state" section to match.
 **Phase:** Milestones 0, 1, 2A, 2B, 3, and 4 are all complete and all checked
 against their definitions of done. Milestone 2 was split into 2A (capture and
 the companion panel) and 2B (Markdown export). The reading workflow feedback
-run is code complete on top of them. All boxes through "Milestone 4: release
-polish" are ticked against a loaded build; the new "2026-09-03: reading
-workflow feedback" section is written and not yet ticked. All three reader
+run is merged to `main` on top of them, `main` unpushed. All boxes through
+"Milestone 4: release polish" are ticked against a loaded build; the new
+"2026-09-03: reading workflow feedback" section is written and not yet ticked. All three reader
 shells (inbox, home, profile) lay out alike, so one `readReaderArticle` reads
 them all.
 
-**The reading workflow feedback run is done in code, schema version 4.** All
-seven tasks of `.superpowers/sdd/2026-09-03-reading-workflow-feedback/` are
-committed. Quotes carry an `id` and can be removed. The quote-location
-subsystem is deleted, `resolveQuote` and the content-script `prefix` included,
-so nothing writes or reads `locatorLost` any more. `CardEditor` shows one save
-indicator for the whole card and debounces quote comments the way it already
-debounced notes. Exported Markdown puts Notes before Quotes, each under its own
-heading. Every textarea resizes vertically only. No button moves a card between
-columns; dragging on the board is the only way. `npm test` (274 passing, 1
-todo) and `npm run compile` are green. The "2026-09-03: reading workflow
-feedback" section of `extension/MANUAL-CHECKS.md` is written but not yet run
-against a loaded build.
+**The reading workflow feedback run is done in code and merged to `main`,
+schema version 4.** All seven tasks of
+`.superpowers/sdd/2026-09-03-reading-workflow-feedback/` plus the whole-branch
+review fix are in `main` as a fast-forward, commits `653ea03`..`e637c00`, not
+pushed. Quotes carry an `id` and can be removed. The quote-location subsystem is
+deleted, `resolveQuote` and the content-script `prefix` included, so nothing
+writes or reads `locatorLost` any more. `CardEditor` shows one save indicator
+for the whole card and debounces quote comments the way it already debounced
+notes. A comment or notes field adopts an incoming value only when it has no
+write pending, so the same card open in both editors no longer sees one panel's
+stale draft overwrite the other. Exported Markdown puts Notes before Quotes,
+each under its own heading. Every textarea resizes vertically only. No button
+moves a card between columns; dragging on the board is the only way. `npm test`
+(275 passing, 1 todo) and `npm run compile` are green. The "2026-09-03: reading
+workflow feedback" section of `extension/MANUAL-CHECKS.md` is written but not yet
+run against a loaded build.
 
 **Milestone 4, release polish, is code complete and verified in a browser.**
 All six tasks are committed (`0f3d256`, `83e7d6b`, `97c18fd`, `a43852d`,
@@ -160,7 +164,7 @@ imports a Node builtin needs `@types/node`, now a dev dependency.
 `src/substack/extract.test.ts` reads `node:fs` and is the only such file.
 `npm test` will not catch a missing type; Vite strips types without reading
 them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 274
+**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 275
 tests and 1 todo across 14 files, on Vitest with `fake-indexeddb` and `linkedom`.
 Run it from `extension/`. Running Vitest from the repository root also sweeps
 `.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
@@ -249,14 +253,22 @@ article body.
 `extension/MANUAL-CHECKS.md` is ticked against a loaded build. No `TODO(human)`
 is open anywhere in `extension/src/`.
 
-**Next up:** Load `extension/.output/chrome-mv3/` as an unpacked extension and
-work through the "2026-09-03: reading workflow feedback" section of
+**Next up:** Push `main` (it is 11 commits ahead of `origin/main` and unpushed
+after the local merge). Then load `extension/.output/chrome-mv3/` as an unpacked
+extension and work through the "2026-09-03: reading workflow feedback" section of
 `extension/MANUAL-CHECKS.md` (the four new subsections plus the Task 5 and 6
-ones above them, all unticked). Reload the extension first: the Dexie
+ones above them, all unticked). Add one box: open the same card in the side
+panel and the board detail panel, type a comment in one, and confirm the other
+shows it and does not revert it. Reload the extension first: the Dexie
 `version(4)` upgrade runs the first time the board opens. Then Milestone 5, the
 self-filling Add-by-URL form; its mechanism is chosen (open a tab, inject
 `extractArticleMeta` and `readReaderArticle` unchanged, close the tab), its
 install-time permission question is open and wants its own spec.
+
+The two stale remote branches from the reading workflow feedback run,
+`origin/worktree-reading-workflow-feedback` (`af8fb35`, contained in `main`) and
+`origin/reading-workflow-feedback` (`f111e78`, the abandoned Codex attempt), were
+deleted on 2026-09-08. `origin` carries only `main`.
 
 **Ship chores**, cheap and independent of any milestone:
 `extension/package.json` carries no `version` field, which is the standing build
@@ -326,7 +338,15 @@ script read. `CardEditor` shows one save indicator for the card and debounces
 quote comments the way it already debounced notes. Exported Markdown puts Notes
 before Quotes, each under its own heading. Every textarea resizes vertically
 only. No button moves a card between columns; dragging on the board is the only
-way.
+way. A follow-up commit fixed a concurrent-edit bug the whole-branch review
+found: a comment or notes field held a local draft that only re-synced on a
+dependency that never changes, so with the same card open in the side panel and
+the board detail panel at once, one panel's stale draft was written back over
+the other panel's edit, and the two oscillated. Both fields now start the
+debounce from the change handler and adopt an incoming value only when no write
+is pending. `useSaveStatus` gained a pending-save counter so one field's
+abandoned debounce no longer moves the shared indicator while another field's
+write is still in flight.
 **Why:** Feedback after several days of real reading. The location label was the
 sharpest item: it said "unavailable" when it meant "not checked recently",
 because `locatorLost` was persisted and only a panel holding live article text
@@ -335,17 +355,29 @@ leaves an effect writing to the database to maintain a field nothing reads.
 **Files:** `src/domain/{types,quote,markdown}.ts`, `src/db/{schema,cards}.ts`,
 `src/messages.ts`, `src/substack/extract.ts`, `src/entrypoints/background.ts`,
 `src/ui/{CardEditor,ReadingPanel,ExportButton,useSaveStatus.ts,styles.css}`,
-their tests, `extension/MANUAL-CHECKS.md`.
-**Verification:** `npm test` (274 tests, all passing, plus 1 todo) and
-`npm run compile`, both green. The "2026-09-03: reading workflow feedback"
+their tests, `extension/MANUAL-CHECKS.md`. `updateQuote` now takes
+`Partial<Omit<Quote, 'id'>>` so the id, which is the address, cannot be
+overwritten. A `restoreCards` test asserts an existing quote id is kept.
+**Verification:** `npm test` (275 tests, all passing, plus 1 todo) and
+`npm run compile`, both green, on the merged tree. `npm run build` clean bar the
+standing missing-`version` warning. The "2026-09-03: reading workflow feedback"
 manual-check boxes are written but not yet ticked against a loaded build.
-**State after:** Schema version 4. Quotes are id-addressed everywhere. The
-quote-location subsystem is gone. The three Substack checkboxes were already
-removed in Milestone 4; a manual check to re-confirm them against a fresh build
-is written and not yet run.
-**Next up:** Run the "2026-09-03: reading workflow feedback" manual checks
-against a loaded build, then Milestone 5, the self-filling Add-by-URL form,
-unchanged by this work.
+**Provenance:** The run was executed twice. The first pass (branch
+`worktree-reading-workflow-feedback`, author's own machine, `7159934`..`af8fb35`)
+did Tasks 1 through 6. A second session started fresh, redid Tasks 1 and 2
+before the earlier branch was noticed, then hard-reset onto it and did Task 7
+and the review fix. An older parallel attempt by Codex reached Task 5 on branch
+`reading-workflow-feedback` (`f111e78`) and was abandoned. Both remote branches
+are deleted; `main` carries the whole run.
+**State after:** Merged to `main` as a fast-forward, 11 commits `653ea03`..`e637c00`,
+not pushed. Schema version 4. Quotes are id-addressed everywhere. The
+quote-location subsystem is gone. A comment stays put when the same card is open
+in both editors. The three Substack checkboxes were already removed in
+Milestone 4; a manual check to re-confirm them against a fresh build is written
+and not yet run.
+**Next up:** Push `main`, then run the "2026-09-03: reading workflow feedback"
+manual checks against a loaded build, then Milestone 5, the self-filling
+Add-by-URL form, unchanged by this work.
 **Open questions:** none.
 
 ### 2026-08-31 - Sync reads substack.com/saved, not substack.com/inbox/saved
