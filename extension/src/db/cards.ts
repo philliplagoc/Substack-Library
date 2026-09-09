@@ -150,11 +150,15 @@ export async function restoreCards(cards: Card[]): Promise<{ added: number; repl
  *
  * Read, patch, write, in one transaction, because two panels can hold the same
  * card open at once.
+ *
+ * `changes` omits `id`. The id is the address this function looks the quote up
+ * by, so a patch that carried one could move the quote out from under its own
+ * lookup.
  */
 export async function updateQuote(
   cardId: string,
   quoteId: string,
-  changes: Partial<Quote>,
+  changes: Partial<Omit<Quote, 'id'>>,
 ): Promise<void> {
   await db.transaction('rw', db.cards, async () => {
     const card = await db.cards.get(cardId);

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { removeQuote, updateCard, updateQuote } from '../db/cards';
 import { useSaveStatus, type SaveStatus } from './useSaveStatus';
 import TagEditor from './TagEditor';
@@ -33,25 +33,66 @@ export default function CardEditor({ card, footer }: Props) {
   const [notes, setNotes] = useState(card.notes);
   const save = useSaveStatus();
 
-  // A different card was selected. Show its notes.
+  // The debounce for the notes box. A ref, not state, because it is the answer
+  // to "is a local edit pending?" and every reader of it needs the answer now,
+  // not on the next render.
+  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The write the pending timer would issue, held so a card switch can fire it
+  // early instead of dropping what the reader just typed.
+  const notesFlush = useRef<(() => void) | null>(null);
+
+  // Write 300ms after the last keystroke, not on every one. Driven from the
+  // change handler rather than from an effect over `notes`: an effect that
+  // compares the draft against the stored value cannot tell the reader's own
+  // typing apart from a value that arrived from the other panel, and writes the
+  // stale draft back over it.
+  function handleNotesChange(value: string) {
+    setNotes(value);
+    const cardId = card.id;
+
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    else save.beginSave(); // Idle to pending: announce it once, not per keystroke.
+
+    notesFlush.current = () => {
+      notesTimer.current = null;
+      notesFlush.current = null;
+      void updateCard(cardId, { notes: value }).then(save.endSave).catch(() => {});
+    };
+    notesTimer.current = setTimeout(() => notesFlush.current?.(), DEBOUNCE_MS);
+  }
+
+  // Adopt the stored notes only when no write of our own is pending. The same
+  // card can be open in the side panel and the board's detail panel at once, so
+  // this value changes from outside while this editor is mounted. Mid-edit the
+  // local draft wins and will be written; once it lands, the next outside
+  // change is adopted, which is what stops the two panels reverting each other.
   useEffect(() => {
+    if (notesTimer.current === null) setNotes(card.notes);
+  }, [card.notes]);
+
+  // A different card was selected. The pending write belongs to the card we are
+  // leaving, and it is addressed by that card's id, so fire it rather than
+  // discard the reader's last keystrokes. Then show the new card's notes.
+  useEffect(() => {
+    if (notesTimer.current) {
+      clearTimeout(notesTimer.current);
+      notesFlush.current?.();
+    }
     setNotes(card.notes);
   }, [card.id]);
 
-  // Write 300ms after the last keystroke, not on every one.
+  // Unmounting with a debounce still pending: nothing will write it, so take
+  // the announced save back off the indicator.
   useEffect(() => {
-    if (notes === card.notes) return;
-    save.beginSave();
-    let fired = false;
-    const timer = setTimeout(() => {
-      fired = true;
-      void updateCard(card.id, { notes }).then(save.endSave).catch(() => {});
-    }, DEBOUNCE_MS);
     return () => {
-      clearTimeout(timer);
-      if (!fired) save.abortSave();
+      if (notesTimer.current) {
+        clearTimeout(notesTimer.current);
+        notesTimer.current = null;
+        notesFlush.current = null;
+        save.abortSave();
+      }
     };
-  }, [notes, card.id, card.notes]);
+  }, []);
 
   async function handleRemoveQuote(quoteId: string, text: string) {
     const ok = window.confirm(`Remove this quote?\n\n“${preview(text)}”\n\nThis cannot be undone.`);
@@ -81,7 +122,7 @@ export default function CardEditor({ card, footer }: Props) {
 
       <label>
         Notes
-        <textarea rows={8} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <textarea rows={8} value={notes} onChange={(e) => handleNotesChange(e.target.value)} />
       </label>
 
       <h3>Quotes</h3>
@@ -128,6 +169,12 @@ export default function CardEditor({ card, footer }: Props) {
  * Comments used to write on every keystroke. They now use the same 300ms
  * debounce as notes, which is what lets one indicator describe both honestly:
  * a per-keystroke write never leaves "Saving…".
+ *
+ * `initial` is live: the same card can be open in two panels, so the stored
+ * comment changes underneath a mounted box. The rule is to adopt the incoming
+ * value only when no write of our own is pending. While the reader is mid-edit
+ * their draft wins; once it lands, the next incoming value is adopted. Without
+ * that rule the two panels write each other's stale drafts back and forth.
  */
 function QuoteComment({
   cardId,
@@ -146,30 +193,44 @@ function QuoteComment({
 }) {
   const [comment, setComment] = useState(initial);
 
-  useEffect(() => {
-    setComment(initial);
-  }, [quoteId]);
+  // Whether a debounced write of our own is waiting. Same shape as the notes
+  // box above, for the same reason.
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (comment === initial) return;
-    onSaveStart();
-    let fired = false;
-    const timer = setTimeout(() => {
-      fired = true;
-      void updateQuote(cardId, quoteId, { comment }).then(onSaveEnd).catch(() => {});
+  function handleChange(value: string) {
+    setComment(value);
+
+    if (timer.current) clearTimeout(timer.current);
+    else onSaveStart(); // Idle to pending: announce it once, not per keystroke.
+
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      void updateQuote(cardId, quoteId, { comment: value }).then(onSaveEnd).catch(() => {});
     }, DEBOUNCE_MS);
+  }
+
+  // Adopt the incoming comment only when nothing of ours is pending.
+  useEffect(() => {
+    if (timer.current === null) setComment(initial);
+  }, [initial]);
+
+  // An abandoned debounce is a save that was announced and will never arrive.
+  useEffect(() => {
     return () => {
-      clearTimeout(timer);
-      if (!fired) onAbort();
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+        onAbort();
+      }
     };
-  }, [comment, cardId, quoteId, initial]);
+  }, []);
 
   return (
     <textarea
       rows={2}
       placeholder="Your reaction"
       value={comment}
-      onChange={(e) => setComment(e.target.value)}
+      onChange={(e) => handleChange(e.target.value)}
     />
   );
 }

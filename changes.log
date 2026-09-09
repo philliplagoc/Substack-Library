@@ -105,7 +105,7 @@ layer), `src/db/` (`schema.ts` at version 4 - the v3 upgrade deletes `liked`,
 every stored quote an `id`, same store string as v2;
 `cards.ts` with `allCards`, `getCard`, `updateCard`, `deleteCard`,
 `nextSortOrder`, `applyOrder`, `restoreCards`, `updateQuote`, `addQuote`,
-`removeQuote`, `cardByArticleKey`, `recordExport`, `moveCardTo`, and the
+`removeQuote`, `cardByArticleKey`, `recordExport`, and the
 single-door `ingestCard`; `sync.ts` with `applySync`), and `src/ui/` (`App.tsx`,
 `Board.tsx`
 which also exports `COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports

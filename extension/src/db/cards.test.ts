@@ -260,6 +260,21 @@ describe('restoreCards', () => {
     expect('locator' in (quote ?? {})).toBe(false);
     expect('locatorLost' in (quote ?? {})).toBe(false);
   });
+
+  test('keeps the id a quote already carries', async () => {
+    const card = makeCard({ id: 'a' });
+    const quote: Quote = {
+      id: 'quote-already-addressed',
+      text: 'a passage',
+      capturedAt: '2026-08-29T00:00:00.000Z',
+    };
+
+    await restoreCards([{ ...card, quotes: [quote] }]);
+
+    // The id addresses the quote, so a comment written against it must still
+    // find it after a restore. Reissuing here would orphan every reference.
+    expect((await onlyCard()).quotes[0]?.id).toBe('quote-already-addressed');
+  });
 });
 describe('ingestCard and the routes to one article', () => {
   const CUSTOM = 'https://www.pokgaigamer.com/p/steamanimegames';
