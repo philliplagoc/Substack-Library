@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { allCards, updateCard } from '../db/cards';
 import { addTag, allTags, removeTag } from '../domain/tags';
+import { TagIcon } from './icons';
 import type { Card } from '../domain/types';
 
 const SUGGESTIONS_ID = 'tag-suggestions';
@@ -45,7 +46,11 @@ export default function TagEditor({ card }: { card: Card }) {
 
   return (
     <div className="tags">
-      <label htmlFor="tag-input">Tags</label>
+      <div className="section-head">
+        <TagIcon className="section-icon" />
+        <label htmlFor="tag-input">Tags</label>
+        {tags.length > 0 ? <span className="count">{tags.length} attached</span> : null}
+      </div>
       {tags.length > 0 ? (
         <ul className="chips">
           {tags.map((tag) => (
