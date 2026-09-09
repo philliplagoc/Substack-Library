@@ -409,3 +409,80 @@ those behaviours are listed again here and checked against the new build.
 
 - [ ] Tab through the panel. Every link, button, input and textarea shows an
       orange focus ring.
+
+## 2026-09-09: board redesign
+
+Build with `npm run build` and reload the unpacked extension from
+`extension/.output/chrome-mv3` first.
+
+The earlier sections stay ticked: they record what passed when they were run.
+The board's page shell, header, tag row, columns and card faces were restyled in
+this work, and the tag filter moved out of the toolbar into a row of its own.
+The behaviours below are listed again here and checked against the new build.
+
+### The look
+
+- [ ] Open the board. It sits on the same parchment as the side panel. Columns
+      are pale warm panels with a hairline border; cards are white with a
+      hairline border and a soft shadow.
+- [ ] Card faces show the title, `publication · author`, the minutes line, and
+      the `notes · N quotes · exported vN` line, and nothing else. No tag chips,
+      no quote preview, no "Open Panel" link.
+- [ ] Card titles and column headers are in the system sans, not a serif.
+- [ ] Column headers read `TO READ (26)` and the like: uppercase, muted, no
+      dot, no badge, no subtitle, no rule over the Reading column.
+- [ ] In the header, Sync Saved is the solid orange button; Export all,
+      Export JSON and Restore JSON are a quiet hairline-bordered cluster.
+- [ ] No "Studio" pill, no "essays saved" statistics line, no ⌘K hint. The
+      number field still reads "Max minutes".
+
+### The tag row
+
+- [ ] The tag filter is its own full-width row under the header, not a strip
+      inside it.
+- [ ] It opens with an uppercase "TAGS:" label and a tag glyph.
+- [ ] Each tag pill shows a count, e.g. `building 8`, over every card on the
+      board. The count does not change when you filter.
+- [ ] No "All" pill, no "Reset Filter" link, no "+ New" pill.
+- [ ] On a board with no tags there is no row at all, and the board fills the
+      space.
+
+### Fluid width and the real second row
+
+- [ ] Add tags to cards until the row fills. It wraps to a second line; the
+      board still reaches the bottom of the window and scrolls inside its own
+      area.
+- [ ] Keep adding tags. Past about a quarter of the window the row stops
+      growing and scrolls vertically; the board is still fully reachable.
+- [ ] Narrow and widen the window. No horizontal scrollbar on the page.
+
+### Behaviour unchanged
+
+- [ ] Search narrows the board.
+- [ ] Max minutes of 10 hides a 40-minute card and a card with no estimate.
+      Clearing it brings the no-estimate card back.
+- [ ] Click one tag: only cards carrying it remain. Click a second: only cards
+      carrying both. Click a selected tag: it clears.
+- [ ] Drag a card between columns and within a column; reload; it holds.
+      Keyboard drag (Tab, Space, arrows, Space) still moves a card.
+- [ ] Click a card: the detail panel opens on the right. Notes, quotes, tags,
+      export and delete all work. Close works.
+- [ ] Export all, Export JSON and Restore JSON all still work and report their
+      counts.
+- [ ] Sync Saved still runs and reports.
+
+### The side panel is unchanged
+
+- [ ] Open a Substack article and click the toolbar button. The side panel is
+      the same parchment column of white cards, serif title, orange rule over
+      the header card, footer that does not scroll away.
+- [ ] Open the same card in the side panel and in the board's detail panel. The
+      board's detail panel has no icons, no uppercase section headings, no
+      parchment body; the Export heading is above its button; the quote remove
+      control still reads "Remove quote" in words.
+- [ ] Type in one; the other does not revert it.
+
+### Keyboard and focus ring
+
+- [ ] Tab through the header, the tag row, a card, and the detail panel. Every
+      button, link, input and textarea shows an orange focus ring.

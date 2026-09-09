@@ -35,18 +35,27 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-09-08
-**The side panel redesign is code complete and NOT yet verified by hand.** It
-lives on the branch `side-panel-redesign`, eight commits from `9430277`. The
-panel is a parchment column of four white cards with a footer that does not
-scroll away; `extension/src/ui/icons.tsx` is new. The board is untouched by
-design: every new rule is scoped to `.reading`, and the shared `CardEditor`
-grew only neutral structure that each stylesheet reads its own way. Four parts
-of the mockup were deliberately left out, and the entry below says which and
-why. `npm run compile`, `npm test` (275 passing, 1 todo) and `npm run build`
-are all green, but no suite covers `src/ui/`. The next step is to run the
-"2026-09-08: side panel redesign" section of `extension/MANUAL-CHECKS.md`
-against a loaded build; its boxes are unticked.
+**Date:** 2026-09-09
+**The board redesign is code complete and NOT yet verified by hand.** The board
+now sits on the side panel's warm palette: `--bg` and `--col` are retired,
+`body` is `--parchment`, columns are `--brand-stone` with a hairline border,
+cards are white with a hairline border. The page is a `.board-root` column-flex
+shell, so the tag filter left the toolbar for a full-width row of its own
+(`extension/src/ui/TagFilter.tsx` is new), with a `TAGS:` label and a per-tag
+count. `--toolbar-height` and the `.layout` `calc()` are gone. Card titles stay
+system-sans and card faces are unchanged. The restyle is scoped to `.toolbar`,
+`.board-root`, and `.tag-filter`; the one shared rule touched, `.save-status`,
+was left on `--muted` so the panel cannot move. `npm run compile`, `npm test`
+(275 passing, 1 todo) and `npm run build` are all green; no suite covers
+`src/ui/`. Next step: run the "2026-09-09: board redesign" section of
+`extension/MANUAL-CHECKS.md` against a loaded build, above all its "The side
+panel is unchanged" and "Fluid width and the real second row" boxes.
+
+**The side panel redesign is on `main`** (through `a785c52`) and its
+"2026-09-08: side panel redesign" manual-check boxes are still unrun. The panel
+is a parchment column of four white cards with a footer that does not scroll
+away; `extension/src/ui/icons.tsx` was new in that work. Four parts of its
+mockup were deliberately left out; the entry below says which and why.
 
 **"Add by URL" is removed.** `AddByUrlForm.tsx` is deleted and `App.tsx` no
 longer mounts it. A card can now only reach the board through the content
@@ -320,13 +329,15 @@ asked for; worth a cleanup pass before Task 2.
   `domain/card.ts` holds the canonical `STATUS_LABELS`; `ui/Board.tsx`,
   `ui/ReadingPanel.tsx`, and `ui/CardTile.tsx` still hold their own. A small
   three-file consolidation Milestone 4 chose not to make.
-- The toolbar has a fixed `height: var(--toolbar-height)` and the tag filter is
-  a sideways-scrolling strip inside that row rather than a second row, because a
-  taller toolbar pushes the bottom of the board off the screen instead of
-  pushing the board down. A page laid out as a column flex container would fix
-  this and needs a board root element that does not exist yet.
+- The fixed-toolbar-height problem is fixed as of the 2026-09-09 board redesign.
+  The page is a `.board-root` column-flex shell now; `--toolbar-height` and the
+  `.layout` `calc()` are gone, and the tag filter is a real full-width row that
+  wraps instead of a sideways-scrolling strip inside the toolbar. Whether the
+  wrapping row's 28vh cap is right in practice is the new open question; the
+  fallback is a single-line sideways-scrolling row at full width.
 - The tag filter matches ALL selected tags. ANY-matching is the better browse;
-  revisit once the board holds enough tags to browse rather than narrow.
+  revisit once the board holds enough tags to browse rather than narrow. The
+  2026-09-09 redesign left the logic alone on purpose.
 - Tags are not shown on the card face in `CardTile`. Cut on purpose; the filter
   strip already says which tags are in play.
 
@@ -342,6 +353,58 @@ feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
 ---
 
 ## Entries
+
+### 2026-09-09 - Redesign the board
+
+**What changed:** The board wears the side panel's warm palette now. `--bg` and
+`--col` are retired: `body` is `--parchment`, `.column` is `--brand-stone` with
+a hairline border, `.card` is white with a hairline border and a lighter shadow,
+and the board's metadata rules moved from `--muted` to `--brand-muted`. The page
+is a `.board-root` column-flex shell (`display: flex; flex-direction: column;
+height: 100vh`), so `--toolbar-height` and the `.layout` `calc(100vh - ...)` are
+deleted and the tag filter is a full-width row of its own instead of a
+40%-wide strip crammed into the toolbar. New `extension/src/ui/TagFilter.tsx`
+holds that row: a `TAGS:` label with the existing `TagIcon`, and a count on each
+pill computed in `App` over every card. `Toolbar` lost the `tags` prop, the
+`toggle` handler, and the strip. The header restyle makes Sync the one orange
+button and Export all / JSON / Restore a quiet secondary cluster. A board-scoped
+`:focus-visible` ring mirrors the panel's.
+**Why:** The developer generated a board mockup (`docs/board.png`) in the same
+visual language as the side panel and asked for a restrained take on it. Several
+mockup elements were cut with them and are recorded in
+`docs/superpowers/specs/2026-09-09-board-redesign-design.md`: no serif on the
+board (Newsreader cannot ship and a triage surface reads fine in sans), no new
+card-face content (tag chips were already cut in Milestone 4 as too dense), no
+new tag-row controls ("+ New" has nowhere to write a tag), no filter-logic
+change (AND-match stays), no column-header furniture, no "Studio" pill or stats
+line. The restructure is the one the "Open questions" in this file kept asking
+for: a column flex container with a real board-root element, so a taller header
+shrinks the board area rather than pushing its bottom off the screen.
+`.save-status` is shared with the panel and was left on `--muted` rather than
+repointed, because a 4-unit grey shift is invisible and not worth a rule that
+touches both surfaces. The tag count is over all cards, not the filtered set, so
+it reads as a property of the tag; a filtered count was the rejected
+alternative.
+**Files:** `extension/src/ui/styles.css`, `extension/src/ui/App.tsx`,
+`extension/src/ui/Toolbar.tsx`, `extension/src/ui/TagFilter.tsx` (new),
+`extension/MANUAL-CHECKS.md`,
+`docs/superpowers/specs/2026-09-09-board-redesign-design.md` (new),
+`docs/board.png` (new).
+**Verification:** `npm run compile` clean, `npm test` 275 passing and 1 todo
+(unchanged; nothing tests `src/ui/`), `npm run build` green bar the standing
+missing-`version` warning. Not checked in a browser yet. The new
+"2026-09-09: board redesign" section of `extension/MANUAL-CHECKS.md` is written
+and unrun.
+**State after:** Code complete, typechecked and built, verified by nobody.
+`CardTile`, `Column`, and `Board` are untouched. No `domain/` or `db/` change.
+**Next up:** Load `extension/.output/chrome-mv3/` unpacked and walk the
+"2026-09-09: board redesign" section, above all "The side panel is unchanged"
+(the only check that the shared editor's styling did not move) and "Fluid width
+and the real second row".
+**Open questions:** Whether a wrapping tag row that can grow to 28vh eats too
+much vertical space in practice; the fallback is a single-line sideways-scrolling
+row at full width. The tag filter still matches ALL selected tags; ANY-matching
+stays the better browse and stays deferred.
 
 ### 2026-09-08 - Loosen the article header card and drop the first-tag accent
 
