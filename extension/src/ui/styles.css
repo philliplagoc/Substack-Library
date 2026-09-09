@@ -7,6 +7,27 @@
   --accent: #ff6719;
   --panel-width: 380px;
   --toolbar-height: 57px;
+
+  /*
+   * The side panel's palette. Held apart from the board tokens above on
+   * purpose: this redesign is scoped to the panel, and the board must not move
+   * under it. --accent already holds the Substack orange and both share it.
+   */
+  --parchment: #fbf9f5;
+  --panel-card: #ffffff;
+  --brand-border: #eae6df;
+  --brand-muted: #716e68;
+  --brand-stone: #f8f6f2;
+  --brand-tag-bg: #f1efea;
+  --orange-light: #fff5eb;
+  --orange-dark: #e05a10;
+
+  /*
+   * Newsreader is the mockup's face and is not shipped. A remote font cannot
+   * load under the Manifest V3 policy, and the binaries are not worth their
+   * weight for one panel. Georgia carries the editorial voice everywhere.
+   */
+  --font-editorial: 'Newsreader', Georgia, 'Iowan Old Style', serif;
 }
 
 * { box-sizing: border-box; }
@@ -112,10 +133,34 @@ body {
  * The sidepanel is NOT the board's 380px panel. Chrome owns this width and the
  * reader drags it, so the layout is fluid with a floor that keeps the quote
  * comment boxes usable.
+ *
+ * The shell is a column exactly the height of the viewport: the body scrolls
+ * inside it and the footer never leaves the screen. The two actions that take
+ * the reader out of the panel, export and open the board, are worth a
+ * permanent place. Everything else scrolls past them.
  */
 .reading {
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   min-width: 260px;
+  background: var(--parchment);
+  font-size: 13px;
+}
+.reading-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+.reading-footer {
+  flex: none;
+  background: var(--panel-card);
+  border-top: 1px solid var(--brand-border);
+  padding: 10px 12px;
 }
 .reading h2 { font-size: 15px; margin: 0 0 4px; }
 .reading textarea { width: 100%; font: inherit; resize: vertical; }
