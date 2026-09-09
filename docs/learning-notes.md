@@ -2789,3 +2789,51 @@ The code uses the second, the same choice `spike/README.md` already made for
 the sign-in prompt. The trailing hyphen narrows it, and the fixture test
 asserts exactly 47 entries, so an extra match fails the suite instead of
 quietly inflating the board.
+
+## 2026-09-09 - The board panel and the reading panel
+
+### How come the side panel that opens when you click a Card in the Board is different than the Side Panel that opens when you click the Extension on an open article?
+
+They are two different components in two different pages of the extension. They
+share only their middle.
+
+| | Board card panel | Article side panel |
+| --- | --- | --- |
+| File | `ui/DetailPanel.tsx` | `ui/ReadingPanel.tsx` |
+| Page | `entrypoints/board/` (the board tab) | `entrypoints/sidepanel/` (Chrome's side panel) |
+| Root | `<aside className="panel">` | `<div className="reading">` |
+| Picks a card by | the card you clicked on the board | `PanelState`, which `background.ts` writes when you click the toolbar button on an article |
+| Footer | Export, Delete card | Export Markdown, Open the board |
+| Extra button | none | Capture quote (talks to the live page) |
+| Banner | none | added / refreshed / could not read |
+| CSS rules | about 10, under `.panel` | about 200, under `.reading` |
+
+#### What they share
+
+Both render `<CardEditor card={...}>` for the middle: title, byline, tags,
+notes, quotes. That markup is one file. `CardEditor` takes two slots, `footer`
+and `quotesAction`, so each host adds its own buttons and neither knows about
+the other.
+
+```tsx
+// board wants delete, reading panel wants capture, neither needs the other
+footer?: ReactNode;
+quotesAction?: ReactNode;
+```
+
+#### Why the look diverged
+
+The developer redesigned the side panel on 2026-09-08: parchment ground, white
+cards, serif title, icons, a footer that stays put. Every new rule sits under
+`.reading` on purpose, so it cannot reach the board. `CardEditor` grew neutral
+structure, and each stylesheet takes what it wants:
+
+```css
+.panel .section-icon { display: none; }   /* board: no icons */
+.reading .remove-quote .label { ... }     /* panel: icon only, hide the words */
+```
+
+The board redesign the next day covered the columns and the card tiles, not
+`DetailPanel`. One of its manual-check boxes reads "The side panel is
+unchanged." So the board's card panel keeps the older plain styling that the
+reading panel has outgrown. The board panel has not had its redesign pass yet.
