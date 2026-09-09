@@ -274,3 +274,418 @@ body {
 .section-head .count { margin-left: 6px; }
 /* ExportButton no longer carries a paragraph of its own. Keep the board's. */
 .panel .export-row { margin: 12px 0; }
+
+/* ==========================================================================
+ * The side panel.
+ *
+ * Everything below is scoped to `.reading`, the panel's root. The board mounts
+ * the same components and must not move, so nothing here escapes that scope.
+ * ========================================================================== */
+
+/* --- Banners ------------------------------------------------------------ */
+
+/*
+ * What the toolbar click did, and anything the extractor wants to warn about.
+ * Two tones only: it worked, or it did not.
+ */
+.reading .banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.reading .banner.ok {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+.reading .banner.warn {
+  background: var(--orange-light);
+  border-color: rgba(255, 103, 25, 0.35);
+  color: #8a3c07;
+}
+.reading .banner .section-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/* The three states with no card behind them. */
+.reading .empty {
+  margin: 0;
+  padding: 24px 12px;
+  color: var(--brand-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* --- The four cards ----------------------------------------------------- */
+
+.reading .editor-header,
+.reading .tags,
+.reading .editor-notes,
+.reading .editor-quotes {
+  margin: 0;
+  padding: 12px;
+  background: var(--panel-card);
+  border: 1px solid var(--brand-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* A section's heading row: an icon, a name, and whatever the card adds. */
+.reading .section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.reading .section-head label,
+.reading .section-head h3 {
+  margin: 0;
+  color: var(--brand-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.reading .section-head .section-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--brand-muted);
+}
+.reading .section-head .count {
+  margin-left: auto;
+  color: var(--brand-muted);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* The quote count rides inside the heading, so it is a badge, not a note. */
+.reading .editor-quotes .count {
+  margin-left: 6px;
+  padding: 1px 7px;
+  background: var(--orange-light);
+  border-radius: 9999px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* --- Tags --------------------------------------------------------------- */
+
+.reading .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0 0 6px;
+}
+.reading .chips li {
+  margin: 0;
+  padding: 2px 8px;
+  background: var(--brand-tag-bg);
+  border: 1px solid var(--brand-border);
+  border-radius: 6px;
+  color: var(--brand-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+/* The first tag is the one the reader filed this under. Give it the accent. */
+.reading .chips li:first-child {
+  background: var(--orange-light);
+  border-color: rgba(255, 103, 25, 0.3);
+  color: var(--orange-dark);
+}
+.reading .chips li button { color: inherit; }
+.reading .chips li button:hover { color: #b00; }
+.reading .tags input {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px dashed var(--brand-border);
+  border-radius: 6px;
+  font-size: 11px;
+}
+.reading .tags input:hover { border-color: rgba(255, 103, 25, 0.6); }
+.reading .tags input:focus { background: #fff; border-style: solid; }
+
+/* --- Notes -------------------------------------------------------------- */
+
+.reading .editor-notes textarea {
+  padding: 8px 10px;
+  background: rgba(248, 246, 242, 0.5);
+  border: 1px solid var(--brand-border);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.reading .editor-notes textarea:focus { background: #fff; }
+
+/* --- Quotes ------------------------------------------------------------- */
+
+.reading .quotes li {
+  margin: 0 0 8px;
+  padding: 10px;
+  background: rgba(248, 246, 242, 0.6);
+  border: 1px solid var(--brand-border);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+}
+.reading .quotes li:last-child { margin-bottom: 0; }
+.reading .quotes blockquote {
+  margin: 0 0 6px;
+  padding: 0;
+  border: 0;
+  font-family: var(--font-editorial);
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.reading .quotes textarea {
+  padding: 4px 6px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--brand-border);
+  border-radius: 0;
+  color: var(--brand-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+.reading .quotes textarea:focus { color: var(--ink); }
+.reading .quotes p { margin: 0; text-align: right; }
+
+/* The remove control is the icon here. Its words stay for the board. */
+.reading .remove-quote {
+  padding: 2px;
+  background: none;
+  border: 0;
+  color: var(--brand-muted);
+  cursor: pointer;
+}
+.reading .remove-quote:hover { color: #b00; }
+.reading .remove-quote .section-icon { width: 13px; height: 13px; display: block; }
+.reading .remove-quote .label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Capture ------------------------------------------------------------ */
+
+.reading .capture {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+.reading .capture-quote {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.reading .capture-quote:hover { background: var(--orange-dark); }
+.reading .capture-quote .section-icon { width: 11px; height: 11px; }
+.reading .capture .notice { text-align: right; }
+
+/* --- Footer ------------------------------------------------------------- */
+
+/*
+ * Two buttons on one row, and any export message across the full width beneath
+ * them. `order` rather than DOM position: ExportButton renders its button and
+ * its notices as siblings, and the notice must not land in the second column.
+ */
+.reading .footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.reading .footer-actions .export,
+.reading .footer-actions .open-board {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  order: 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.reading .footer-actions .notice {
+  flex: 1 0 100%;
+  order: 1;
+  margin: 0;
+}
+.reading .footer-actions .export {
+  background: var(--brand-stone);
+  border: 1px solid var(--brand-border);
+  color: var(--ink);
+}
+.reading .footer-actions .export:hover:not(:disabled) { background: var(--brand-tag-bg); }
+.reading .footer-actions .export:disabled { opacity: 0.6; cursor: default; }
+.reading .footer-actions .open-board {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
+}
+.reading .footer-actions .open-board:hover { background: var(--orange-dark); }
+.reading .footer-actions .section-icon { width: 14px; height: 14px; flex: none; }
+
+/* --- Focus -------------------------------------------------------------- */
+
+/*
+ * One visible ring on everything. The panel is narrow enough that a reader
+ * working by keyboard loses their place without it.
+ */
+.reading :is(a, button, input, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* --- The article header card -------------------------------------------- */
+
+/*
+ * Structure only. The byline sits above the title on screen while staying
+ * after it in the markup, so a screen reader hears the article first.
+ */
+.reading .editor-header {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.reading .editor-header .byline {
+  order: -1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 6px;
+}
+.reading .editor-header .byline .sep { display: none; }
+.reading .editor-header .reading-time { margin-left: auto; }
+.reading .editor-title { margin: 0 0 8px; }
+.reading .editor-header .source { margin: 0; }
+.reading .editor-header .source a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  text-decoration: none;
+}
+.reading .editor-header .url-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reading .editor-header .section-icon { width: 13px; height: 13px; flex: none; }
+
+/*
+ * The visual treatment.
+ *
+ * This card is the one the reader looks at first, so it is the only one that
+ * carries the accent. The three cards under it stay plain, which is what makes
+ * this one read as the subject rather than as another control group.
+ */
+.reading .editor-header {
+  border-color: rgba(255, 103, 25, 0.4);
+  box-shadow:
+    0 2px 8px -2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(255, 103, 25, 0.12);
+  padding-top: 14px;
+}
+.reading .editor-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+}
+
+/*
+ * The title, in the serif. 15px, not the mockup's 18: the panel is fluid and
+ * readers drag it narrow, and at 280px an 18px title wraps to four lines and
+ * pushes everything else under the fold.
+ */
+.reading .editor-title .title-text {
+  font-family: var(--font-editorial);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+/*
+ * Publication and author are one fact, so they are one weight and one size.
+ * Only the colour separates them: the publication takes the accent because it
+ * is the thing a reader recognises, the author stays quiet beside it.
+ */
+.reading .editor-header .publication {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reading .editor-header .author {
+  color: var(--brand-muted);
+  font-size: 11px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * A measurement and a link should not look alike. The reading time is a solid
+ * filled chip with no border and no icon, so it reads as a stamped-on figure.
+ */
+.reading .editor-header .reading-time {
+  flex: none;
+  padding: 1px 6px;
+  background: var(--brand-tag-bg);
+  border-radius: 4px;
+  color: var(--brand-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* The link is bordered and hollow, and it lights up on hover. */
+.reading .editor-header .source a {
+  padding: 4px 8px;
+  background: rgba(248, 246, 242, 0.8);
+  border: 1px solid var(--brand-border);
+  border-radius: 5px;
+  color: var(--brand-muted);
+  font-size: 10.5px;
+}
+.reading .editor-header .source a:hover {
+  background: var(--orange-light);
+  border-color: rgba(255, 103, 25, 0.35);
+  color: var(--accent);
+}
