@@ -261,3 +261,14 @@ body {
   white-space: nowrap;
 }
 .remove-quote { font-size: 11px; }
+
+/*
+ * The shared editor's new structure.
+ *
+ * `CardEditor` now carries icons and section heads because the side panel's
+ * design needs them. The board's detail panel wants neither, so it drops them
+ * here rather than the markup forking. One tree, and each stylesheet takes the
+ * part it uses.
+ */
+.panel .section-icon { display: none; }
+.editor-quotes .count { margin-left: 6px; }

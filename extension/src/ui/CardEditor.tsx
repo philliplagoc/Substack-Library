@@ -2,10 +2,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { removeQuote, updateCard, updateQuote } from '../db/cards';
 import { useSaveStatus, type SaveStatus } from './useSaveStatus';
 import TagEditor from './TagEditor';
+import { BookmarkIcon, ExternalLinkIcon, PencilIcon, TrashIcon } from './icons';
 import type { Card } from '../domain/types';
 
 /** How long after the last keystroke a field is written. */
 const DEBOUNCE_MS = 300;
+
+/** Ties the Notes label to its box. Only one editor is mounted per document. */
+const NOTES_ID = 'card-notes';
 
 interface Props {
   card: Card;
@@ -15,6 +19,12 @@ interface Props {
    * and neither needs the other to know about it.
    */
   footer?: ReactNode;
+  /**
+   * A control the caller owns, rendered on the right of the Quotes heading.
+   * Same reasoning as `footer`: the reading panel wants Capture up there beside
+   * the count, and the board wants nothing at all.
+   */
+  quotesAction?: ReactNode;
 }
 
 const SAVE_TEXT: Record<SaveStatus, string> = {
@@ -29,7 +39,7 @@ function preview(text: string): string {
   return flat.length > 60 ? `${flat.slice(0, 60)}…` : flat;
 }
 
-export default function CardEditor({ card, footer }: Props) {
+export default function CardEditor({ card, footer, quotesAction }: Props) {
   const [notes, setNotes] = useState(card.notes);
   const save = useSaveStatus();
 
@@ -102,57 +112,102 @@ export default function CardEditor({ card, footer }: Props) {
 
   return (
     <>
-      <h2 className="editor-title">
-        {card.title}
-        <span className="save-status" aria-live="polite">
-          {SAVE_TEXT[save.status]}
-        </span>
-      </h2>
-      <p className="meta">
-        {[card.publication, card.author].filter(Boolean).join(' · ')}
-        {card.estimatedReadingMinutes != null ? ` · ${card.estimatedReadingMinutes} min` : ''}
-      </p>
-      <p className="meta">
-        <a href={card.url} target="_blank" rel="noreferrer">
-          {card.url}
-        </a>
-      </p>
+      {/*
+        * Title first in the DOM, publication and author after it. The mockup
+        * draws the byline above the title, and the panel's stylesheet puts it
+        * there with `order`. Reordering the markup instead would move the
+        * board's detail panel too, and would read the byline out before the
+        * article it belongs to.
+        */}
+      <section className="editor-header">
+        <h2 className="editor-title">
+          <span className="title-text">{card.title}</span>
+          <span className="save-status" aria-live="polite">
+            {SAVE_TEXT[save.status]}
+          </span>
+        </h2>
+
+        <p className="meta byline">
+          <BookmarkIcon className="section-icon" />
+          {card.publication ? <span className="publication">{card.publication}</span> : null}
+          {card.publication && card.author ? <span className="sep"> · </span> : null}
+          {card.author ? <span className="author">{card.author}</span> : null}
+          {card.estimatedReadingMinutes != null ? (
+            <>
+              {card.publication || card.author ? <span className="sep"> · </span> : null}
+              <span className="reading-time">{card.estimatedReadingMinutes} min read</span>
+            </>
+          ) : null}
+        </p>
+
+        <p className="meta source">
+          <a href={card.url} target="_blank" rel="noreferrer">
+            <ExternalLinkIcon className="section-icon" />
+            <span className="url-text">{card.url}</span>
+          </a>
+        </p>
+      </section>
 
       <TagEditor card={card} />
 
-      <label>
-        Notes
-        <textarea rows={8} value={notes} onChange={(e) => handleNotesChange(e.target.value)} />
-      </label>
+      <section className="editor-notes">
+        <div className="section-head">
+          <PencilIcon className="section-icon" />
+          {/* A label, not a heading: it names the box it is tied to. */}
+          <label htmlFor={NOTES_ID}>Notes</label>
+        </div>
+        <textarea
+          id={NOTES_ID}
+          rows={8}
+          value={notes}
+          onChange={(e) => handleNotesChange(e.target.value)}
+        />
+      </section>
 
-      <h3>Quotes</h3>
-      {card.quotes.length === 0 ? (
-        <p className="meta">No quotes yet.</p>
-      ) : (
-        <ul className="quotes">
-          {card.quotes.map((quote) => (
-            <li key={quote.id}>
-              <blockquote>{quote.text}</blockquote>
-              <QuoteComment
-                cardId={card.id}
-                quoteId={quote.id}
-                initial={quote.comment ?? ''}
-                onSaveStart={save.beginSave}
-                onSaveEnd={save.endSave}
-                onAbort={save.abortSave}
-              />
-              <p>
-                <button
-                  className="remove-quote"
-                  onClick={() => void handleRemoveQuote(quote.id, quote.text)}
-                >
-                  Remove quote
-                </button>
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
+      <section className="editor-quotes">
+        <div className="section-head">
+          <h3>
+            Quotes
+            {card.quotes.length > 0 ? <span className="count">{card.quotes.length}</span> : null}
+          </h3>
+          {quotesAction}
+        </div>
+
+        {card.quotes.length === 0 ? (
+          <p className="meta">No quotes yet.</p>
+        ) : (
+          <ul className="quotes">
+            {card.quotes.map((quote) => (
+              <li key={quote.id}>
+                <blockquote>{quote.text}</blockquote>
+                <QuoteComment
+                  cardId={card.id}
+                  quoteId={quote.id}
+                  initial={quote.comment ?? ''}
+                  onSaveStart={save.beginSave}
+                  onSaveEnd={save.endSave}
+                  onAbort={save.abortSave}
+                />
+                <p>
+                  {/*
+                    * Icon and words both, and each stylesheet drops the one it
+                    * does not want: the panel keeps the icon, the board keeps
+                    * the words. The aria-label carries the meaning either way.
+                    */}
+                  <button
+                    className="remove-quote"
+                    aria-label="Remove quote"
+                    onClick={() => void handleRemoveQuote(quote.id, quote.text)}
+                  >
+                    <TrashIcon className="section-icon" />
+                    <span className="label">Remove quote</span>
+                  </button>
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {footer}
     </>
