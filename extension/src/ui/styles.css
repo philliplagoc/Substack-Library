@@ -1,17 +1,17 @@
 :root {
-  --bg: #f6f5f2;
-  --col: #ecebe6;
-  --card: #ffffff;
   --ink: #1f1f1f;
   --muted: #6b6b6b;
   --accent: #ff6719;
   --panel-width: 380px;
-  --toolbar-height: 57px;
 
   /*
-   * The side panel's palette. Held apart from the board tokens above on
-   * purpose: this redesign is scoped to the panel, and the board must not move
-   * under it. --accent already holds the Substack orange and both share it.
+   * One warm palette, shared by the board and the side panel. The board
+   * redesign of 2026-09-09 retired --bg (#f6f5f2) and --col (#ecebe6) and
+   * pointed the board's surfaces at --parchment and the --brand-* set, so the
+   * two pages read as one product. --accent is the Substack orange and always
+   * was shared. --card and --panel-card were the same white; --card is gone.
+   * --muted stays defined: the shared .tags / .chips rules read it, and the
+   * board's own metadata rules moved to --brand-muted.
    */
   --parchment: #fbf9f5;
   --panel-card: #ffffff;
@@ -25,7 +25,8 @@
   /*
    * Newsreader is the mockup's face and is not shipped. A remote font cannot
    * load under the Manifest V3 policy, and the binaries are not worth their
-   * weight for one panel. Georgia carries the editorial voice everywhere.
+   * weight. Georgia carries the editorial voice in the side panel; the board
+   * stays on the system sans.
    */
   --font-editorial: 'Newsreader', Georgia, 'Iowan Old Style', serif;
 }
@@ -36,26 +37,84 @@ body {
   margin: 0;
   font-family: system-ui, sans-serif;
   color: var(--ink);
-  background: var(--bg);
+  background: var(--parchment);
+}
+
+/*
+ * The board page is a column: a header, an optional tag row, then the board
+ * itself taking whatever height is left. The header and the tag row size to
+ * their content, so a tag row that wraps to two lines shrinks the board area
+ * rather than pushing its bottom off the screen. This replaces the old
+ * fixed `--toolbar-height` and the `calc(100vh - ...)` it fed.
+ */
+.board-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
 .toolbar {
+  flex: 0 0 auto;
   display: flex;
   gap: 12px;
   align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #ddd;
-  background: #fff;
-  height: var(--toolbar-height);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--brand-border);
+  background: var(--panel-card);
 }
-.toolbar h1 { font-size: 18px; margin: 0 auto 0 0; }
+.toolbar h1 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 auto 0 0;
+}
+.toolbar input[type='search'],
+.toolbar input[type='number'] {
+  font: inherit;
+  padding: 5px 8px;
+  border: 1px solid var(--brand-border);
+  border-radius: 6px;
+  background: var(--panel-card);
+}
 .toolbar input[type='search'] { width: 260px; }
 .toolbar input[type='number'] { width: 70px; }
 
+/* Sync is the one primary action in the header. */
+.toolbar .sync button {
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.toolbar .sync button:hover:not(:disabled) { background: var(--orange-dark); }
+.toolbar .sync button:disabled { opacity: 0.6; cursor: default; }
+
+/* Export all, Export JSON and Restore JSON: one quiet secondary cluster. */
+.toolbar .export-all button,
+.toolbar > button {
+  padding: 6px 10px;
+  border: 1px solid var(--brand-border);
+  border-radius: 6px;
+  background: var(--brand-stone);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.toolbar .export-all button:hover,
+.toolbar > button:hover { background: var(--brand-tag-bg); }
+
+.toolbar .notice { font-size: 11px; color: var(--brand-muted); }
+.toolbar .notice.error { color: #b00; }
+
 .layout {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
-  height: calc(100vh - var(--toolbar-height));
 }
 .layout.with-panel { grid-template-columns: 1fr var(--panel-width); }
 
@@ -65,17 +124,26 @@ body {
   gap: 12px;
   padding: 12px;
   overflow: auto;
+  min-height: 0;
 }
 .column {
-  background: var(--col);
+  background: var(--brand-stone);
+  border: 1px solid var(--brand-border);
   border-radius: 8px;
-  padding: 8px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
-.column h2 { font-size: 14px; margin: 4px 4px 8px; }
-.column .count { color: var(--muted); font-weight: normal; }
+.column h2 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-muted);
+  margin: 4px 6px 10px;
+}
+.column .count { color: var(--brand-muted); font-weight: normal; }
 .column .cards {
   display: flex;
   flex-direction: column;
@@ -87,33 +155,49 @@ body {
 .column.over { outline: 2px dashed var(--accent); }
 
 .card {
-  background: var(--card);
-  border-radius: 6px;
-  padding: 10px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  background: var(--panel-card);
+  border: 1px solid var(--brand-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   cursor: pointer;
 }
+.card:hover { border-color: rgba(255, 103, 25, 0.35); }
 .card.selected { outline: 2px solid var(--accent); }
 .card.dragging { opacity: 0.5; }
-.card .title { font-size: 14px; margin: 0 0 4px; }
+.card .title {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
 .card .pub,
 .card .row,
-.card .status { font-size: 12px; color: var(--muted); margin: 2px 0; }
+.card .status { font-size: 11px; color: var(--brand-muted); margin: 2px 0; }
+.card .pub { font-weight: 500; }
 .card .status:empty { display: none; }
-/* Not var(--muted): the card face reads as quiet metadata, and a warning that
-   matches it is a warning nobody sees. Same red as .notice.error. */
-.card .warning { font-size: 12px; color: #b00; margin: 4px 0 0; }
+/* Not the muted metadata colour: the card face reads as quiet grey, and a
+   warning that matches it is a warning nobody sees. Same red as .notice.error. */
+.card .warning { font-size: 11px; color: #b00; margin: 4px 0 0; }
 
 .panel {
-  border-left: 1px solid #ddd;
-  background: #fff;
+  border-left: 1px solid var(--brand-border);
+  background: var(--panel-card);
   padding: 16px;
   overflow: auto;
   position: relative;
 }
-.panel .close { position: absolute; top: 8px; right: 8px; }
+.panel .close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--brand-muted);
+  font-size: 18px;
+  line-height: 1;
+}
 .panel h2 { font-size: 16px; margin: 0 24px 4px 0; }
-.panel .meta { color: var(--muted); font-size: 12px; word-break: break-all; }
+.panel .meta { color: var(--brand-muted); font-size: 12px; word-break: break-all; }
 .panel textarea { width: 100%; font: inherit; resize: vertical; }
 .panel li,
 .reading li { font-size: 13px; margin-bottom: 12px; }
@@ -208,34 +292,67 @@ body {
 .tags input { width: 100%; font: inherit; font-size: 12px; }
 
 /*
- * The board's tag filter.
+ * The board's tag filter, now a row of its own under the toolbar.
  *
- * A scrolling strip inside the existing toolbar row, NOT a second row.
- * `.toolbar` has a fixed `height: var(--toolbar-height)` and `.layout` is sized
- * `calc(100vh - var(--toolbar-height))`, so a toolbar that grows does not push
- * the board down: it pushes the bottom of the board off the screen.
+ * It wraps to more lines as tags are added, and past `max-height` it scrolls
+ * inside itself. Because the row sizes to its content in the `.board-root`
+ * column, a taller row shrinks the board area rather than pushing the board
+ * bottom off the screen, which is what the old in-toolbar strip guarded against.
  */
 .tag-filter {
+  flex: 0 0 auto;
   display: flex;
-  gap: 4px;
-  flex: 0 1 auto;
-  max-width: 40%;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--brand-border);
+  background: var(--panel-card);
+  max-height: 28vh;
+  overflow-y: auto;
+}
+.tag-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 4px;
+  color: var(--brand-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tag-filter-icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
 }
 .tag-filter .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--brand-border);
+  border-radius: 999px;
+  background: var(--brand-stone);
+  color: var(--ink);
   font-size: 12px;
-  padding: 2px 8px;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  background: #fff;
-  cursor: pointer;
+  line-height: 1.4;
   white-space: nowrap;
+  cursor: pointer;
 }
+.tag-filter .tag:hover { border-color: rgba(255, 103, 25, 0.5); }
 .tag-filter .tag.on {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
 }
+.tag-filter .tag-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--brand-muted);
+}
+.tag-filter .tag.on .tag-count { color: rgba(255, 255, 255, 0.85); }
 
 .export-all {
   display: inline-flex;
@@ -274,6 +391,14 @@ body {
 .section-head .count { margin-left: 6px; }
 /* ExportButton no longer carries a paragraph of its own. Keep the board's. */
 .panel .export-row { margin: 12px 0; }
+
+/* One orange focus ring across the board, mirroring the panel's own. Scoped to
+   `.board-root` so it cannot reach `.reading`. dnd-kit gives each card a
+   `tabindex`, so the ring covers the tiles too. */
+.board-root :is(a, button, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 
 /* ==========================================================================
  * The side panel.
