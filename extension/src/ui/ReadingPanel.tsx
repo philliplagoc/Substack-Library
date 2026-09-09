@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { nanoid } from 'nanoid';
 import { browser } from 'wxt/browser';
@@ -12,6 +12,7 @@ import {
 } from '../messages';
 import CardEditor from './CardEditor';
 import ExportButton from './ExportButton';
+import { ArrowRightIcon, CheckIcon, PlusIcon } from './icons';
 
 /**
  * Follow the state the background writes on each toolbar click.
@@ -56,6 +57,25 @@ const OUTCOME_TEXT: Record<PanelState['outcome'], string> = {
   rejected: "Couldn't read this page as a Substack article.",
 };
 
+/**
+ * Two outcomes are good news and one is not, and the banner should say which
+ * before the reader has read a word of it.
+ */
+const OUTCOME_TONE: Record<PanelState['outcome'], 'ok' | 'warn'> = {
+  added: 'ok',
+  updated: 'ok',
+  rejected: 'warn',
+};
+
+/** The panel's frame. Every state wears it, so an empty panel still looks made. */
+function Shell({ children }: { children: ReactNode }) {
+  return (
+    <div className="reading">
+      <div className="reading-body">{children}</div>
+    </div>
+  );
+}
+
 export default function ReadingPanel() {
   const panel = usePanelState();
   const card = useLiveQuery(
@@ -64,26 +84,34 @@ export default function ReadingPanel() {
   );
   const [captureError, setCaptureError] = useState<string | null>(null);
 
-  if (panel === undefined) return <p className="notice">Loading…</p>;
+  if (panel === undefined) {
+    return (
+      <Shell>
+        <p className="empty">Loading…</p>
+      </Shell>
+    );
+  }
 
   if (panel === null) {
     return (
-      <p className="notice">
-        Open a Substack article and click the Substack Library toolbar button.
-      </p>
+      <Shell>
+        <p className="empty">
+          Open a Substack article and click the Substack Library toolbar button.
+        </p>
+      </Shell>
     );
   }
 
   if (!card) {
     return (
-      <div className="reading">
-        <p className="notice error">{OUTCOME_TEXT[panel.outcome]}</p>
+      <Shell>
+        <p className="banner warn">{OUTCOME_TEXT[panel.outcome]}</p>
         {panel.notices.map((n) => (
-          <p className="notice" key={n}>
+          <p className="banner warn" key={n}>
             {n}
           </p>
         ))}
-      </div>
+      </Shell>
     );
   }
 
@@ -108,33 +136,51 @@ export default function ReadingPanel() {
 
   return (
     <div className="reading">
-      <p className="notice">{OUTCOME_TEXT[panel.outcome]}</p>
-      {panel.notices.map((n) => (
-        <p className="notice" key={n}>
-          {n}
+      <div className="reading-body">
+        <p className={`banner ${OUTCOME_TONE[panel.outcome]}`}>
+          {OUTCOME_TONE[panel.outcome] === 'ok' ? <CheckIcon className="section-icon" /> : null}
+          <span>{OUTCOME_TEXT[panel.outcome]}</span>
         </p>
-      ))}
+        {panel.notices.map((n) => (
+          <p className="banner warn" key={n}>
+            {n}
+          </p>
+        ))}
 
-      <CardEditor
-        card={card}
-        footer={
-          <>
-            <p>
-              <button onClick={() => void captureQuote()}>Capture quote</button>{' '}
-              <button
-                onClick={() =>
-                  void browser.runtime.sendMessage({ type: 'open-board' } satisfies PanelMessage)
-                }
-              >
-                Open the board
+        <CardEditor
+          card={card}
+          quotesAction={
+            /*
+             * Capture and the message it may return, together. The button moved
+             * from the footer into the Quotes heading, and an error about a
+             * failed capture belongs where the reader just clicked, not at the
+             * far end of a scrolling panel.
+             */
+            <span className="capture">
+              <button className="capture-quote" onClick={() => void captureQuote()}>
+                <PlusIcon className="section-icon" />
+                <span>Capture</span>
               </button>
-            </p>
-            {captureError ? <p className="notice error">{captureError}</p> : null}
+              {captureError ? <span className="notice error">{captureError}</span> : null}
+            </span>
+          }
+        />
+      </div>
 
-            <ExportButton key={card.id} card={card} />
-          </>
-        }
-      />
+      <footer className="reading-footer">
+        <div className="footer-actions">
+          <ExportButton key={card.id} card={card} />
+          <button
+            className="open-board"
+            onClick={() =>
+              void browser.runtime.sendMessage({ type: 'open-board' } satisfies PanelMessage)
+            }
+          >
+            <span>Open the board</span>
+            <ArrowRightIcon className="section-icon" />
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }
