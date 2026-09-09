@@ -303,58 +303,60 @@ Reload the extension first: this milestone changes the Dexie schema to version
 
 ### Removing a quote
 
-- [ ] Capture three quotes and write a different comment on each. Remove the
+- [x] Capture three quotes and write a different comment on each. Remove the
       first; the other two keep their own comments.
-- [ ] Remove a quote and cancel the confirmation; nothing is removed.
-- [ ] Remove the only quote on a card; the panel shows "No quotes yet."
-- [ ] Remove a quote in the side panel while the board's detail panel shows the
+- [x] Remove a quote and cancel the confirmation; nothing is removed.
+- [x] Remove the only quote on a card; the panel shows "No quotes yet."
+- [x] Remove a quote in the side panel while the board's detail panel shows the
       same card; the board updates without a refresh.
 
 ### The saved indicator
 
-- [ ] Type in Notes and stop. "Saving…" appears, becomes "✓ Saved", and goes
+- [x] Type in Notes and stop. "Saving…" appears, becomes "✓ Saved", and goes
       away after about two seconds.
-- [ ] Type in a quote comment; the same indicator runs, next to the title.
-- [ ] Type continuously for ten seconds; the indicator stays on "Saving…" and
+- [x] Type in a quote comment; the same indicator runs, next to the title.
+- [x] Type continuously for ten seconds; the indicator stays on "Saving…" and
       does not flicker between states on every keystroke.
-- [ ] Open the panel and touch nothing; no indicator is shown.
-- [ ] Type a comment, then reopen the card; the comment is there.
+- [x] Open the panel and touch nothing; no indicator is shown.
+- [x] Type a comment, then reopen the card; the comment is there.
+- [x] Open the same card in the side panel and the board's detail panel. Type a
+      comment in one; the other shows it and does not revert it.
 
 ### No button moves a card
 
-- [ ] The side panel has no To Read / Reading / Processed buttons.
-- [ ] Export a card from the side panel; no "Move to Processed?" offer appears.
-- [ ] Export a card from the board's detail panel; same.
-- [ ] Drag a card from To Read to Reading on the board; it moves and stays there
+- [x] The side panel has no To Read / Reading / Processed buttons.
+- [x] Export a card from the side panel; no "Move to Processed?" offer appears.
+- [x] Export a card from the board's detail panel; same.
+- [x] Drag a card from To Read to Reading on the board; it moves and stays there
       after a refresh.
 
 ### Textarea resize
 
-- [ ] Drag the corner of the Notes box in the side panel; it grows and shrinks
+- [x] Drag the corner of the Notes box in the side panel; it grows and shrinks
       vertically only.
-- [ ] Same for a quote comment box.
-- [ ] Same for both boxes in the board's detail panel.
+- [x] Same for a quote comment box.
+- [x] Same for both boxes in the board's detail panel.
 
 ### Export format
 
-- [ ] Export a card with notes and quotes; the file has `## Notes` above
+- [x] Export a card with notes and quotes; the file has `## Notes` above
       `## Quotes`.
-- [ ] Export a card with quotes and no notes; there is no `## Notes` heading.
-- [ ] Export a card with notes and no quotes; there is no `## Quotes` heading.
-- [ ] Export all; each card has `#### Notes` and `#### Quotes` under its `###`
+- [x] Export a card with quotes and no notes; there is no `## Notes` heading.
+- [x] Export a card with notes and no quotes; there is no `## Quotes` heading.
+- [x] Export all; each card has `#### Notes` and `#### Quotes` under its `###`
       title.
-- [ ] Open both files in Obsidian; the frontmatter parses and the headings nest.
+- [x] Open both files in Obsidian; the frontmatter parses and the headings nest.
 
 ### No quote location label
 
-- [ ] Open a card with quotes while its article tab is closed; no quote shows
+- [x] Open a card with quotes while its article tab is closed; no quote shows
       "location unavailable".
-- [ ] Capture a quote, close the article tab, refresh the board, and reopen the
+- [x] Capture a quote, close the article tab, refresh the board, and reopen the
       card; still no label.
-- [ ] An exported file contains no "location no longer resolves" line.
+- [x] An exported file contains no "location no longer resolves" line.
 
 ### Already done in Milestone 4, verified against this build
 
-- [ ] Build with `npm run build`, reload the unpacked extension from
+- [x] Build with `npm run build`, reload the unpacked extension from
       `extension/.output/chrome-mv3`, and open the board's detail panel. There
       is no Substack heading and no Liked / Commented / Unsaved checkbox.
