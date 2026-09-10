@@ -7,6 +7,12 @@ the article on its own page. When you finish, you export your notes and quotes a
 Markdown, either as a download or straight into an Obsidian vault. It turns a pile
 of open tabs into one queue you work through.
 
+## Demo
+
+<video src="https://github.com/philliplagoc/Substack-Library/raw/main/screenshots/demo.mp4" controls muted playsinline width="100%"></video>
+
+[Watch the demo](screenshots/demo.mp4) if the player above does not load.
+
 ![The triage board](screenshots/board.png)
 
 ![The reading panel beside an article](screenshots/side-panel.png)
