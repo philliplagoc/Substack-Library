@@ -1,32 +1,25 @@
 # Substack Library
 
-Substack-Library is a local-first Chrome and Edge extension for a deliberate
-Substack reading workflow. You capture articles from any device, triage them on a
-three-column board, then read them one at a time with a notes panel docked beside
-the article on its own page. When you finish, you export your notes and quotes as
-Markdown, either as a download or straight into an Obsidian vault. It turns a pile
-of open tabs into one queue you work through.
+Substack Library is a local-first Chrome extension to help you track and take notes on what you have saved on Substack.
+
+## What it does
+
+- Sync your existing saved Articles. It reads the title, author, publication.
+- Track your reading progress on a Kanban Board.
+- Take notes in a side panel docked beside the article on its own page.
+- Select text to keep it as a quote, and comment on the quotes.
+- Export your notes as Markdown.
+- Backup your Substack Library as a JSON so you can resume your reading on other devices.
 
 ## Demo
 
 <video src="https://github.com/philliplagoc/Substack-Library/raw/main/screenshots/demo.mp4" controls muted playsinline width="100%"></video>
 
-[Watch the demo](screenshots/demo.mp4) if the player above does not load.
+[Watch the demo](screenshots/demo.mp4).
 
-![The triage board](screenshots/board.png)
+![The Kanban board](screenshots/board.png)
 
 ![The reading panel beside an article](screenshots/side-panel.png)
-
-## What it does
-
-- **Capture** an article from any Substack page (or a custom domain) with one
-  toolbar click. It reads the title, author, publication, and length, and makes
-  or refreshes a card. A paywalled article still makes a card and says so.
-- **Triage** cards on a three-column board: To Read, Reading, Processed.
-- **Take notes** in a side panel docked beside the article on its own page.
-  Select text to keep it as a quote, and comment on the quotes.
-- **Export** a card as Markdown: a versioned download that never overwrites an
-  earlier export. A full JSON backup and restore is on the board.
 
 Everything is stored locally in the browser (IndexedDB). There is no account and
 no server.
@@ -68,12 +61,10 @@ extension/
     ui/            shared React components
 ```
 
-## Status
+## Upcoming Features
 
-Early. Capture, the board, side-panel notes, quotes, Markdown export, and JSON
-backup all work. Not built yet: writing exports straight into an Obsidian vault,
-syncing with Substack's native Save/Unsave, and importing an existing backlog.
+- [ ] Importing articles into the Board using a URL.
+- [ ] Writing exports straight into an Obsidian vault.
 
 ## License
-
 MIT. See [LICENSE](LICENSE).
