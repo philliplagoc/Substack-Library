@@ -2924,3 +2924,48 @@ cannot even be picked up.
 Moving every decision into `panelView()`, a plain function over plain data in a
 `.ts` file, put nine tests over the logic with no new dependency and no config
 change. `ReadingPanel` was left rendering a switch.
+
+## 2026-09-10 - Give the extension a real icon
+
+### How can I change the icon of the extension?
+
+The old icon was a grey square with an "S" on it. The browser makes that one for
+you when an extension ships no icon of its own. It uses the first letter of the
+extension name, and "Substack Library" starts with "S".
+
+To set a real icon, add image files. This project builds with WXT. WXT looks in
+`extension/public/` for picture files whose name is a number, and it turns those
+into the icon.
+
+The name has to be the number and nothing else. WXT tests each file against a
+short list of patterns. The one that allows a folder is:
+
+    /^icons?[/\\]([0-9]+)\.png$/
+
+`icon/16.png` matches. `icon/icon_16.png` fails. The seven files arrived as
+`icon_16.png` through `icon_512.png`, so WXT skipped all of them and the
+manifest kept no icon.
+
+I renamed them:
+
+| From | To |
+| --- | --- |
+| `icon_16.png`  | `16.png` |
+| `icon_24.png`  | `24.png` |
+| `icon_32.png`  | `32.png` |
+| `icon_64.png`  | `64.png` |
+| `icon_128.png` | `128.png` |
+| `icon_256.png` | `256.png` |
+| `icon_512.png` | `512.png` |
+
+After `npm run build`, WXT writes this into `.output/chrome-mv3/manifest.json`:
+
+    "icons": { "16": "icon/16.png", "24": "icon/24.png", ... }
+
+`wxt.config.ts` did not change. WXT builds the `icons` list from the files, and
+Chrome reads that same list for the toolbar button when the config sets no
+`action.default_icon`.
+
+Chrome takes the size it needs and shrinks a larger file to fit. It never scales
+a small one up. The set runs from 16 to 512, so every place the icon appears
+gets a sharp copy, and the seven files add about 16 KB.

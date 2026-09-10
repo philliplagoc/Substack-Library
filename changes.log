@@ -36,6 +36,12 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-09-10
+**The extension has a real icon now, pending a browser reload.** The developer
+dropped seven PNGs in `extension/public/icon/`; renaming them to `<size>.png`
+(16, 24, 32, 64, 128, 256, 512) is all WXT needs to discover them and write an
+`icons` block into the built manifest. No `wxt.config.ts` change. The "S"
+placeholder goes away once the unpacked build is reloaded.
+
 **The board toolbar was cleaned up, its buttons renamed, and the card
 reading-time removed; not yet checked by hand.** "Max minutes" is gone from the
 toolbar and from `CardFilter`, and the "N min" line is gone from the board card
@@ -83,8 +89,9 @@ LiveArticle)`.
 `npm run compile` is clean, `npm test` is 291 passing and 1 todo (four
 max-minutes tests removed, one rewritten as query + tags), and `npm run build`
 is green.
-**Next step: reload the unpacked extension and run the "2026-09-10: toolbar
-cleanup, tooltips, and 'Open the board' greying" section of
+**Next step: reload the unpacked extension. Confirm the toolbar button and the
+`chrome://extensions` card show the new icon, not the "S". Then run the
+"2026-09-10: toolbar cleanup, tooltips, and 'Open the board' greying" section of
 `extension/MANUAL-CHECKS.md`.** No test can see a tab focus change or a tooltip,
 so that section carries the whole change. The "Open the board never sleeps"
 boxes in the 2026-09-09 section are marked superseded in place; do not run them.
@@ -94,6 +101,33 @@ has run them yet.
 ---
 
 ## Entries
+
+### 2026-09-10 - Give the extension a real icon
+
+**What changed:** Renamed the seven PNGs the developer placed in
+`extension/public/icon/` from `icon_<n>.png` to `<n>.png` (16, 24, 32, 64, 128,
+256, 512). WXT now discovers them and writes an `icons` block into the built
+manifest.
+**Why:** With no `icons` in the manifest and no image files, Chrome drew a
+placeholder tile from the extension name's first letter ("S"). WXT's
+`discoverIcons` only matches `icon/<digits>.png`, so the `icon_` prefix meant
+every file was skipped. Renaming was the whole fix. `wxt.config.ts` was left
+alone: discovery fills `manifest.icons`, and Chrome uses that for the toolbar
+button when `action.default_icon` is absent.
+**Files:** `extension/public/icon/16.png` .. `512.png` (renamed, now tracked).
+**Verification:** `npm run build` green with no "No icons detected" warning;
+`.output/chrome-mv3/manifest.json` carries
+`"icons":{"16":"icon/16.png", ... ,"512":"icon/512.png"}` and the seven files
+land in `.output/chrome-mv3/icon/`. `npm test` 291 pass, 1 todo. Not yet loaded
+in a browser.
+**State after:** The build produces an icon-bearing manifest. The toolbar button
+and the `chrome://extensions` card will show the new art once the unpacked
+extension is reloaded.
+**Next up:** Reload the unpacked `extension/.output/chrome-mv3` and confirm the
+toolbar button and the extensions-page card show the icon, not the "S".
+**Open questions:** none. No 48 px file ships; Chrome scales one down from
+`64.png`. If this extension ever goes to the Chrome Web Store, confirm the
+icon's licence allows redistribution.
 
 ### 2026-09-10 - Toolbar cleanup, clearer button labels, "Open the board" greying, card reading-time removed
 
