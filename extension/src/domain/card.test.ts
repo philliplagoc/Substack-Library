@@ -60,7 +60,7 @@ describe('createCard', () => {
 });
 
 describe('visibleCards', () => {
-  const noFilter = { query: '', maxMinutes: null, tags: [] };
+  const noFilter = { query: '', tags: [] };
 
   test('returns every card when nothing is filtered', () => {
     const cards = [makeCard(), makeCard()];
@@ -72,7 +72,7 @@ describe('visibleCards', () => {
       makeCard({ id: 'a', title: 'Great Questions' }),
       makeCard({ id: 'b', title: 'Slow Reading' }),
     ];
-    expect(visibleCards(cards, { query: 'question', maxMinutes: null, tags: [] }).map((c) => c.id)).toEqual(['a']);
+    expect(visibleCards(cards, { query: 'question', tags: [] }).map((c) => c.id)).toEqual(['a']);
   });
 
   test('matches the author', () => {
@@ -80,7 +80,7 @@ describe('visibleCards', () => {
       makeCard({ id: 'a', author: 'A. Writer' }),
       makeCard({ id: 'b', author: 'B. Essayist' }),
     ];
-    expect(visibleCards(cards, { query: 'essayist', maxMinutes: null, tags: [] }).map((c) => c.id)).toEqual(['b']);
+    expect(visibleCards(cards, { query: 'essayist', tags: [] }).map((c) => c.id)).toEqual(['b']);
   });
 
   test('matches the publication', () => {
@@ -88,43 +88,12 @@ describe('visibleCards', () => {
       makeCard({ id: 'a', publication: 'Alpha Notes' }),
       makeCard({ id: 'b', publication: 'Beta Letters' }),
     ];
-    expect(visibleCards(cards, { query: 'beta', maxMinutes: null, tags: [] }).map((c) => c.id)).toEqual(['b']);
+    expect(visibleCards(cards, { query: 'beta', tags: [] }).map((c) => c.id)).toEqual(['b']);
   });
 
   test('ignores surrounding whitespace in the query', () => {
     const cards = [makeCard({ id: 'a', title: 'Great Questions' })];
-    expect(visibleCards(cards, { query: '  questions  ', maxMinutes: null, tags: [] })).toHaveLength(1);
-  });
-
-  test('keeps cards at or under the maximum', () => {
-    const cards = [
-      makeCard({ id: 'a', estimatedReadingMinutes: 5 }),
-      makeCard({ id: 'b', estimatedReadingMinutes: 10 }),
-      makeCard({ id: 'c', estimatedReadingMinutes: 11 }),
-    ];
-    expect(visibleCards(cards, { query: '', maxMinutes: 10, tags: [] }).map((c) => c.id)).toEqual(['a', 'b']);
-  });
-
-  test('HIDES a card with no estimate when a maximum is set', () => {
-    const cards = [
-      makeCard({ id: 'a', estimatedReadingMinutes: 5 }),
-      makeCard({ id: 'b', estimatedReadingMinutes: undefined }),
-    ];
-    expect(visibleCards(cards, { query: '', maxMinutes: 10, tags: [] }).map((c) => c.id)).toEqual(['a']);
-  });
-
-  test('shows a card with no estimate when no maximum is set', () => {
-    const cards = [makeCard({ id: 'b', estimatedReadingMinutes: undefined })];
-    expect(visibleCards(cards, noFilter)).toHaveLength(1);
-  });
-
-  test('applies the search and the maximum together', () => {
-    const cards = [
-      makeCard({ id: 'a', title: 'Great Questions', estimatedReadingMinutes: 5 }),
-      makeCard({ id: 'b', title: 'Great Questions', estimatedReadingMinutes: 40 }),
-      makeCard({ id: 'c', title: 'Slow Reading', estimatedReadingMinutes: 5 }),
-    ];
-    expect(visibleCards(cards, { query: 'questions', maxMinutes: 10, tags: [] }).map((c) => c.id)).toEqual(['a']);
+    expect(visibleCards(cards, { query: '  questions  ', tags: [] })).toHaveLength(1);
   });
 
   test('keeps the order it was given', () => {
@@ -142,7 +111,7 @@ describe('visibleCards', () => {
       makeCard({ id: 'b', tags: ['economics'] }),
     ];
     expect(
-      visibleCards(cards, { query: '', maxMinutes: null, tags: ['ai'] }).map((c) => c.id),
+      visibleCards(cards, { query: '', tags: ['ai'] }).map((c) => c.id),
     ).toEqual(['a']);
   });
 
@@ -153,7 +122,7 @@ describe('visibleCards', () => {
       makeCard({ id: 'other', tags: ['economics'] }),
     ];
     expect(
-      visibleCards(cards, { query: '', maxMinutes: null, tags: ['ai', 'economics'] }).map(
+      visibleCards(cards, { query: '', tags: ['ai', 'economics'] }).map(
         (c) => c.id,
       ),
     ).toEqual(['both']);
@@ -161,24 +130,24 @@ describe('visibleCards', () => {
 
   test('an empty tag list filters nothing', () => {
     const cards = [makeCard({ tags: [] }), makeCard({ tags: ['ai'] })];
-    expect(visibleCards(cards, { query: '', maxMinutes: null, tags: [] })).toHaveLength(2);
+    expect(visibleCards(cards, { query: '', tags: [] })).toHaveLength(2);
   });
 
-  test('combines with the query and the maximum', () => {
+  test('combines the query and the tag filter', () => {
     const cards = [
-      makeCard({ id: 'a', title: 'Great Questions', tags: ['ai'], estimatedReadingMinutes: 5 }),
-      makeCard({ id: 'b', title: 'Great Questions', tags: ['ai'], estimatedReadingMinutes: 30 }),
-      makeCard({ id: 'c', title: 'Slow Reading', tags: ['ai'], estimatedReadingMinutes: 5 }),
+      makeCard({ id: 'a', title: 'Great Questions', tags: ['ai'] }),
+      makeCard({ id: 'b', title: 'Great Questions', tags: ['economics'] }),
+      makeCard({ id: 'c', title: 'Slow Reading', tags: ['ai'] }),
     ];
     expect(
-      visibleCards(cards, { query: 'questions', maxMinutes: 10, tags: ['ai'] }).map((c) => c.id),
+      visibleCards(cards, { query: 'questions', tags: ['ai'] }).map((c) => c.id),
     ).toEqual(['a']);
   });
 
   test('excludes a card whose tags field is missing rather than throwing', () => {
     const card = makeCard({ id: 'a' });
     delete (card as { tags?: string[] }).tags;
-    expect(visibleCards([card], { query: '', maxMinutes: null, tags: ['ai'] })).toEqual([]);
+    expect(visibleCards([card], { query: '', tags: ['ai'] })).toEqual([]);
   });
 });
 

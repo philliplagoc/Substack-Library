@@ -15,7 +15,7 @@ import { useOwnTab } from './useOwnTab';
 export default function App() {
   const cards = useLiveQuery(() => allCards(), []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<CardFilter>({ query: '', maxMinutes: null, tags: [] });
+  const [filter, setFilter] = useState<CardFilter>({ query: '', tags: [] });
   const [panelError, setPanelError] = useState<string | null>(null);
   const ownTab = useOwnTab();
 

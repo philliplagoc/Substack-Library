@@ -23,13 +23,11 @@ export interface CardSeed {
 
 export interface CardFilter {
   query: string;
-  /** null means no maximum. */
-  maxMinutes: number | null;
   /**
    * Empty means no tag filter. A card must carry EVERY tag listed, not any of
-   * them: each click on the filter row narrows, the way the query and the
-   * maximum do. A row where one control widens while its neighbours narrow is a
-   * row that has to be explained.
+   * them: each click on the filter row narrows, the way the query does. A row
+   * where one control widens while its neighbours narrow is a row that has to
+   * be explained.
    */
   tags: string[];
 }
@@ -39,16 +37,11 @@ export interface CardFilter {
  */
 export function visibleCards(cards: Card[], filter: CardFilter): Card[] {
  const query = filter.query.trim().toLowerCase();
- const max = filter.maxMinutes;
 
  return cards.filter((card) => {
   if (query) {
     const haystack = `${card.title} ${card.author} ${card.publication}`.toLowerCase();
     if (!haystack.includes(query)) return false;
-  }
-  if (max != null) {
-    if (card.estimatedReadingMinutes == null) return false;
-    if (card.estimatedReadingMinutes > max) return false;
   }
   if (filter.tags.length > 0) {
     // `?? []` because a card restored from a hand-edited backup can be missing

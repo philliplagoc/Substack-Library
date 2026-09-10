@@ -44,8 +44,18 @@ export default function BackupControls() {
 
   return (
     <>
-      <button onClick={handleExport}>Export JSON</button>
-      <button onClick={() => fileInput.current?.click()}>Restore JSON</button>
+      <button
+        onClick={handleExport}
+        title="Download every card as a JSON file you can restore later."
+      >
+        Back Up Library
+      </button>
+      <button
+        onClick={() => fileInput.current?.click()}
+        title="Load a JSON backup file. Existing cards with the same link are overwritten; cards not in the file are kept."
+      >
+        Restore Backup
+      </button>
       <input
         ref={fileInput}
         type="file"

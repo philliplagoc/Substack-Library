@@ -63,12 +63,9 @@ Restore the backup from step 1 when you are done.
 
 ## Board
 
-- [x] Card faces show title, publication and author, and minutes.
-      No saved date is shown.
+- [x] Card faces show title, publication and author. No saved date is shown,
+      and no reading-time estimate.
 - [x] Search narrows the board.
-- [x] Max minutes of 10 hides a 40-minute card.
-- [x] Max minutes of 10 also hides a card with no estimate.
-- [x] Clearing Max minutes shows the no-estimate card again.
 
 ## Drag and drop
 
@@ -218,7 +215,7 @@ Chrome may show it as newly requested or disable the extension until it is
 
 accepted.
 
-- [x] Click **Sync Saved** on the board. A Substack Saved tab opens, visibly scrolls to the bottom, and the board reports counts.
+- [x] Click **Import Saved Articles** on the board. A Substack Saved tab opens, visibly scrolls to the bottom, and the board reports counts.
 
 - [x] The reported total matches the number of entries visible on the page after the scroll finishes.
 - [x] New saved articles arrive as cards in To Read with a title, publication, author, and a reading estimate.
@@ -434,16 +431,18 @@ The behaviours below are listed again here and checked against the new build.
 - [ ] Open the board. It sits on the same parchment as the side panel. Columns
       are pale warm panels with a hairline border; cards are white with a
       hairline border and a soft shadow.
-- [ ] Card faces show the title, `publication · author`, the minutes line, and
-      the `notes · N quotes · exported vN` line, and nothing else. No tag chips,
-      no quote preview, no "Open Panel" link.
+- [ ] Card faces show the title, `publication · author`, and the
+      `notes · N quotes · exported vN` line, and nothing else. No reading-time
+      line, no tag chips, no quote preview, no "Open Panel" link. (A watch or
+      listen card also shows its medium word.)
 - [ ] Card titles and column headers are in the system sans, not a serif.
 - [ ] Column headers read `TO READ (26)` and the like: uppercase, muted, no
       dot, no badge, no subtitle, no rule over the Reading column.
-- [ ] In the header, Sync Saved is the solid orange button; Export all,
-      Export JSON and Restore JSON are a quiet hairline-bordered cluster.
-- [ ] No "Studio" pill, no "essays saved" statistics line, no ⌘K hint. The
-      number field still reads "Max minutes".
+- [ ] In the header, Import Saved Articles is the solid orange button;
+      Export Notes, Back Up Library and Restore Backup are a quiet
+      hairline-bordered cluster.
+- [ ] No "Studio" pill, no "essays saved" statistics line, no ⌘K hint. There is
+      no "Max minutes" field.
 
 ### The tag row
 
@@ -468,17 +467,15 @@ The behaviours below are listed again here and checked against the new build.
 ### Behaviour unchanged
 
 - [ ] Search narrows the board.
-- [ ] Max minutes of 10 hides a 40-minute card and a card with no estimate.
-      Clearing it brings the no-estimate card back.
 - [ ] Click one tag: only cards carrying it remain. Click a second: only cards
       carrying both. Click a selected tag: it clears.
 - [ ] Drag a card between columns and within a column; reload; it holds.
       Keyboard drag (Tab, Space, arrows, Space) still moves a card.
 - [ ] Click a card: Chrome's side panel opens on it. Notes, quotes, tags,
       export and delete all work.
-- [ ] Export all, Export JSON and Restore JSON all still work and report their
-      counts.
-- [ ] Sync Saved still runs and reports.
+- [ ] Export Notes, Back Up Library and Restore Backup all still work and report
+      their counts.
+- [ ] Import Saved Articles still runs and reports.
 
 ### The side panel is unchanged
 
@@ -593,6 +590,9 @@ building: the manifest changed, and Chrome will not notice a new
 
 ### Open the board never sleeps
 
+> Superseded on 2026-09-10. The button greys again, but only while the board is
+> the focused tab, not merely open. Run the "2026-09-10" section below instead.
+
 - [ ] With no board tab open, the footer's "Open the board" is orange. Click it.
       A board tab opens.
 - [ ] With that board still open, click "Open the board" again. The existing
@@ -643,3 +643,50 @@ Use a publication whose articles you have never granted, and check
 - [ ] Find or make a card whose URL is not http or https. Its panel shows
       Capture grey with "Open the article first." and no "Allow on" button.
       There is no origin to ask for.
+
+## 2026-09-10: toolbar cleanup, tooltips, and "Open the board" greying
+
+Run against a freshly built and reloaded extension.
+
+### Max minutes and the card reading-time are gone
+
+- [ ] The board header has a search box and nothing else where "Max minutes"
+      used to be. Search still narrows the board and still composes with the tag
+      row and Export Notes.
+- [ ] No card face shows an "N min" / "— min" line. A watch or listen card
+      still shows its medium word; an article card shows no such line at all.
+- [ ] A card exported to Markdown still carries its `reading_minutes` when one
+      was found, and the side panel editor header still shows "N min read".
+
+### The renamed toolbar buttons
+
+- [ ] The orange primary button reads "Import Saved Articles". Click it:
+      a Substack Saved tab opens, scrolls, and the board reports counts. While it
+      runs the label reads "Importing…".
+- [ ] The secondary cluster reads "Export Notes", "Back Up Library",
+      "Restore Backup".
+- [ ] Export Notes downloads the filtered board as one Markdown file. Back Up
+      Library downloads every card as JSON. Restore Backup opens a file picker
+      and, on a valid file, asks to confirm before it writes.
+- [ ] The header still fits: with a narrow window the cluster wraps to a second
+      line rather than spilling off the edge. No horizontal page scrollbar.
+
+### Tooltips
+
+- [ ] Hover each of the four toolbar buttons. After a moment a native tooltip
+      appears describing what the button does.
+- [ ] Hover Export Notes with the board filtered to nothing. The tooltip reads
+      "No cards to export." and the button is disabled.
+
+### Open the board greys only on the board
+
+- [ ] Open a Substack article, click the toolbar button. With the article tab
+      focused, the panel's "Open the board" is orange. Click it; a board tab
+      opens or is focused.
+- [ ] Click a card on the board. The panel opens and, because the board is now
+      the focused tab, "Open the board" is grey and unclickable. Hovering it
+      says "You're on the board."
+- [ ] Switch to any other tab in that window. "Open the board" turns orange
+      again within a moment, with no panel reload.
+- [ ] Close the board tab. "Open the board" is orange, and a click opens a new
+      board tab.

@@ -7,11 +7,11 @@
  * The `readable` flag is the only honest signal, and the parent spec says the
  * field "stays blank when only a preview is readable".
  *
- * Returning `undefined` rather than 0 is load-bearing twice over. `mergeCard`
- * folds this in with `??`, so `undefined` leaves an estimate an earlier
- * capture already found; and `visibleCards` hides an unestimated card when a
- * max-minutes filter is set, which it should not do to a card estimated at
- * zero minutes.
+ * Returning `undefined` rather than 0 still matters. `mergeCard` folds this in
+ * with `??`, so `undefined` leaves an estimate an earlier capture already
+ * found; and the card face and the Markdown export print "— min" for
+ * `undefined` but "0 min" for 0, and a preview-only article is not a
+ * zero-minute read.
  */
 export function readingMinutes(
   wordCount: number | null,

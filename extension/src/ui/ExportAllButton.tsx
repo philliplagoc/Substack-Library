@@ -38,9 +38,13 @@ export default function ExportAllButton({ cards }: { cards: Card[] }) {
       <button
         onClick={handleClick}
         disabled={cards.length === 0}
-        title={cards.length === 0 ? 'No cards to export.' : undefined}
+        title={
+          cards.length === 0
+            ? 'No cards to export.'
+            : 'Download the cards you can see now as one Markdown file.'
+        }
       >
-        Export all
+        Export Notes
       </button>
       {notice ? (
         <span className={`notice${notice.error ? ' error' : ''}`}>{notice.text}</span>

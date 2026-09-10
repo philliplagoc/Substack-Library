@@ -17,21 +17,6 @@ export default function Toolbar({ filter, onFilterChange, children }: Props) {
         value={filter.query}
         onChange={(e) => onFilterChange({ ...filter, query: e.target.value })}
       />
-      <label>
-        Max minutes{' '}
-        <input
-          type="number"
-          min={0}
-          placeholder="any"
-          value={filter.maxMinutes ?? ''}
-          onChange={(e) =>
-            onFilterChange({
-              ...filter,
-              maxMinutes: e.target.value === '' ? null : Number(e.target.value),
-            })
-          }
-        />
-      </label>
       {children}
     </header>
   );

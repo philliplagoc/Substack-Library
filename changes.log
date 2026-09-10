@@ -35,7 +35,22 @@ Then update the "Current state" section to match.
 
 ## Current state
 
-**Date:** 2026-09-09
+**Date:** 2026-09-10
+**The board toolbar was cleaned up, its buttons renamed, and the card
+reading-time removed; not yet checked by hand.** "Max minutes" is gone from the
+toolbar and from `CardFilter`, and the "N min" line is gone from the board card
+face; `estimatedReadingMinutes` still flows through sync, Markdown, JSON, and
+the side panel editor header. The four toolbar buttons now read "Import Saved
+Articles", "Export Notes", "Back Up Library", "Restore Backup", each with a
+native `title` tooltip.
+"Open the board" in the side panel greys out again, but only while the board is
+the window's focused tab: `ui/useBoardFocused.ts` compares the focused tab's id
+to `BOARD_TAB_KEY` (a `tabs.query` from the panel returns an id but no url),
+re-checking on the same `tabs.*` events as `useLiveArticle` plus a
+`storage.onChanged` filter for the key. `ReadingPanel` feeds the result to the
+button's `disabled`. The background `open-board` path is untouched, so every
+other time the button is live.
+
 **Capture is gated on the FOCUSED tab, and it is verified by hand.**
 `useLiveArticle` reports `open` only when the window's focused tab shows the
 card's article, and carries that tab's id on `ask` and `closed` so
@@ -43,13 +58,6 @@ card's article, and carries that tab's id on `ask` and `closed` so
 `tabId` counts only while it is still focused. A background tab showing the
 article no longer enables Capture. `tabs.onActivated` is in the hook's
 listeners, so the button changes on a tab switch with no reload.
-
-Before that, the two side-panel buttons that would not wake up were fixed in
-code and NOT verified by hand. "Open the board" is never disabled: the background's
-`openBoard` focuses the board tab it already opened and creates one only when
-there is none, so the button always has somewhere to go. `ui/useBoardOpen.ts`
-is deleted and the panel no longer reads `BOARD_TAB_KEY` at all. The background
-still writes and clears that key, for its own focus-or-create decision.
 
 Capture is no longer decided by how the panel was opened. `ui/useLiveArticle.ts`
 asks whether the shown card's article is open in a tab this extension may read,
@@ -72,18 +80,72 @@ scrolling, so they are now `flex: none`. The board's own card panel is gone;
 every rendering decision as a pure function over `(PanelState, Card,
 LiveArticle)`.
 
-`npm run compile` is clean, `npm test` is 292 passing and 1 todo, and
-`npm run build` is green with `optional_host_permissions` in the built manifest.
-**Next step: reload the unpacked extension and run the "2026-09-09: two buttons
-that would not wake up" section of `extension/MANUAL-CHECKS.md`, then the
-"2026-09-09: one panel" section, whose gesture boxes are still unproven.** No
-test can see a permission dialog, a tab list, or a user gesture, so the manual
-sections carry the whole grant flow. The older "Open the board sleeps" boxes are
-marked superseded in place; do not run them.
+`npm run compile` is clean, `npm test` is 291 passing and 1 todo (four
+max-minutes tests removed, one rewritten as query + tags), and `npm run build`
+is green.
+**Next step: reload the unpacked extension and run the "2026-09-10: toolbar
+cleanup, tooltips, and 'Open the board' greying" section of
+`extension/MANUAL-CHECKS.md`.** No test can see a tab focus change or a tooltip,
+so that section carries the whole change. The "Open the board never sleeps"
+boxes in the 2026-09-09 section are marked superseded in place; do not run them.
+The 2026-09-09 Capture and one-panel gesture boxes are still unproven if nobody
+has run them yet.
 
 ---
 
 ## Entries
+
+### 2026-09-10 - Toolbar cleanup, clearer button labels, "Open the board" greying, card reading-time removed
+
+**What changed:** Removed the "Max minutes" filter from the board toolbar and
+`CardFilter`. Renamed the toolbar buttons: "Sync Saved" -> "Import Saved
+Articles", "Export all" -> "Export Notes", "Export JSON" -> "Back Up Library",
+"Restore JSON" -> "Restore Backup", each with a `title` tooltip that says what
+it does. "Open the board" in the side panel now greys out while the board is the
+focused tab of the window, via a new `ui/useBoardFocused.ts` hook built on the
+`useLiveArticle` pattern; every other time it stays live. The hook identifies
+the board tab by the id the background keeps in `BOARD_TAB_KEY`, because
+`tabs.query` gives the panel a tab id but withholds its url without the `"tabs"`
+permission. The background `open-board` plumbing is untouched. Also removed the
+reading-time line from the board card face (`CardTile`): it filled in
+unreliably and read as broken more often than it helped. A watch or listen card
+still shows its medium word on the face; `estimatedReadingMinutes` is untouched
+everywhere else (sync still records it, Markdown still emits `reading_minutes`,
+the side panel editor header still shows "N min read").
+**Why:** The three export/backup buttons read as one idea under three names, and
+nothing told the reader what any of them did. "Max minutes" crowded the toolbar
+and had a surprising rule (it also hid every card with no estimate). "Open the
+board" was left always-enabled on 2026-09-09 because a click was never wasted;
+that is still true except when the board is already in front of the reader,
+where an orange button promises a jump it cannot make. Rejected: removing the
+button, and a styled tooltip component (the codebase already uses native
+`title`).
+**Files:** `extension/src/ui/Toolbar.tsx`, `extension/src/ui/App.tsx`,
+`extension/src/domain/card.ts`, `extension/src/domain/card.test.ts`,
+`extension/src/domain/article.ts`, `extension/src/ui/useBoardFocused.ts` (new),
+`extension/src/ui/ReadingPanel.tsx`, `extension/src/messages.ts`,
+`extension/src/ui/SyncButton.tsx`, `extension/src/ui/ExportAllButton.tsx`,
+`extension/src/ui/BackupControls.tsx`, `extension/src/ui/CardTile.tsx`,
+`extension/src/ui/styles.css`, `extension/MANUAL-CHECKS.md`
+**Verification:** `npm run compile` - clean. `npm test` - 291 passed, 1 todo
+(four max-minutes tests removed, one rewritten as query + tags). `npm run build`
+- green. Not yet checked by hand.
+**State after:** The board toolbar has search, the tag row, and the four renamed
+buttons; no minutes field. Board card faces show no reading-time line.
+`estimatedReadingMinutes` still flows through sync, Markdown, JSON, and the side
+panel editor header. The side panel's "Open the board" is wired to
+`useBoardFocused`, which re-checks on `tabs.onActivated`/`onUpdated`/`onRemoved`/
+`onCreated` plus a `storage.onChanged` filter for `BOARD_TAB_KEY`. No hand check
+yet: no test can see a tab focus change or a tooltip.
+**Next up:** Reload the unpacked extension and run the "2026-09-10" section of
+`extension/MANUAL-CHECKS.md`.
+**Open questions:** `useBoardFocused` matches the focused tab's id against
+`BOARD_TAB_KEY`, which the background sets only for a board tab it opened. A
+board tab opened another way (a hand-typed URL, a session-restored tab after
+`storage.session` is cleared) is untracked; the url match is the only fallback
+there, and it works only if Chrome hands over the url. That edge leaves the
+button orange, as it always was. Like Capture, the hook does not listen for
+window-focus changes.
 
 ### 2026-09-09 - Capture follows the focused tab, not any open tab
 

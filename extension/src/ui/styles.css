@@ -55,6 +55,7 @@ body {
 .toolbar {
   flex: 0 0 auto;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
   padding: 12px 20px;
@@ -67,16 +68,14 @@ body {
   letter-spacing: -0.01em;
   margin: 0 auto 0 0;
 }
-.toolbar input[type='search'],
-.toolbar input[type='number'] {
+.toolbar input[type='search'] {
   font: inherit;
   padding: 5px 8px;
   border: 1px solid var(--brand-border);
   border-radius: 6px;
   background: var(--panel-card);
+  width: 260px;
 }
-.toolbar input[type='search'] { width: 260px; }
-.toolbar input[type='number'] { width: 70px; }
 
 /* Sync is the one primary action in the header. */
 .toolbar .sync button {
@@ -92,7 +91,7 @@ body {
 .toolbar .sync button:hover:not(:disabled) { background: var(--orange-dark); }
 .toolbar .sync button:disabled { opacity: 0.6; cursor: default; }
 
-/* Export all, Export JSON and Restore JSON: one quiet secondary cluster. */
+/* Export Notes, Back Up Library and Restore Backup: one quiet secondary cluster. */
 .toolbar .export-all button,
 .toolbar > button {
   padding: 6px 10px;

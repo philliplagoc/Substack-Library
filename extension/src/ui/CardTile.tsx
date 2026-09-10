@@ -35,14 +35,16 @@ export default function CardTile({ card, selected, onSelect }: Props) {
       <p className="pub">
         {[card.publication, card.author].filter(Boolean).join(' · ') || '—'}
       </p>
-      <p className="row">
-        <span>
-          {card.estimatedReadingMinutes != null ? `${card.estimatedReadingMinutes} min` : '— min'}
-          {/* Only a non-read medium is named. Every other card is an article,
-              and labelling all of them "read" would say nothing. */}
-          {card.medium && card.medium !== 'read' ? ` ${card.medium}` : ''}
-        </span>
-      </p>
+      {/* The reading-time estimate is gone from the card face: it filled in
+          unreliably and read as broken more often than it helped. Only a
+          non-read medium is still named, so an audio or video card does not
+          look like an article. Every other card is an article, and labelling
+          all of them "read" would say nothing. */}
+      {card.medium && card.medium !== 'read' ? (
+        <p className="row">
+          <span>{card.medium}</span>
+        </p>
+      ) : null}
       <p className="status">{statusLabel(card)}</p>
       {/* Written by applySync, which owns both the rule and the wording. The
           field is optional, so render nothing at all rather than an empty tag. */}

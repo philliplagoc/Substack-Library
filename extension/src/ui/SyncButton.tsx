@@ -34,8 +34,12 @@ export default function SyncButton() {
 
   return (
     <div className="sync">
-      <button disabled={busy} onClick={() => void handleSync()}>
-        {busy ? 'Syncing…' : 'Sync Saved'}
+      <button
+        disabled={busy}
+        onClick={() => void handleSync()}
+        title="Opens your Substack Saved List and adds new articles to the board. Articles already on the board are refreshed; ones you've unsaved are flagged."
+      >
+        {busy ? 'Importing…' : 'Import Saved Articles'}
       </button>
 
       {reply?.ok === false ? <p className="notice error">{reply.reason}</p> : null}

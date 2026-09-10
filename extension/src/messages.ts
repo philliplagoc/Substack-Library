@@ -21,9 +21,10 @@ export const PANEL_STATE_KEY = 'panel';
  * no board tab is open.
  *
  * The background writes it so a second toolbar click, and the panel's "Open
- * the board", focus the board rather than open another copy. The background is
- * the only reader: the panel asks for the board and lets the background decide
- * between focusing and creating.
+ * the board", focus the board rather than open another copy. The background
+ * decides between focusing and creating; `useBoardFocused` also reads it to
+ * grey the panel's button while the board is the focused tab, because
+ * `tabs.query` gives the panel a tab id but not its url.
  */
 export const BOARD_TAB_KEY = 'boardTabId';
 

@@ -14,6 +14,7 @@ import {
 import CardEditor from './CardEditor';
 import ExportButton from './ExportButton';
 import { panelView } from './panelView';
+import { useBoardFocused } from './useBoardFocused';
 import { useLiveArticle } from './useLiveArticle';
 import { ArrowRightIcon, CheckIcon, PlusIcon, TrashIcon } from './icons';
 
@@ -109,6 +110,10 @@ export default function ReadingPanel() {
    * reader now, which is the question the Capture button actually turns on.
    */
   const live = useLiveArticle(card?.url ?? null, card?.articleKey ?? null);
+
+  // Greys the "Open the board" button when the board is already in front of the
+  // reader, so the button never promises a jump it cannot make.
+  const boardFocused = useBoardFocused();
 
   const [captureError, setCaptureError] = useState<string | null>(null);
   const view = panelView(panel, card, live);
@@ -259,13 +264,18 @@ export default function ReadingPanel() {
         <div className="footer-actions">
           <ExportButton key={shown.id} card={shown} />
           {/*
-            * Always enabled. An open board tab is not a reason to refuse: the
-            * background's `openBoard` focuses the tab it already opened and
-            * only creates one when there is none, so this button always has
-            * somewhere to go. Greying it out told the reader "no" for the one
-            * case where the answer was "yes, and it is one click away".
+            * Greyed only while the board is the focused tab, where a click would
+            * do nothing: the background's `openBoard` would focus the tab that
+            * is already in front of the reader. Every other time — no board tab,
+            * or one sitting in the background — it is live and one click away.
+            * Same disabled-when-pointless rule as the Capture button.
             */}
-          <button className="open-board" onClick={openBoard}>
+          <button
+            className="open-board"
+            onClick={openBoard}
+            disabled={boardFocused}
+            title={boardFocused ? "You're on the board." : undefined}
+          >
             <span>Open the board</span>
             <ArrowRightIcon className="section-icon" />
           </button>
