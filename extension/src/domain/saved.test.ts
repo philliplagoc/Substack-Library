@@ -5,9 +5,9 @@ import { savedEntryToInput } from './saved';
  * `parseItemMeta` is gone with the route it served. `substack.com/inbox/saved`
  * printed "Hussain Ibarra∙14 min read" under each entry and that string held
  * the author, the minutes, and the medium. `substack.com/saved` prints no such
- * string: `spike/README.md`, "Saved page read paths", records 0 occurrences of
- * "min read" on its fixture against 58 on the reader-view one. The author now
- * arrives as its own field, and the other two are not on the page to read.
+ * string: the captured Saved page holds 0 occurrences of "min read" against 58
+ * on the reader-view capture. The author now arrives as its own field, and the
+ * other two are not on the page to read.
  */
 describe('savedEntryToInput', () => {
   test('maps a full entry to a CardInput', () => {

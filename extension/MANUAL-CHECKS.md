@@ -36,9 +36,8 @@ Setup:
   `chrome://extensions` (the "service worker" link on this extension) and run  
    `indexedDB.deleteDatabase('substack-library')`. Use that console, not the  
    board's: it shares the origin but holds no connection of its own.
-4. `git stash push extension/src`. The article-key fix is uncommitted, so this
-  leaves the extension at the last commit, which is version 1 of the schema.  
-   Naming the path keeps the stash off `changes.log` and the docs.
+4. Check out a build from before the article-key fix, so the extension is at
+  version 1 of the schema.
 5. `cd extension; npm run build`. Reload the extension on `chrome://extensions`.
 6. Open the board and build a board worth migrating:
   - Add `https://www.<pub>.com/p/<slug>` for a real article.

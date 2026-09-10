@@ -1,6 +1,6 @@
 /**
- * The code that knows Substack's DOM. Every read path here is sourced to
- * `spike/README.md`, "Article metadata read paths".
+ * The code that knows Substack's DOM. Every read path here was worked out
+ * against captured article pages (see `src/substack/__fixtures__/`).
  *
  * THIS FILE IMPORTS NOTHING, AND THE FUNCTION BELOW DEFINES EVERYTHING IT USES
  * INSIDE ITS OWN BODY.
@@ -30,13 +30,14 @@ export interface ArticleMeta {
 
 export function extractArticleMeta(doc: Document = document): ArticleMeta {
   const SELECTORS = {
-    // spike/README.md, "Article metadata read paths", body word count row.
-    // `.available-content` wraps `.body.markup` and gives the same count.
-    // NEVER fall back to `article`: it over-counts by 41 words on the free
-    // fixture, because it swallows the title and both UFI bars.
+    // Body word count comes from `.body.markup`. `.available-content` wraps it
+    // and gives the same count. NEVER fall back to `article`: it over-counts by
+    // 41 words on the free fixture, because it swallows the title and both UFI
+    // bars.
     body: '.body.markup',
     bodyFallback: '.available-content',
-    // spike/README.md, "Paywall block". Only the fallback; JSON-LD is primary.
+    // Paywall marker. Only the fallback; the JSON-LD isAccessibleForFree flag
+    // is primary.
     paywall: '.paywall',
     canonical: 'link[rel="canonical"]',
     jsonLd: 'script[type="application/ld+json"]',
@@ -70,7 +71,7 @@ export function extractArticleMeta(doc: Document = document): ArticleMeta {
   const article = blocks.find((b) => b && /Article/.test(String(b['@type']))) ?? {};
   const crumbs = blocks.find((b) => b && String(b['@type']) === 'BreadcrumbList');
 
-  // spike/README.md: JSON-LD `author` is an ARRAY. `ld.author.name` returns
+  // Substack ships JSON-LD `author` as an ARRAY. `ld.author.name` returns
   // undefined and throws nothing.
   const ldAuthor = Array.isArray(article.author) ? article.author[0] : article.author;
 
@@ -81,8 +82,8 @@ export function extractArticleMeta(doc: Document = document): ArticleMeta {
 
   const author = metaContent('meta[name="author"]') ?? clean(ldAuthor && ldAuthor.name);
 
-  // spike/README.md: og:site_name does NOT exist on a Substack post. There is
-  // no OG source for publication at all.
+  // og:site_name does NOT exist on a Substack post. There is no OG source for
+  // publication at all, so this reads JSON-LD with a breadcrumb fallback.
   const publication =
     clean(article.publisher && article.publisher.name) ??
     clean(
@@ -103,9 +104,9 @@ export function extractArticleMeta(doc: Document = document): ArticleMeta {
   const words = bodyText ? bodyText.split(/\s+/).filter(Boolean) : [];
   const wordCount = words.length > 0 ? words.length : null;
 
-  // spike/README.md: prefer the JSON-LD boolean. The page states its own
-  // access level there, so it survives a class rename. Word count is NOT a
-  // substitute: the paywalled preview is 684 words.
+  // Prefer the JSON-LD boolean. The page states its own access level there, so
+  // it survives a class rename. Word count is NOT a substitute: the paywalled
+  // preview is 684 words.
   const readable =
     typeof article.isAccessibleForFree === 'boolean'
       ? article.isAccessibleForFree
@@ -117,8 +118,8 @@ export function extractArticleMeta(doc: Document = document): ArticleMeta {
 /**
  * Is the reader signed out of Substack?
  *
- * spike/README.md, "Signed-out state": the sign-in prompt has no id, no
- * aria-label, and no data-testid. Its class chain is eight build hashes deep,
+ * The sign-in prompt has no id, no aria-label, and no data-testid. Its class
+ * chain is eight build hashes deep,
  * and `buttonBase-GK1x3M` is shared with the paywall's Subscribe button, so
  * the hashes name a component type rather than one button. Scope to the nav
  * container and match on text, the same way the Save menu item is read.

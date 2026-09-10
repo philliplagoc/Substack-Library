@@ -1,39 +1,73 @@
-# Substack-Library
-A local-first Chrome/Edge extension for a deliberate Substack reading workflow: capture articles from any device, triage them on a three-column board, take notes beside the article on its original page, and export those notes as Markdown, as a download or written into an Obsidian vault.
+# Substack Library
+
+Substack-Library is a local-first Chrome and Edge extension for a deliberate
+Substack reading workflow. You capture articles from any device, triage them on a
+three-column board, then read them one at a time with a notes panel docked beside
+the article on its own page. When you finish, you export your notes and quotes as
+Markdown, either as a download or straight into an Obsidian vault. It turns a pile
+of open tabs into one queue you work through.
+
+![The triage board](screenshots/board.png)
+
+![The reading panel beside an article](screenshots/side-panel.png)
+
+## What it does
+
+- **Capture** an article from any Substack page (or a custom domain) with one
+  toolbar click. It reads the title, author, publication, and length, and makes
+  or refreshes a card. A paywalled article still makes a card and says so.
+- **Triage** cards on a three-column board: To Read, Reading, Processed.
+- **Take notes** in a side panel docked beside the article on its own page.
+  Select text to keep it as a quote, and comment on the quotes.
+- **Export** a card as Markdown: a versioned download that never overwrites an
+  earlier export. A full JSON backup and restore is on the board.
+
+Everything is stored locally in the browser (IndexedDB). There is no account and
+no server.
+
+## Install from source
+
+```sh
+cd extension
+npm install
+npm run build
+```
+
+Then open `chrome://extensions` (or `edge://extensions`), turn on Developer
+mode, choose **Load unpacked**, and select `extension/.output/chrome-mv3`.
+
+## Develop
+
+```sh
+cd extension
+npm run dev      # live-reloading dev build
+npm test         # vitest
+npm run compile  # type-check only
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more, and
+[`extension/MANUAL-CHECKS.md`](extension/MANUAL-CHECKS.md) for the checks that
+tests do not cover.
+
+## Project layout
+
+```
+extension/
+  src/
+    entrypoints/   background service worker, board tab page, side panel
+    domain/        pure logic: cards, articles, Markdown, quotes, sync
+    db/            IndexedDB schema and access (Dexie)
+    substack/      the code that reads Substack's DOM
+      __fixtures__/  captured pages the parser tests run against
+    ui/            shared React components
+```
 
 ## Status
 
-- Milestone 0 complete: see `spike/README.md` for Substack read paths and
-  `prototype/DECISIONS.md` for board layout.
-- Milestone 1 complete: the extension scaffold and the board. See
-  `docs/superpowers/specs/2026-08-26-milestone-1-design.md`.
-- Milestone 2A complete: capture and the reading panel. The toolbar button on
-  a Substack article reads its title, author, publication, and length, makes
-  or refreshes a card, and opens a side panel beside the article. Custom
-  domains work, and so do the app's own reader shells at
-  `substack.com/inbox/post/<id>`, `substack.com/home/post/p-<id>`, and
-  `substack.com/@<handle>/p-<id>`, where the page's `<head>` describes the
-  shell rather than the post. In the panel
-  you take notes, capture selected text as quotes, comment on them, and move
-  the card between columns. A paywalled article still makes a card and says
-  so. See `docs/superpowers/specs/2026-08-29-milestone-2a-design.md`.
-- Milestone 2B complete: one click in the reading
-  panel or the board's detail panel downloads a card as a Markdown file, names
-  it `YYYY-MM-DD - <title>.md` dated by when the card was saved, records the
-  export on the card, and offers to move the card to Processed. A second export
-  of the same card lands as ` (v2)` and never overwrites the first. See
-  `docs/superpowers/specs/2026-08-30-milestone-2b-design.md`.
-- Not built yet: the write into an Obsidian vault and its settings surface, the
-  Saved-list sync with native Save and Unsave, and the backlog import. Until the
-  vault write lands, export a JSON backup from the board for a full copy.
-- Next: Milestone 3, the Saved-list sync. The Obsidian vault write is deferred;
-  the Markdown download covers the need for now.
+Early. Capture, the board, side-panel notes, quotes, Markdown export, and JSON
+backup all work. Not built yet: writing exports straight into an Obsidian vault,
+syncing with Substack's native Save/Unsave, and importing an existing backlog.
 
-## Development
+## License
 
-Extension: `cd extension; npm install; npm run build`, then load
-`extension/.output/chrome-mv3` as an unpacked extension.
-Extension tests: `cd extension; npm test`
-Manual checks: `extension/MANUAL-CHECKS.md`
-Spike tests: `cd spike; npm test`
-Prototype: open `prototype/index.html` in a browser.
+MIT. See [LICENSE](LICENSE).

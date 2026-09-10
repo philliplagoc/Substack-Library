@@ -56,7 +56,7 @@ export default defineBackground({
     // 20 entries against 47 on this route on 2026-08-31, on the same account
     // and the same day, and it held 60 when the fixture was captured on
     // 2026-08-25. The two routes do not redirect to each other and share no
-    // DOM. `spike/README.md`, "Saved page read paths".
+    // DOM.
     const SAVED_URL = 'https://substack.com/saved';
 
     /** Resolve once the tab has finished loading, or reject rather than hang. */

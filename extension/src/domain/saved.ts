@@ -39,9 +39,9 @@ export function savedEntryToInput(entry: SavedEntry): SavedImport {
       title: entry.title?.trim() || undefined,
       author: entry.author?.trim() || undefined,
       publication: entry.publication?.trim() || undefined,
-      // Absent from substack.com/saved. `spike/README.md`, "Saved page read
-      // paths": the page carries no reading estimate and no read/watch/listen
-      // word, so neither can be read here. `background.ts` fills
+      // Absent from substack.com/saved: the page carries no reading estimate
+      // and no read/watch/listen word, so neither can be read here.
+      // `background.ts` fills
       // `estimatedReadingMinutes` from the real body word count on capture,
       // which is a better number than Substack's estimate anyway. A card
       // synced and never opened shows "— min" until it is.

@@ -4,12 +4,12 @@ import { parseHTML } from 'linkedom';
 import { extractSavedEntries } from './saved';
 
 /**
- * The fixture lives in `spike/`, which this project does not import code from.
- * Reading a data file is not a module edge, and a second copy of an anonymized
- * file is how anonymized files drift.
+ * Captured Substack pages with the reader's identity stripped. They live next to
+ * this test in `__fixtures__/`; see that folder's README for what was removed
+ * and why `saved-page.html` was trimmed from 48 feed units to 6.
  */
 function fixture(name: string): Document {
-  const path = new URL(`../../../spike/fixtures/${name}`, import.meta.url);
+  const path = new URL(`./__fixtures__/${name}`, import.meta.url);
   const { document } = parseHTML(readFileSync(path, 'utf8'));
   return document as unknown as Document;
 }
@@ -17,10 +17,11 @@ function fixture(name: string): Document {
 describe('extractSavedEntries on the saved-page fixture', () => {
   const entries = extractSavedEntries(fixture('saved-page.html'));
 
-  // 48 feed units on the page, 47 of them articles. A parser that counts units
-  // rather than attachments returns 48 and hands one entry no URL.
+  // 6 feed units in the trimmed fixture, 5 of them articles and 1 a Note. A
+  // parser that counts units rather than attachments returns 6 and hands the
+  // Note no URL.
   test('finds every article and skips the Note', () => {
-    expect(entries).toHaveLength(47);
+    expect(entries).toHaveLength(5);
   });
 
   test('gives every entry an absolute article url', () => {
@@ -59,8 +60,8 @@ describe('extractSavedEntries on the saved-page fixture', () => {
     expect(differing.length).toBeGreaterThan(0);
   });
 
-  // spike/README.md: three of the 21 publications serve from a custom domain.
-  // The selectors name no host, and this is what proves it.
+  // One kept entry (Stat Significant) serves from www.statsignificant.com. The
+  // selectors name no host, and this is what proves it.
   test('reads custom-domain entries as well as substack.com ones', () => {
     const hosts = new Set(entries.map((e) => new URL(e.url).hostname));
     expect([...hosts].some((h) => !h.endsWith('substack.com'))).toBe(true);

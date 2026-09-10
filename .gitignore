@@ -9,3 +9,18 @@ Thumbs.db
 
 # Cygwin/MSYS crash dumps
 *.stackdump
+
+# Secrets: API keys for local tooling (e.g. readme-ai)
+.env
+/.claude/.env
+
+# Local development material, kept on disk but out of the public repo
+/docs/
+/spike/
+/prototype/
+/changes.log
+/implementation-plan.md
+/CLAUDE.md
+/AGENTS.md
+/.claude/
+/.superpowers/

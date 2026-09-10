@@ -4,12 +4,11 @@ import { parseHTML } from 'linkedom';
 import { detectSignedOut, extractArticleMeta, readReaderArticle } from './extract';
 
 /**
- * The fixtures live in `spike/`, which this project does not import code from.
- * Reading a data file is not a module edge, and copying three large anonymized
- * HTML files into a second place is how anonymized files drift.
+ * Captured Substack pages with the reader's identity stripped. They live next to
+ * this test in `__fixtures__/`; see that folder's README for what was removed.
  */
 function fixture(name: string): Document {
-  const path = new URL(`../../../spike/fixtures/${name}`, import.meta.url);
+  const path = new URL(`./__fixtures__/${name}`, import.meta.url);
   const { document } = parseHTML(readFileSync(path, 'utf8'));
   return document as unknown as Document;
 }
@@ -126,8 +125,8 @@ describe('extractArticleMeta JSON-LD handling', () => {
 
 describe('detectSignedOut', () => {
   test('reports signed in on both committed fixtures', () => {
-    // spike/README.md: the nav container holds 5 buttons on both fixtures and
-    // neither file contains the string "Sign in".
+    // The nav container holds 5 buttons on both fixtures and neither file
+    // contains the string "Sign in".
     expect(detectSignedOut(fixture('article-free.html'))).toBe(false);
     expect(detectSignedOut(fixture('article-paywalled.html'))).toBe(false);
   });
@@ -158,9 +157,9 @@ describe('readReaderArticle', () => {
    * sits in an ancestor of `.body.markup`, and the inbox list rendered behind
    * it holds links to other publications and no body of its own.
    *
-   * Synthetic, not captured. There is no reader-route fixture in `spike/`, so
-   * these cases prove the walk against a model of the page. Task 6 Step 17
-   * check 6, against the live route, is what proves the model.
+   * Synthetic, not captured. There is no reader-route fixture, so these cases
+   * prove the walk against a model of the page; a manual check against the live
+   * route is what proves the model.
    */
   function readerPage(): Document {
     const { document } = parseHTML(`<html><body>

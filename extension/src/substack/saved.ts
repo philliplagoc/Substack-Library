@@ -1,10 +1,10 @@
 /**
- * The code that knows the Saved page's DOM. Every selector here is sourced to
- * `spike/README.md`, "Saved page read paths".
+ * The code that knows the Saved page's DOM. Every selector here was worked out
+ * against a captured Saved page (see `src/substack/__fixtures__/`).
  *
  * Reads `substack.com/saved`, not `substack.com/inbox/saved`. The two are
  * different pages sharing no class: the reader view held 20 entries on
- * 2026-08-31 where this one held 47, and it is shrinking. See the README.
+ * 2026-08-31 where this one held 47, and it is shrinking.
  *
  * THIS FILE IMPORTS NOTHING, AND EVERY FUNCTION BELOW DEFINES EVERYTHING IT
  * USES INSIDE ITS OWN BODY.
@@ -37,25 +37,25 @@ export function extractSavedEntries(doc: Document = document): SavedEntry[] {
   // `hoverLink-g45pgX`. The hash is regenerated on a Substack build; the name
   // in front of it is the component, and that is what is matched here. Same
   // decision, and the same reasoning, as the sign-in prompt read in
-  // `spike/README.md`, which matches `[class*="mainMenuContent"]`.
+  // `extract.ts`, which matches `[class*="mainMenuContent"]`.
   //
   // The risk this accepts: a future `feedItemHeader-XYZ` would also match
   // `[class*="feedItem-"]`. The trailing hyphen is what keeps that narrow, and
-  // the fixture test asserts an exact count of 47, so an extra match fails
+  // the fixture test asserts an exact entry count, so an extra match fails
   // loudly rather than inflating the board.
   const SELECTORS = {
-    // The feed unit wrapping one save. 48 on the fixture: 47 articles and a Note.
+    // The feed unit wrapping one save. One per article, plus one per Note.
     unit: '[class*="feedItem-"]',
-    // The article card. An <a>, so its href IS the article url. 47.
+    // The article card. An <a>, so its href IS the article url. Absent on a Note.
     attachment: '[class*="postAttachment-"]',
     // Inside the attachment. A line-clamp class, but textContent holds the
-    // untruncated title. 47.
+    // untruncated title.
     title: '[class*="clamp-2-"]',
-    // Inside the attachment. The publication, not the author. 47.
+    // Inside the attachment. The publication, not the author.
     publication: '[class*="hoverLink-"]',
     // Inside the unit, outside the attachment. Not a class at all: the href
-    // shape is the durable thing here. 48. The avatar link shares this href
-    // and has no text, so the loop below takes the first non-empty one.
+    // shape is the durable thing here. The avatar link shares this href and has
+    // no text, so the loop below takes the first non-empty one.
     author: 'a[href^="/@"]',
   };
 
@@ -68,8 +68,8 @@ export function extractSavedEntries(doc: Document = document): SavedEntry[] {
   const out: SavedEntry[] = [];
 
   for (const unit of Array.from(doc.querySelectorAll(SELECTORS.unit))) {
-    // A feed unit with no article card is a Note. 48 units, 47 articles on the
-    // fixture. Skipping here is what keeps the count honest.
+    // A feed unit with no article card is a Note. Skipping it here is what
+    // keeps the entry count honest.
     const attachment = unit.querySelector(SELECTORS.attachment);
     if (!attachment) continue;
 
@@ -108,11 +108,11 @@ export function extractSavedEntries(doc: Document = document): SavedEntry[] {
 /**
  * Scroll the Saved page until it stops growing, and say whether it finished.
  *
- * `spike/README.md`: the page loads more entries on scroll and does NOT
- * virtualize. Entries loaded once stay in the DOM, so the count only ever
- * grows and nothing has to be tracked as it scrolls away. The window is the
- * scroller: `document.documentElement` measured 22639 tall against a 911
- * viewport, and `scrollTop` reached its maximum.
+ * The page loads more entries on scroll and does NOT virtualize. Entries loaded
+ * once stay in the DOM, so the count only ever grows and nothing has to be
+ * tracked as it scrolls away. The window is the scroller: on the captured page
+ * `document.documentElement` measured 22639 tall against a 911 viewport, and
+ * `scrollTop` reached its maximum.
  *
  * The stop condition is TWO flat readings, not one. A single flat count cannot
  * tell "the list ended" from "the next page has not landed yet", and a growing
@@ -122,10 +122,10 @@ export function extractSavedEntries(doc: Document = document): SavedEntry[] {
  * as missing on that result: a partial list would flag its whole tail.
  */
 export async function scrollToEnd(): Promise<{ count: number; complete: boolean }> {
-  // Must stay equal to SELECTORS.unit in the TODO(human) above: this counts
-  // the same elements that parser reads. The injection boundary forbids
-  // sharing a constant between these two functions, because each is
-  // stringified on its own, so the value is written twice on purpose.
+  // Must stay equal to SELECTORS.unit in extractSavedEntries: this counts the
+  // same elements that parser reads. The injection boundary forbids sharing a
+  // constant between these two functions, because each is stringified on its
+  // own, so the value is written twice on purpose.
   const ENTRY = '[class*="feedItem-"]';
   const SETTLE_MS = 1200;
   // 60 rounds at 20 new entries a round is 1200 entries, and at worst 72

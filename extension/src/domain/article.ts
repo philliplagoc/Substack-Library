@@ -1,11 +1,10 @@
 /**
  * How long this article takes to read, or nothing.
  *
- * `implementation-plan.md` fixes the rate at 250 words per minute.
- * `spike/README.md` fixes the hard case: a paywalled preview is 684 words,
- * long enough that no word-count rule can tell it from a short free article.
- * The `readable` flag is the only honest signal, and the parent spec says the
- * field "stays blank when only a preview is readable".
+ * The rate is fixed at 250 words per minute. The hard case: a paywalled preview
+ * is around 684 words, long enough that no word-count rule can tell it from a
+ * short free article. The `readable` flag is the only honest signal, so the
+ * field stays blank when only a preview is readable.
  *
  * Returning `undefined` rather than 0 still matters. `mergeCard` folds this in
  * with `??`, so `undefined` leaves an estimate an earlier capture already
