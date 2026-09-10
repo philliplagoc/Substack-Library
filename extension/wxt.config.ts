@@ -16,6 +16,16 @@ export default defineConfig({
     // activeTab grants nothing there. Narrow on purpose: the Saved list is only
     // ever served from substack.com.
     host_permissions: ['https://substack.com/*'],
+    // Asked for one publication at a time, from a click in the side panel, and
+    // never at install. `activeTab` arms Capture only on the tab the toolbar
+    // button was clicked on, so a reader who reached the article by following a
+    // link had a Capture button that could never work. Granting an origin here
+    // is what lets the panel both SEE that the article is open — tab URLs are
+    // hidden without a matching host permission — and read a selection out of
+    // it. `<all_urls>` at install would buy the same thing for the price of the
+    // "read and change all your data on all websites" warning on a reader who
+    // may only ever use one publication.
+    optional_host_permissions: ['*://*/*'],
     action: {
       default_title: 'Open Substack Library',
     },

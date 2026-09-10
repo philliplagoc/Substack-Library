@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import {
   articleKey,
+  originPattern,
   canonicalizeUrl,
   isReaderRoute,
   resolveArticleUrl,
@@ -293,5 +294,26 @@ describe('the reader routes', () => {
     expect(isReaderRoute('https://alpha.substack.com/p/questions')).toBe(false);
     expect(isReaderRoute('https://substack.com/inbox/saved')).toBe(false);
     expect(isReaderRoute(undefined)).toBe(false);
+  });
+});
+
+describe('originPattern', () => {
+  test('covers the whole publication, not the one article', () => {
+    expect(originPattern('https://alpha.substack.com/p/one?utm=x')).toEqual({
+      pattern: 'https://alpha.substack.com/*',
+      host: 'alpha.substack.com',
+    });
+  });
+
+  test('names the custom domain a publication actually serves from', () => {
+    expect(originPattern('https://www.theworkthatholds.com/p/two')).toEqual({
+      pattern: 'https://www.theworkthatholds.com/*',
+      host: 'www.theworkthatholds.com',
+    });
+  });
+
+  test('has nothing to ask for when the URL is not a URL', () => {
+    expect(originPattern('not a url')).toBeNull();
+    expect(originPattern('chrome://extensions')).toBeNull();
   });
 });

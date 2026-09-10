@@ -80,12 +80,20 @@ Restore the backup from step 1 when you are done.
 
 ## Panel
 
-- [x] Click a card. The panel opens on the right.
-- [x] Type notes. Reload. The notes are there.
-- [x] The card face gains a "notes" status line.
-- [x] Tick Liked. Reload. It stays ticked.
-- [x] Click Delete. A confirmation appears. Cancel. The card stays.
-- [x] Click Delete. Confirm. The card goes and the panel closes.
+Rewritten on 2026-09-09. The board no longer holds a panel of its own; a card
+opens Chrome's side panel, the same one the toolbar button opens.
+
+- [ ] Click a card. Chrome's side panel opens showing that card.
+- [ ] Type notes. Reload. The notes are there.
+- [ ] The card face gains a "notes" status line.
+- [ ] Click Delete card. A confirmation appears. Cancel. The card stays.
+- [ ] Click Delete card. Confirm. The card goes from the board and the panel
+      says it is no longer on your board.
+- [x] Open a card from the board while the article is open in a background tab
+      of the same window. Capture stays disabled and reads "Open the article
+      first." Focus the article tab; Capture turns on without a reload.
+- [ ] Toolbar-capture an article, then focus another tab. Capture turns off.
+      Focus the article tab again; Capture turns back on.
 
 ## Backup
 
@@ -152,13 +160,14 @@ describes the shell and only the body knows which article is open.
 
 ## Reading panel
 
-- [x] Notes typed in the panel appear on the board's detail panel after a
+- [ ] Notes typed in the panel change the card face on the board without a
       reload.
-- [x] Notes typed on the board appear in the panel without a reload.
 - [x] The panel keeps showing the previous article when you switch tabs
       without clicking.
 - [x] Narrowing the panel to its minimum leaves the quote comment boxes
       usable.
+- [ ] Open the same card in two Chrome windows, each with its own side panel.
+      Type in one; the other does not revert it.
 
 ## Quotes
 
@@ -167,8 +176,8 @@ ticked from that pass.
 
 - [x] Selecting text and clicking "Capture quote" adds the quote verbatim.
 - [x] A comment typed on a quote survives a reload.
-- [x] A comment typed on a quote is editable from the board's detail panel
-      too.
+- [ ] A comment typed on a quote is still there when the same card is opened
+      from the board.
 - [x] "Capture quote" with nothing selected says so and adds nothing.
 - [x] Capturing a passage that appears twice in the article adds exactly one
       quote.
@@ -385,8 +394,9 @@ those behaviours are listed again here and checked against the new build.
 - [ ] Add a tag and remove it. The suggestion list still drops down, and the
       count beside the Tags heading follows.
 - [ ] Export Markdown from the footer. The file lands and the message appears
-      across the full width beneath both buttons.
+      across the full width beneath the buttons.
 - [ ] Click Open the board. The board opens or focuses as before.
+- [ ] Delete card sits on its own quiet row beneath the other two.
 
 ### Empty and error states
 
@@ -397,13 +407,12 @@ those behaviours are listed again here and checked against the new build.
 
 ### The board is unchanged
 
+Amended 2026-09-09. The board's own detail panel is gone, so the boxes that
+compared the two panels went with it.
+
 - [ ] Open the board. Same colours, same three columns, same card faces.
-- [ ] Open a card's detail panel. No icons, no uppercase section headings, no
-      parchment. The Export heading is still above its button, and the quote
-      remove control still reads "Remove quote" in words.
-- [ ] Notes, quotes, tags, export and delete all still work from the board.
-- [ ] Open the same card in the panel and the board's detail panel. Type in
-      one; the other does not revert it.
+- [ ] Notes, quotes, tags, export and delete all still work, now from the side
+      panel a board card opens.
 
 ### Keyboard
 
@@ -465,8 +474,8 @@ The behaviours below are listed again here and checked against the new build.
       carrying both. Click a selected tag: it clears.
 - [ ] Drag a card between columns and within a column; reload; it holds.
       Keyboard drag (Tab, Space, arrows, Space) still moves a card.
-- [ ] Click a card: the detail panel opens on the right. Notes, quotes, tags,
-      export and delete all work. Close works.
+- [ ] Click a card: Chrome's side panel opens on it. Notes, quotes, tags,
+      export and delete all work.
 - [ ] Export all, Export JSON and Restore JSON all still work and report their
       counts.
 - [ ] Sync Saved still runs and reports.
@@ -476,13 +485,161 @@ The behaviours below are listed again here and checked against the new build.
 - [ ] Open a Substack article and click the toolbar button. The side panel is
       the same parchment column of white cards, serif title, orange rule over
       the header card, footer that does not scroll away.
-- [ ] Open the same card in the side panel and in the board's detail panel. The
-      board's detail panel has no icons, no uppercase section headings, no
-      parchment body; the Export heading is above its button; the quote remove
-      control still reads "Remove quote" in words.
-- [ ] Type in one; the other does not revert it.
+- [ ] Open a card from the board. It wears exactly the same design: there is
+      only one panel now, and how it was opened does not change how it looks.
 
 ### Keyboard and focus ring
 
-- [ ] Tab through the header, the tag row, a card, and the detail panel. Every
-      button, link, input and textarea shows an orange focus ring.
+- [ ] Tab through the header, the tag row and a card. Every button, link,
+      input and textarea shows an orange focus ring.
+
+## 2026-09-09: one panel
+
+The board's own card panel is deleted. A card on the board opens Chrome's side
+panel, which is the same panel the toolbar button opens on an article. Two
+panels can no longer be on screen at once.
+
+Boxes in older dated sections that name "the board's detail panel" are records
+of a panel that no longer exists. They are left as they were run.
+
+### The gesture
+
+Run this first. `sidePanel.open()` is honoured only inside the click that asked
+for it, and no test can see this failing.
+
+- [ ] Click a card on the board. Chrome's side panel opens.
+- [ ] It shows the card you clicked, not a different one.
+- [ ] No error appears above the board, and the service worker console at
+      `chrome://extensions` shows no gesture complaint.
+- [ ] Drag a card between columns. It still drags, and dragging does not open
+      the panel.
+
+### One panel, one card
+
+- [ ] Click a second card. The panel switches to it.
+- [ ] At no point during the switch is the first card's title, notes or quotes
+      visible under the second card's state.
+- [ ] With an article's panel already open from the toolbar, click a board
+      card. The panel switches to that card.
+- [ ] The clicked card keeps its orange outline on the board.
+
+### What a board card's panel does not show
+
+- [ ] No banner. There is no "Added to To Read." above the title.
+- [ ] Capture is visible but greyed, and hovering it explains why.
+- [ ] Press Capture anyway. Nothing is captured and nothing breaks.
+
+### The footer
+
+- [ ] Export Markdown, Open the board, and Delete card all appear, whether the
+      panel was opened from the board or from the toolbar button.
+- [ ] Delete card sits on its own row beneath the other two, and reads as quiet
+      rather than as a third primary button.
+- [ ] Narrow the panel to its minimum. The three buttons still fit.
+
+### Delete
+
+- [ ] Delete card from a board-opened panel. The confirmation names the card.
+- [ ] Cancel. The card stays on the board and in the panel.
+- [ ] Confirm. The tile leaves the board, its outline goes, and the panel says
+      "That card is no longer on your board."
+- [ ] Open the board from that panel. It opens or focuses.
+- [ ] Delete card from a toolbar-captured panel. Same behaviour.
+
+### The board without its panel
+
+- [ ] The board fills the tab width. No column is reserved on the right.
+- [ ] Export all, Export JSON, Restore JSON and Sync Saved all still work.
+
+### Capture still works from the toolbar
+
+- [ ] Open a Substack article, click the toolbar button, select text, click
+      Capture. The quote lands.
+- [ ] The banner still reports "Added to To Read." or the refreshed message.
+
+## 2026-09-09: the missing URL and a sleeping button
+
+> The "Open the board sleeps" boxes below were superseded on 2026-09-09 by the
+> "Two buttons that would not wake up" section at the end of this file. The
+> button no longer sleeps. Do not run them.
+
+
+### The URL survives a long card
+
+- [ ] Open the panel on a card with enough notes and quotes that the body
+      scrolls. The source URL is still there under the byline, not clipped off
+      the bottom of the header card.
+- [ ] Drag the panel narrow. The URL truncates with an ellipsis on one line and
+      does not disappear.
+- [ ] Open the panel on a short card. Nothing about the header moved.
+
+### Open the board sleeps while the board is open
+
+- [ ] With no board tab open, the footer's "Open the board" is orange and works.
+- [ ] With the board open, the button is grey and does nothing. Hovering it says
+      "The board is already open."
+- [ ] Close the board tab while the panel stays open. The button turns orange
+      again without the panel being reopened.
+- [ ] Click a card on the board to open the panel. The button is grey, because
+      the board that was just clicked is still open.
+- [ ] Open the board, then open a second window and open the panel there. The
+      button is grey in both. The board is one tab, not one per window.
+
+## 2026-09-09: two buttons that would not wake up
+
+Run these against a freshly loaded build. Reload the unpacked extension after
+building: the manifest changed, and Chrome will not notice a new
+`optional_host_permissions` line otherwise.
+
+### Open the board never sleeps
+
+- [ ] With no board tab open, the footer's "Open the board" is orange. Click it.
+      A board tab opens.
+- [ ] With that board still open, click "Open the board" again. The existing
+      board tab is focused. No second board tab appears.
+- [ ] Click a card on the board to open the panel. "Open the board" is orange,
+      not grey. Click it. The board tab you came from is focused.
+- [ ] Open an article, click the toolbar button, and check the panel's
+      "Open the board". It is orange whether or not a board tab exists.
+- [ ] Close the board tab, then click "Open the board". A new board tab opens.
+
+### Capture on a publication you have not granted
+
+Use a publication whose articles you have never granted, and check
+`chrome://extensions` → Substack Library → "Site access" to be sure.
+
+- [ ] Open the board, click a card, then follow the card's link to the article
+      in the same window.
+- [ ] The panel's Capture button is grey, and beside it sits an outlined
+      "Allow on <host>" button naming the publication's host.
+- [ ] Click it. Chrome asks to let Substack Library read that site.
+- [ ] Cancel. The panel is unchanged and the "Allow on" button is still there.
+- [ ] Click it again and allow. **Without touching the panel**, Capture turns
+      orange within a second. The "Allow on" button is gone.
+- [ ] Select text in the article and click Capture. The quote lands on the card.
+- [ ] Reload the panel. Capture is still orange. The grant is remembered.
+
+### Capture follows the tab, not the opening
+
+- [ ] With that publication granted, switch the article tab to another page.
+      Capture goes grey and says "Open the article first."
+- [ ] Go back to the article. Capture turns orange again.
+- [ ] Open the same article in a second tab in the same window. Capture stays
+      orange. Select text in the second tab and capture. The quote lands.
+- [ ] Open the article in a DIFFERENT window from the one holding the panel.
+      Capture is grey. The panel reads its own window only.
+
+### The toolbar path did not regress
+
+- [ ] On a publication you have NOT granted, open an article and click the
+      toolbar button. The panel opens, the banner reports the outcome, and
+      Capture is orange with no "Allow on" button. `activeTab` covers it.
+- [ ] Select text and capture. The quote lands.
+- [ ] Navigate that tab away and back to the article. Capture reports
+      "Lost access to the article. Open it again, then capture." on a click.
+
+### A card that cannot be asked for
+
+- [ ] Find or make a card whose URL is not http or https. Its panel shows
+      Capture grey with "Open the article first." and no "Allow on" button.
+      There is no origin to ask for.

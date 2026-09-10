@@ -71,9 +71,9 @@ export default function CardEditor({ card, footer, quotesAction }: Props) {
     notesTimer.current = setTimeout(() => notesFlush.current?.(), DEBOUNCE_MS);
   }
 
-  // Adopt the stored notes only when no write of our own is pending. The same
-  // card can be open in the side panel and the board's detail panel at once, so
-  // this value changes from outside while this editor is mounted. Mid-edit the
+  // Adopt the stored notes only when no write of our own is pending. One card
+  // can be open in two side panels, one per Chrome window, so this value
+  // changes from outside while this editor is mounted. Mid-edit the
   // local draft wins and will be written; once it lands, the next outside
   // change is adopted, which is what stops the two panels reverting each other.
   useEffect(() => {

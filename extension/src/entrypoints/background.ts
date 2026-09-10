@@ -19,6 +19,7 @@ import {
 import { extractSavedEntries, scrollToEnd } from '../substack/saved';
 import { applySync } from '../db/sync';
 import {
+  BOARD_TAB_KEY,
   PANEL_STATE_KEY,
   type CaptureSelectionReply,
   type PanelMessage,
@@ -31,7 +32,7 @@ export default defineBackground({
     const BOARD_PATH = '/board.html';
 
     async function openBoard() {
-      const { boardTabId } = await browser.storage.session.get('boardTabId');
+      const { [BOARD_TAB_KEY]: boardTabId } = await browser.storage.session.get(BOARD_TAB_KEY);
 
       if (typeof boardTabId === 'number') {
         try {
@@ -47,7 +48,7 @@ export default defineBackground({
 
       const tab = await browser.tabs.create({ url: browser.runtime.getURL(BOARD_PATH) });
       if (tab.id != null) {
-        await browser.storage.session.set({ boardTabId: tab.id });
+        await browser.storage.session.set({ [BOARD_TAB_KEY]: tab.id });
       }
     }
 
@@ -106,6 +107,7 @@ export default defineBackground({
     async function reject(tabId: number, notice: string) {
       await browser.storage.session.set({
         [PANEL_STATE_KEY]: {
+          source: 'capture',
           articleKey: '',
           tabId,
           outcome: 'rejected',
@@ -202,6 +204,7 @@ export default defineBackground({
 
       await browser.storage.session.set({
         [PANEL_STATE_KEY]: {
+          source: 'capture',
           articleKey: outcome.kind === 'rejected' ? '' : outcome.card.articleKey,
           tabId,
           outcome: outcome.kind,
@@ -255,6 +258,21 @@ export default defineBackground({
       }
     }
 
+    /*
+     * Forget the board tab the moment it closes.
+     *
+     * `openBoard` is tolerant of a stale id: it tries to focus the tab and
+     * opens a new one when that throws. Removing the id keeps the common case
+     * off that path, so opening the board after closing it costs one
+     * `tabs.create` rather than a failed `tabs.update` first.
+     */
+    browser.tabs.onRemoved.addListener((tabId) => {
+      void browser.storage.session.get(BOARD_TAB_KEY).then((stored) => {
+        if (stored[BOARD_TAB_KEY] !== tabId) return;
+        return browser.storage.session.remove(BOARD_TAB_KEY);
+      });
+    });
+
     browser.action.onClicked.addListener(async (tab) => {
       if (!shouldCaptureFrom(tab.url) || tab.id == null || !tab.url) {
         await openBoard();
@@ -286,14 +304,28 @@ export default defineBackground({
         const stored = await browser.storage.session.get(PANEL_STATE_KEY);
         const panel = stored[PANEL_STATE_KEY] as PanelState | undefined;
 
-        if (!panel) {
-          sendResponse({ ok: false, reason: 'No article open.' } satisfies CaptureSelectionReply);
+        /*
+         * Two ways to name the tab, and the panel's wins.
+         *
+         * The panel sends a tabId when it has found the article open in a tab
+         * it holds a host permission for, which is the only thing that works
+         * for a reader who reached the article by following a link. Without
+         * one, fall back to the tab the toolbar click covered: `activeTab`
+         * reaches that tab and no other.
+         */
+        const tabId = message.tabId ?? (panel?.source === 'capture' ? panel.tabId : undefined);
+
+        if (tabId == null) {
+          sendResponse({
+            ok: false,
+            reason: 'Open the article and click the toolbar button to capture a quote.',
+          } satisfies CaptureSelectionReply);
           return;
         }
 
         try {
           const results = await browser.scripting.executeScript({
-            target: { tabId: panel.tabId },
+            target: { tabId },
             func: readSelection,
           });
           const found = results[0]?.result;
@@ -304,10 +336,11 @@ export default defineBackground({
               : { ok: false, reason: 'Select some text in the article first.' },
           );
         } catch {
-          // The tab navigated away, so the activeTab grant is gone with it.
+          // The tab navigated away or was closed, and an `activeTab` grant
+          // goes with it. Either way the article has to be opened again.
           sendResponse({
             ok: false,
-            reason: 'Lost access to the article. Click the toolbar button again.',
+            reason: 'Lost access to the article. Open it again, then capture.',
           });
         }
       })();

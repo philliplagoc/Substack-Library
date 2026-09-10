@@ -2837,3 +2837,90 @@ The board redesign the next day covered the columns and the card tiles, not
 `DetailPanel`. One of its manual-check boxes reads "The side panel is
 unchanged." So the board's card panel keeps the older plain styling that the
 reading panel has outgrown. The board panel has not had its redesign pass yet.
+
+### Can we combine the two Side Panels, so clicking a Card shows the same one?
+
+Yes. The two panels already shared their middle. Only their edges and their
+hosts differed, so combining them was mostly deletion.
+
+#### What actually changed
+
+| | Before | After |
+| --- | --- | --- |
+| Board card click | opened `DetailPanel` inside the board tab | opens Chrome's side panel |
+| Panel components | `DetailPanel.tsx` and `ReadingPanel.tsx` | `ReadingPanel.tsx` |
+| Can two be open at once? | yes | no |
+| Delete card | board panel only | the footer, always |
+| Capture quote | side panel only | always there, greyed when there is no article |
+
+#### The one hard part: the gesture
+
+Chrome refuses to open a side panel unless the click that asked for it is still
+"live". A click stays live until your code waits for something. The first
+`await` spends it.
+
+```ts
+// dead: the await spends the click before open() runs
+const tab = await browser.tabs.getCurrent();
+await browser.sidePanel.open({ tabId: tab.id });
+
+// alive: the id was already sitting there, so nothing waits
+browser.sidePanel.open({ tabId: ownTab.current.tabId });
+```
+
+That is the whole reason `useOwnTab.ts` exists. It looks the ids up once when
+the board loads and parks them in a ref, so the click handler has them ready.
+`openCardInPanel.ts` is not `async` for the same reason.
+
+#### Telling "still loading" from "not there"
+
+Dexie's `useLiveQuery` returns `undefined` in two different situations: while
+the query runs, and when the query finds nothing. Those mean opposite things.
+One says wait, the other says the card is gone. The fix is to turn a miss into
+`null` so the two stop looking alike.
+
+```ts
+getCard(panel.cardId).then((c) => c ?? null);
+// undefined = still looking, null = looked and found nothing
+```
+
+#### A card can arrive late
+
+Click a second card and the panel state flips at once. The card behind it
+arrives a tick later, so for that tick the new state sits on top of the old
+card. You would see the new banner over the old notes.
+
+`panelView()` catches this by comparing what arrived against what was asked
+for, and showing "Loading…" when they disagree.
+
+#### Why the id and not the article key
+
+A board click sends the card's `id`. A capture sends its `articleKey`. That
+looks inconsistent until you know `articleKey` is not unique: a board written
+before schema version 2 can hold two cards sharing one. `cardByArticleKey`
+returns whichever it finds first, so a board click that used the key could open
+the wrong twin. The board knows exactly which card was clicked, so it says so.
+
+#### The shape that made the compiler do the work
+
+`PanelState` became a union. The two ways in carry different evidence, and now
+the type says so.
+
+```ts
+export type PanelState =
+  | { source: 'capture'; articleKey: string; tabId: number; outcome: CaptureOutcome; notices: string[] }
+  | { source: 'board'; cardId: string };
+```
+
+The moment that landed, `tsc` listed every place that assumed one shape. The
+error list was the to-do list.
+
+#### The first test over `src/ui/`
+
+Nothing tested `src/ui/` before this. `vitest` runs in the node environment,
+where there is no DOM, and it collects only `src/**/*.test.ts`, so a `.tsx` file
+cannot even be picked up.
+
+Moving every decision into `panelView()`, a plain function over plain data in a
+`.ts` file, put nine tests over the logic with no new dependency and no config
+change. `ReadingPanel` was left rendering a switch.

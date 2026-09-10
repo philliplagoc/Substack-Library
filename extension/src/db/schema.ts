@@ -32,7 +32,8 @@ export class SubstackLibraryDb extends Dexie {
             );
 
         // The three Substack flags leave Card in Milestone 4. Nothing outside
-        // three checkboxes in DetailPanel ever read them, and those checkboxes
+        // three checkboxes in the board's card panel ever read them (a panel
+        // since deleted), and those checkboxes
         // asked the reader to keep a copy of state Substack already holds.
         //
         // The store string is identical to version 2. No index changes; only

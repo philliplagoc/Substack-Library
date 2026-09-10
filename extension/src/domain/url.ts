@@ -192,3 +192,19 @@ export function isReaderRoute(rawUrl: string | undefined | null): boolean {
   const { hostname, pathname } = new URL(canonical);
   return hostname === 'substack.com' && READER_PATH.test(pathname);
 }
+
+/**
+ * The host permission an article needs, and the host to name when asking for
+ * it.
+ *
+ * A match pattern over one origin, not one URL: the reader grants "this
+ * publication" once and every article on it works, which is the grain a reader
+ * thinks in. Returns null for anything `canonicalizeUrl` rejects. Never throws.
+ */
+export function originPattern(raw: string): { pattern: string; host: string } | null {
+  const canonical = canonicalizeUrl(raw);
+  if (canonical === null) return null;
+
+  const { origin, hostname } = new URL(canonical);
+  return { pattern: `${origin}/*`, host: hostname };
+}

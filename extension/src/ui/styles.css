@@ -2,7 +2,6 @@
   --ink: #1f1f1f;
   --muted: #6b6b6b;
   --accent: #ff6719;
-  --panel-width: 380px;
 
   /*
    * One warm palette, shared by the board and the side panel. The board
@@ -110,13 +109,15 @@ body {
 .toolbar .notice { font-size: 11px; color: var(--brand-muted); }
 .toolbar .notice.error { color: #b00; }
 
+/* Only shown when Chrome refuses to open the side panel. */
+.panel-error { margin: 0 12px 8px; }
+
 .layout {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
 }
-.layout.with-panel { grid-template-columns: 1fr var(--panel-width); }
 
 .board {
   display: grid;
@@ -181,25 +182,6 @@ body {
    warning that matches it is a warning nobody sees. Same red as .notice.error. */
 .card .warning { font-size: 11px; color: #b00; margin: 4px 0 0; }
 
-.panel {
-  border-left: 1px solid var(--brand-border);
-  background: var(--panel-card);
-  padding: 16px;
-  overflow: auto;
-  position: relative;
-}
-.panel .close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  color: var(--brand-muted);
-  font-size: 18px;
-  line-height: 1;
-}
-.panel h2 { font-size: 16px; margin: 0 24px 4px 0; }
-.panel .meta { color: var(--brand-muted); font-size: 12px; word-break: break-all; }
-.panel textarea { width: 100%; font: inherit; resize: vertical; }
-.panel li,
 .reading li { font-size: 13px; margin-bottom: 12px; }
 .quotes { list-style: none; padding: 0; margin: 0; }
 .quotes blockquote {
@@ -214,9 +196,9 @@ body {
 .boundary { padding: 24px; }
 
 /*
- * The sidepanel is NOT the board's 380px panel. Chrome owns this width and the
- * reader drags it, so the layout is fluid with a floor that keeps the quote
- * comment boxes usable.
+ * Chrome owns this width and the reader drags it, so the layout is fluid with
+ * a floor that keeps the quote comment boxes usable. There is no fixed-width
+ * board panel to contrast it against any more: this is the only panel.
  *
  * The shell is a column exactly the height of the viewport: the body scrolls
  * inside it and the footer never leaves the screen. The two actions that take
@@ -240,6 +222,16 @@ body {
   gap: 12px;
   padding: 12px;
 }
+/*
+ * The body scrolls; its cards do not shrink.
+ *
+ * A column flex item defaults to `flex-shrink: 1`, so a body taller than the
+ * panel was squashing every section to fit instead of scrolling. Only
+ * `.editor-header` clips its overflow, so only it lost anything visible, and
+ * what it lost was its last row: the source URL. That is why the URL went
+ * missing on long cards and stayed on short ones.
+ */
+.reading-body > * { flex: none; }
 .reading-footer {
   flex: none;
   background: var(--panel-card);
@@ -380,17 +372,15 @@ body {
 .remove-quote { font-size: 11px; }
 
 /*
- * The shared editor's new structure.
+ * The shared editor's structure.
  *
- * `CardEditor` now carries icons and section heads because the side panel's
- * design needs them. The board's detail panel wants neither, so it drops them
- * here rather than the markup forking. One tree, and each stylesheet takes the
- * part it uses.
+ * `CardEditor` carries icons and section heads because the side panel's design
+ * needs them. It used to be mounted in two places, and the board's copy hid
+ * them here rather than the markup forking. The board's panel is gone as of
+ * 2026-09-09 and the side panel is the only host, so the overrides went with
+ * it.
  */
-.panel .section-icon { display: none; }
 .section-head .count { margin-left: 6px; }
-/* ExportButton no longer carries a paragraph of its own. Keep the board's. */
-.panel .export-row { margin: 12px 0; }
 
 /* One orange focus ring across the board, mirroring the panel's own. Scoped to
    `.board-root` so it cannot reach `.reading`. dnd-kit gives each card a
@@ -621,16 +611,47 @@ body {
   font-weight: 500;
   cursor: pointer;
 }
-.reading .capture-quote:hover { background: var(--orange-dark); }
+.reading .capture-quote:hover:not(:disabled) { background: var(--orange-dark); }
 .reading .capture-quote .section-icon { width: 11px; height: 11px; }
+/*
+ * Disabled when there is no readable page behind it. Faded rather than hidden:
+ * the button is part of what this panel is, and a panel that changes shape
+ * depending on how it was opened is the confusion this design removed.
+ */
+.reading .capture-quote:disabled {
+  background: var(--brand-stone);
+  border: 1px solid var(--brand-border);
+  color: var(--brand-muted);
+  cursor: default;
+}
+/*
+ * The way out of the disabled state, and the only control here that opens a
+ * Chrome dialog. Outlined rather than filled so it reads as the quieter of the
+ * two buttons: Capture is the thing the reader wants, this is the toll.
+ */
+.reading .allow-capture {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.reading .allow-capture:hover { background: var(--brand-stone); }
 .reading .capture .notice { text-align: right; }
 
 /* --- Footer ------------------------------------------------------------- */
 
 /*
- * Two buttons on one row, and any export message across the full width beneath
- * them. `order` rather than DOM position: ExportButton renders its button and
- * its notices as siblings, and the notice must not land in the second column.
+ * Export and Open the board share one row; Delete card takes a quiet row of
+ * its own beneath, and any export message takes another. Three across does not
+ * fit the panel's 260px floor, and a destructive action does not belong shoulder
+ * to shoulder with the two ordinary ones anyway.
+ *
+ * `order` rather than DOM position: ExportButton renders its button and its
+ * notices as siblings, and the notice must not land in the second column.
  */
 .reading .footer-actions {
   display: flex;
@@ -668,7 +689,30 @@ body {
   border: 1px solid var(--accent);
   color: #fff;
 }
-.reading .footer-actions .open-board:hover { background: var(--orange-dark); }
+.reading .footer-actions .open-board:hover:not(:disabled) { background: var(--orange-dark); }
+/* Asleep because the board already has a tab. Faded the way Export is. */
+.reading .footer-actions .open-board:disabled {
+  background: var(--brand-stone);
+  border-color: var(--brand-border);
+  color: var(--brand-muted);
+  cursor: default;
+}
+.reading .footer-actions .delete-card {
+  flex: 1 0 100%;
+  order: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--brand-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.reading .footer-actions .delete-card:hover { background: var(--orange-light); color: #b00; }
 .reading .footer-actions .section-icon { width: 14px; height: 14px; flex: none; }
 
 /* --- Focus -------------------------------------------------------------- */

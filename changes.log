@@ -36,323 +36,199 @@ Then update the "Current state" section to match.
 ## Current state
 
 **Date:** 2026-09-09
-**The board redesign is code complete and NOT yet verified by hand.** The board
-now sits on the side panel's warm palette: `--bg` and `--col` are retired,
-`body` is `--parchment`, columns are `--brand-stone` with a hairline border,
-cards are white with a hairline border. The page is a `.board-root` column-flex
-shell, so the tag filter left the toolbar for a full-width row of its own
-(`extension/src/ui/TagFilter.tsx` is new), with a `TAGS:` label and a per-tag
-count. `--toolbar-height` and the `.layout` `calc()` are gone. Card titles stay
-system-sans and card faces are unchanged. The restyle is scoped to `.toolbar`,
-`.board-root`, and `.tag-filter`; the one shared rule touched, `.save-status`,
-was left on `--muted` so the panel cannot move. `npm run compile`, `npm test`
-(275 passing, 1 todo) and `npm run build` are all green; no suite covers
-`src/ui/`. Next step: run the "2026-09-09: board redesign" section of
-`extension/MANUAL-CHECKS.md` against a loaded build, above all its "The side
-panel is unchanged" and "Fluid width and the real second row" boxes.
+**Capture is gated on the FOCUSED tab, and it is verified by hand.**
+`useLiveArticle` reports `open` only when the window's focused tab shows the
+card's article, and carries that tab's id on `ask` and `closed` so
+`captureTarget` can hold the toolbar path to the same rule: a remembered
+`tabId` counts only while it is still focused. A background tab showing the
+article no longer enables Capture. `tabs.onActivated` is in the hook's
+listeners, so the button changes on a tab switch with no reload.
 
-**The side panel redesign is on `main`** (through `a785c52`) and its
-"2026-09-08: side panel redesign" manual-check boxes are still unrun. The panel
-is a parchment column of four white cards with a footer that does not scroll
-away; `extension/src/ui/icons.tsx` was new in that work. Four parts of its
-mockup were deliberately left out; the entry below says which and why.
+Before that, the two side-panel buttons that would not wake up were fixed in
+code and NOT verified by hand. "Open the board" is never disabled: the background's
+`openBoard` focuses the board tab it already opened and creates one only when
+there is none, so the button always has somewhere to go. `ui/useBoardOpen.ts`
+is deleted and the panel no longer reads `BOARD_TAB_KEY` at all. The background
+still writes and clears that key, for its own focus-or-create decision.
 
-**"Add by URL" is removed.** `AddByUrlForm.tsx` is deleted and `App.tsx` no
-longer mounts it. A card can now only reach the board through the content
-script on a Substack page or through a sync pull; there is no longer a manual
-entry point. The "## Capture" section of `extension/MANUAL-CHECKS.md`, which
-tested only that form, is deleted with it. `npm test` (275 passing, 1 todo)
-and `npm run build` are green.
-**Phase:** Milestones 0, 1, 2A, 2B, 3, and 4 are all complete and all checked
-against their definitions of done. Milestone 2 was split into 2A (capture and
-the companion panel) and 2B (Markdown export). The reading workflow feedback
-run is merged to `main` on top of them. Every box in `extension/MANUAL-CHECKS.md`
-is ticked against a loaded build, the new "2026-09-03: reading workflow feedback"
-section included. All three reader
-shells (inbox, home, profile) lay out alike, so one `readReaderArticle` reads
-them all.
+Capture is no longer decided by how the panel was opened. `ui/useLiveArticle.ts`
+asks whether the shown card's article is open in a tab this extension may read,
+matching tabs by `articleKey` so a custom domain and a `*.substack.com` address
+count as one article. `captureTarget` in `ui/panelView.ts` folds that answer
+together with the panel state: a verified tab wins, and a toolbar capture's
+`activeTab` grant is the floor beneath every other answer so the old path cannot
+regress. When the article is open but unreadable the panel shows an
+"Allow on <host>" button that calls `permissions.request` straight out of the
+click handler, the same user-gesture rule that governs `sidePanel.open`.
+`wxt.config.ts` declares `optional_host_permissions: ['*://*/*']` for it, and
+`host_permissions` is still only `https://substack.com/*`, so nothing is asked
+for at install. `capture-selection` now carries an optional `tabId`, and the
+background prefers it over the toolbar tab.
 
-**The reading workflow feedback run is done and merged to `main`, schema
-version 4.** All seven tasks of
-`.superpowers/sdd/2026-09-03-reading-workflow-feedback/` plus the whole-branch
-review fix landed on `main` as a fast-forward from `653ea03`, code through
-`e637c00` and docs after. Quotes carry an `id` and can be removed. The quote-location subsystem is
-deleted, `resolveQuote` and the content-script `prefix` included, so nothing
-writes or reads `locatorLost` any more. `CardEditor` shows one save indicator
-for the whole card and debounces quote comments the way it already debounced
-notes. A comment or notes field adopts an incoming value only when it has no
-write pending, so the same card open in both editors no longer sees one panel's
-stale draft overwrite the other. Exported Markdown puts Notes before Quotes,
-each under its own heading. Every textarea resizes vertically only. No button
-moves a card between columns; dragging on the board is the only way. `npm test`
-(275 passing, 1 todo) and `npm run compile` are green. The "2026-09-03: reading
-workflow feedback" section of `extension/MANUAL-CHECKS.md` was run against a
-loaded build on 2026-09-08 and every box is ticked.
+Before that, the panel's source URL going missing on long cards was fixed:
+`.reading-body` is a column flex container and its children shrank instead of
+scrolling, so they are now `flex: none`. The board's own card panel is gone;
+`PanelState` is a discriminated union on `source`, and `ui/panelView.ts` holds
+every rendering decision as a pure function over `(PanelState, Card,
+LiveArticle)`.
 
-**Milestone 4, release polish, is code complete and verified in a browser.**
-All six tasks are committed (`0f3d256`, `83e7d6b`, `97c18fd`, `a43852d`,
-`0785f8b`, and the wrap-up). It adds: a side-panel button that opens the board;
-tags on a card, entered in either editor, with a scrolling filter strip on the
-board; removal of the three Substack checkboxes and their `Card` fields; and an
-"Export all" button writing every card the board is showing into one Markdown
-file. No new permission, no tab opened, no page read. All 27 boxes of the
-"Milestone 4: release polish" section were run and passed on 2026-08-31. An
-earlier note here called that section 30 boxes; it holds 27.
-
-**Sync reads `substack.com/saved` as of 2026-08-31.** It used to read
-`substack.com/inbox/saved`, which turned out to hold a subset: 20 articles
-against 47 on the same account the same day, with no DOM in common. See the
-entry below and `spike/README.md`, "Saved page read paths". Code complete, the
-suite is green, and verified in a browser on 2026-09-01. Every box in
-`extension/MANUAL-CHECKS.md` is ticked, the three new ones included.
-
-**2C, the Obsidian vault write, is OUT OF v1.** The developer decided on
-2026-08-31 to defer it to a future update of the extension rather than to later
-in this build. It is not the next thing after Milestone 3 and it does not block
-shipping. The versioned Markdown download covers the need, and the design
-question 2B left open - whether a re-export overwrites the note or sits beside
-it as a `(v2)` - is meant to be answered by looking at real exported notes in a
-real vault, which requires the extension to be in daily use first.
-**Code:** `spike/` and `prototype/` are both finished and both throwaway.
-`spike/` holds `capture-fixture.js`, `extract.js` (`extractArticleMeta`,
-`extractSavedEntries`, `SELECTORS`), and three fixtures. `prototype/` holds the
-plain HTML/CSS/JS board that settled the layout. `extension/` holds the real
-extension: `src/entrypoints/background.ts` (the toolbar handler: it opens or
-focuses the board tab, tracked in `browser.storage.session`, and on an
-article-shaped URL opens the side panel, injects the extractors, resolves the
-article, calls `ingestCard()`, and writes `PanelState`), `src/entrypoints/board/` (the board
-page), `src/entrypoints/sidepanel/` (the reading panel document and React
-root), `src/domain/` (`types.ts`, `url.ts` with `canonicalizeUrl`,
-`articleKey`, `resolveArticleUrl`, `shouldCaptureFrom`, `isReaderRoute`,
-`publicationFromHost`;
-`article.ts` with `readingMinutes`; `quote.ts` with `createQuote` only, the
-quote-location code deleted), `src/substack/` (`extract.ts`, holding
-`ArticleMeta`, `extractArticleMeta`, `detectSignedOut`, `readReaderArticle`,
-and `readSelection` - every one of them self-contained, because
-`executeScript` ships them by `Function.prototype.toString()`), `src/messages.ts` (types only: `PanelState`,
-`PANEL_STATE_KEY`, `PanelMessage`, `CaptureSelectionReply` — belongs to no
-layer), `src/db/` (`schema.ts` at version 4 - the v3 upgrade deletes `liked`,
-`commented`, and `unsavedFromSubstack` from every row, the v4 upgrade gives
-every stored quote an `id`, same store string as v2;
-`cards.ts` with `allCards`, `getCard`, `updateCard`, `deleteCard`,
-`nextSortOrder`, `applyOrder`, `restoreCards`, `updateQuote`, `addQuote`,
-`removeQuote`, `cardByArticleKey`, `recordExport`, and the
-single-door `ingestCard`; `sync.ts` with `applySync`), and `src/ui/` (`App.tsx`,
-`Board.tsx`
-which also exports `COLUMNS`, `Column.tsx`, `CardTile.tsx` which also exports
-`statusLabel`, `Toolbar.tsx`, `CardEditor.tsx`, `DetailPanel.tsx`,
-`ReadingPanel.tsx`, `TagEditor.tsx`, `SyncButton.tsx`, `ExportButton.tsx`,
-`ExportAllButton.tsx`, `BackupControls.tsx`,
-`exportCard.ts`, `downloadFile.ts`). The board reads Dexie directly through
-`useLiveQuery` and renders three columns. `domain/card.ts` also exports
-`CardFilter`, `visibleCards`, `STATUS_LABELS`, `reorderCards`, and `createCard`;
-`CardFilter` now carries `query`, `maxMinutes`, and `tags`, and `visibleCards`
-requires a card to hold every selected tag. `App.tsx` holds the filter state and
-the tag vocabulary and passes the narrowed list to the board.
-`ui/CardEditor.tsx` owns the shared title, metadata, tags, notes, and
-quote-comment fields, mounting `TagEditor` in its body. It shows one save
-indicator next to the title for the whole card, driven by `ui/useSaveStatus.ts`,
-and debounces quote comments the way it debounces notes. `DetailPanel.tsx`
-supplies only a delete button through the editor footer now; the Substack
-checkboxes are gone. `ReadingPanel.tsx` supplies a Capture quote button and an
-Open-the-board button through the same footer and follows the `PanelState` the
-background writes on each toolbar click. It no longer offers status buttons; a
-column move happens by dragging on the board. It no longer re-checks quotes
-against `panel.bodyText`; the quote-location subsystem and its "location
-unavailable" label are gone. No browser check has confirmed the capture button.
-The UI writes through the add-by-URL form, dnd-kit drag and drop, the card
-detail panel, and JSON backup and restore.
-**Card identity:** A card carries `url` and `articleKey`. `url` is the address
-the card was added with and links to. `articleKey` is what dedup compares, so
-Substack's several routes to one article resolve to one card. `articleKey` is
-indexed but not unique, because a board written before version 2 can already
-hold a duplicate and a unique index would make the upgrade throw. Boards that
-already hold such a pair keep it; delete one by hand.
-**Build system:** `spike/` still runs on `node --test` with `linkedom`.
-`extension/` runs on WXT `0.21.4`, React `19.2.8`, TypeScript `~5.9.3` (pinned
-below 7), Vite `^7.3.6` (pinned below 8). `npm run build` succeeds and writes
-`.output/chrome-mv3/`, with a standing warning that `package.json` carries no
-`version` field. The Vite 7 pin forces a matching pin on
-`@vitejs/plugin-react`: `package.json` carries `overrides` holding it at
-`^5.0.0`, because version 6 peer-requires Vite `^8` and imports `vite/internal`,
-a subpath Vite 7 does not export. If `wxt prepare` ever crashes on that subpath,
-run `npm ls @vitejs/plugin-react`, then `npm install` to re-apply the override.
-**tsconfig:** `extension/tsconfig.json` extends `./.wxt/tsconfig.json`, which
-WXT regenerates on `wxt prepare` and `.gitignore` excludes. It must set
-`"jsx": "react-jsx"` itself. `@wxt-dev/module-react` only configures Vite and
-never writes that option, so without it `npm run build` passes and
-`npm run compile` fails on every `.tsx` file. The generated base also sets
-`noUncheckedIndexedAccess: true`, which makes every array index read
-`T | undefined`; `src/db/cards.test.ts` handles that in one `onlyCard()` helper. It also sets
-`noImplicitOverride: true`, which is why every member of `ErrorBoundary` that
-React's `Component` already declares carries an `override` modifier. Its `lib`
-is ESNext plus the DOM libs and it pulls in no Node types, so any test that
-imports a Node builtin needs `@types/node`, now a dev dependency.
-`src/substack/extract.test.ts` reads `node:fs` and is the only such file.
-`npm test` will not catch a missing type; Vite strips types without reading
-them. `npm run compile` is what catches it.
-**Tests:** `cd spike; npm test` passes. `cd extension; npm test` passes, 275
-tests and 1 todo across 14 files, on Vitest with `fake-indexeddb` and `linkedom`.
-Run it from `extension/`. Running Vitest from the repository root also sweeps
-`.worktrees/`, and the stale worktree there fails on a missing IndexedDB.
-`npm run compile` reports
-nothing and `npm run build` is clean. The React layer has no tests by design.
-`extension/MANUAL-CHECKS.md` covers that layer. Every box in it is ticked
-against a loaded build, the "2026-09-03: reading workflow feedback" section
-included, run on 2026-09-08.
-NOTE: the plan files under
-`docs/superpowers/plans/` each carry their own frozen COPY of the check list,
-and those copies were never ticked when the checks were run: 13 unticked in the
-2B plan, 25 in the 2A plan, and 26 in the Milestone 1 plan, every one of them a
-duplicate of a box that is ticked here. `MANUAL-CHECKS.md` is the source of
-truth; do not read a plan's copy as outstanding work. The Milestone 1 plan also
-holds one genuinely missed implementation tick at line 2187, Task 7 Step 10, the
-`DndContext` on `Board`; drag and drop demonstrably works, so the code is there
-and the box is not.
-Vite strips types without reading them, so a
-green `npm run build` says nothing about the types. Run `npm run compile` beside
-it.
-**Fixtures:** `article-free.html` (1599 body words), `article-paywalled.html`
-(684 preview words), `saved-list.html` (60 entries). All three anonymized and
-verified clean. `manifest.json` holds real expected values for each.
-**Anonymization contract:** The capture snippet removes every `data-attrs`
-attribute, every query string in `href`, `src`, `data-href`, and `action`, and
-zeroes any run of 6 or more digits in a URL path. Fixtures are therefore not
-byte-faithful. Do not write a test that asserts on a query parameter or a
-numeric profile id. `spike/README.md`, "Risks found", holds the detail.
-**Saved list behavior:** The list loads more entries on scroll (20 at the top of
-the page, 85 at the bottom) and does not virtualize. A parser must scroll to the
-bottom to see every entry, then can read the full list in one pass.
-**Milestone 1 decisions (see the design doc):** direct Dexie access with
-`useLiveQuery` and no messaging layer, with the Milestone 2 companion panel
-deferred to an extension-origin iframe; WXT as the extension shell, which closes
-the WXT-vs-CRXJS question; dense integer `sortOrder`; restore merges by URL
-through `ingestCard()` rather than replacing; tests cover `domain/` and `db/`
-with `fake-indexeddb` and skip the React layer.
-**Known drift:** `AGENTS.md` still holds the old learning-note rules.
-`CLAUDE.md` dropped ASD-STE100 for those notes. The two files no longer match
-below their header lines.
-
-**Scope decision:** The developer pays for no Substack publication. v1 handles
-free articles and detects a paywall. It does not read a paid subscriber's
-article body.
-
-**Key documents:**
-
-- `implementation-plan.md` - the product plan. Scope, architecture, the `Card`
-  data model, the Markdown export format, the build sequence for Milestones 0
-  to 3, the risks, and the success criteria.
-- `docs/superpowers/specs/2026-08-26-milestone-1-design.md` - the Milestone 1
-  design. Decisions with their rejected alternatives, the module boundaries, the
-  schema, and the eleven-task shape.
-- `docs/superpowers/plans/2026-08-26-milestone-1.md` - the task-by-task plan for
-  Milestone 1. Eleven tasks. Read its "Correction to the design doc" section
-  first; restore does not go through `ingestCard()`.
-- `docs/superpowers/specs/2026-08-29-milestone-2a-design.md` - the Milestone 2A
-  design. Read its "Amendments to earlier documents" section first: it overturns
-  three decisions in `implementation-plan.md` and the Milestone 1 design.
-- `docs/superpowers/plans/2026-08-29-milestone-2a.md` - the task-by-task plan for
-  Milestone 2A. Eight tasks. Read its "Corrections to the design doc" section
-  first; the spec's `substack/selectors.ts` does not exist, tasks 4 to 6 are
-  reordered, and correction 4 holds the inbox reader route, a fourth capture
-  shape whose `<head>` describes a different page than its `<body>` does.
-- `docs/superpowers/specs/2026-08-30-milestone-2b-design.md` - the Milestone 2B
-  design. Markdown serialization, the versioned download, and the Processed
-  offer. Read its "Amendments to earlier documents" section first: the vault
-  write leaves Milestone 2 for a spec of its own, and the frontmatter grows to
-  eight keys.
-- `docs/superpowers/plans/2026-08-30-milestone-2b.md` - the task-by-task plan for
-  Milestone 2B. Four tasks. Its "Corrections to the design doc" section is empty
-  and is where a correction found while executing belongs.
-- `docs/superpowers/plans/2026-08-16-milestone-0.md` - the finished Milestone 0
-  plan, 12 tasks in two parts.
-- `spike/README.md` - the Substack compatibility doc. Milestones 2 and 3 read it
-  before writing any parser.
-- `prototype/DECISIONS.md` - the binding layout constraints for Milestone 1.
-- `CLAUDE.md` and `AGENTS.md` - the instructions for assistants.
-- `docs/learning-notes.md` - the questions the developer asked, with short
-  answers. No code reads it.
-
-**Milestone 3, the Saved-list sync, is done.** All four tasks of
-`docs/superpowers/plans/2026-08-31-milestone-3.md` are committed
-(`domain/saved.ts` `d525c9e`, `substack/saved.ts` `6d5a78f`, `db/sync.ts`
-`73502a3`, the wiring `f1f7e38`), and every "Saved sync (Milestone 3)" box in
-`extension/MANUAL-CHECKS.md` is ticked against a loaded build. No `TODO(human)`
-is open anywhere in `extension/src/`.
-
-**Next up:** Milestone 5, the self-filling Add-by-URL form. Its mechanism is
-chosen (open a tab, inject `extractArticleMeta` and `readReaderArticle`
-unchanged, close the tab); its install-time permission question is open and
-wants its own spec. The reading workflow feedback run is closed: merged to
-`main`, pushed, and every manual-check box ticked against a loaded build on
-2026-09-08.
-
-The two stale remote branches from that run,
-`origin/worktree-reading-workflow-feedback` (`af8fb35`, contained in `main`) and
-`origin/reading-workflow-feedback` (`f111e78`, the abandoned Codex attempt), were
-deleted on 2026-09-08. `origin` carries only `main`.
-
-**Ship chores**, cheap and independent of any milestone:
-`extension/package.json` carries no `version` field, which is the standing build
-warning, and there are no icons or install instructions for anyone but the
-developer.
-
-**Known gap in this log:** the entries below jump from Task 1 Step 6 to the
-2026-08-27 entry. Milestone 1 Task 1 Steps 7-13 and Tasks 2, 3, and 4 were built
-and committed without an entry each. Git holds them, in commits `79174e4`
-(scaffold and toolbar), `65a058b` (card types and URL canonicalization),
-`234c412` (Dexie schema and card repository), and `e9d3133` (card creation, merge
-rules, `ingestCard`). Read those commits, not this file, for the reasoning behind
-Tasks 2 through 4.
-
-**Known issue:** `docs/superpowers/plans/2026-08-26-milestone-1.md` picked up a
-formatting corruption somewhere in Task 1's edit history: many `**Step N: ...
-`file`**` headings now read `**Step N: ... `file**`` , with the closing backtick
-moved inside the bold marker. This breaks the code span and leaves the bold
-unclosed until the next corrupted heading. Cosmetic only; the checkbox state and
-step instructions are unaffected. Not fixed in this pass because it was not
-asked for; worth a cleanup pass before Task 2.
-
-**Open questions:**
-
-- Milestone 2A's panel follows deliberate toolbar clicks, not tab focus. Whether
-  that is right is a question only real use answers. Revisit around 2026-09-13.
-- The quote-location subsystem is gone as of the 2026-09-03 feedback run.
-  `resolveQuote`, the persisted `locatorLost` flag, and the "location
-  unavailable" label are all deleted. A quote is plain text with a comment and
-  an `id`. The old worry about a stale `panel.bodyText` copy no longer applies.
-- Neither reader shell has a fixture. `readReaderArticle` is unit-tested against
-  synthetic HTML, so the tests pin the walk against a model of the page rather
-  than the page. Both shells passed by hand on 2026-08-30. Capture a fixture if
-  Substack changes either layout.
-- The column labels `To Read`, `Reading`, `Processed` exist in four places now.
-  `domain/card.ts` holds the canonical `STATUS_LABELS`; `ui/Board.tsx`,
-  `ui/ReadingPanel.tsx`, and `ui/CardTile.tsx` still hold their own. A small
-  three-file consolidation Milestone 4 chose not to make.
-- The fixed-toolbar-height problem is fixed as of the 2026-09-09 board redesign.
-  The page is a `.board-root` column-flex shell now; `--toolbar-height` and the
-  `.layout` `calc()` are gone, and the tag filter is a real full-width row that
-  wraps instead of a sideways-scrolling strip inside the toolbar. Whether the
-  wrapping row's 28vh cap is right in practice is the new open question; the
-  fallback is a single-line sideways-scrolling row at full width.
-- The tag filter matches ALL selected tags. ANY-matching is the better browse;
-  revisit once the board holds enough tags to browse rather than narrow. The
-  2026-09-09 redesign left the logic alone on purpose.
-- Tags are not shown on the card face in `CardTile`. Cut on purpose; the filter
-  strip already says which tags are in play.
-
-Four questions closed. Custom-domain article metadata was checked by hand on
-2026-08-30 and reads correctly, so the fourth fixture is unnecessary; the
-extractor reads JSON-LD and OG tags, and neither is host-specific. The home
-feed's reader shell reads like the inbox's. `isPreview` reads JSON-LD
-`isAccessibleForFree` first, decided in the Milestone 2A design.
-`prototype/DECISIONS.md` was closed by Milestone 1 Task 11.
-
-**Blockers:** None.
+`npm run compile` is clean, `npm test` is 292 passing and 1 todo, and
+`npm run build` is green with `optional_host_permissions` in the built manifest.
+**Next step: reload the unpacked extension and run the "2026-09-09: two buttons
+that would not wake up" section of `extension/MANUAL-CHECKS.md`, then the
+"2026-09-09: one panel" section, whose gesture boxes are still unproven.** No
+test can see a permission dialog, a tab list, or a user gesture, so the manual
+sections carry the whole grant flow. The older "Open the board sleeps" boxes are
+marked superseded in place; do not run them.
 
 ---
 
 ## Entries
+
+### 2026-09-09 - Capture follows the focused tab, not any open tab
+
+**What changed:** `useLiveArticle` now answers about the focused tab of the
+window instead of any tab in it, and carries the focused tab's id on its `ask`
+and `closed` states. `captureTarget` uses that id to gate the toolbar path too:
+a `capture` opening's remembered `tabId` counts only while it is still the
+focused tab. `tabs.onActivated` was added to the hook's listeners, without
+which a plain tab switch never re-ran the check.
+**Why:** Reported by hand. Opening a card from the board turned Capture on
+whenever a forgotten article tab sat in the background, and a quote read out of
+a page the reader cannot see is not the quote they selected. The toolbar path
+had the same hole once the reader walked away from the captured tab.
+**Files:** `extension/src/ui/useLiveArticle.ts`, `extension/src/ui/panelView.ts`,
+`extension/src/ui/panelView.test.ts`, `extension/MANUAL-CHECKS.md`
+**Verification:** `npm test` - 295 passed, 1 todo. `npm run compile` - clean.
+Checked by hand after `npm run build` and an extension reload: Capture stays
+off while a background tab holds the article and turns on when it is focused.
+**State after:** Capture is enabled only when the focused tab is showing the
+card's article and the extension may read it, or when the focused tab is the
+one a toolbar click covered. "Open the board" is unchanged and still always
+enabled, confirmed as intended.
+**Next up:** Nothing outstanding on the panel. Pick up the unticked boxes in
+the Panel section of `MANUAL-CHECKS.md`.
+**Open questions:** A side panel is per window. Focusing a different Chrome
+window is untested; `currentWindow` should resolve to the panel's own window,
+so the verdict should hold, but nobody has watched it.
+
+### 2026-09-09 - Two buttons that would not wake up
+
+**What changed:** "Open the board" is never disabled again, and Capture now
+turns on whenever the card's article is open in a readable tab, however the
+panel was opened. `wxt.config.ts` gains `optional_host_permissions: ['*://*/*']`
+and the panel asks for one publication at a time from a button beside Capture.
+**Why:** Two bugs, one report, different causes. The board button was disabled
+whenever a board tab existed, but `openBoard` in the background already focuses
+an existing tab and creates one only when there is none, so the UI refused a
+request the backend was ready to serve. `ui/useBoardOpen.ts` and the session key
+it watched were the whole mechanism, and both are gone from the panel.
+Capture looked like the same shape of bug and was not. `captureEnabled` came
+from `panel.source`, frozen at open time, but unfreezing it fixes nothing on its
+own: without a host permission matching the tab, `tabs.query` strips the URL,
+so the extension cannot see that the article is open, let alone read a selection
+out of it. `activeTab` does not reach it either, because Chrome grants that on a
+toolbar click, a context-menu item, or a keyboard command, and a click inside
+the side panel is none of the three. So a permission had to move. Asked per
+publication from the panel rather than `<all_urls>` at install, because the
+2026-08-29 design chose `activeTab` precisely to avoid that install warning, and
+an optional origin keeps the promise for a reader who never presses the button.
+`ui/useLiveArticle.ts` asks the live question and `captureTarget` in
+`ui/panelView.ts` decides between its answer and the panel's frozen one: a
+verified tab wins, and the toolbar's `activeTab` grant is the floor beneath
+every other answer so the toolbar path cannot regress. `capture-selection` now
+carries the tab id the panel found.
+**Files:** `extension/wxt.config.ts`, `extension/src/domain/url.ts`,
+`extension/src/domain/url.test.ts`, `extension/src/messages.ts`,
+`extension/src/entrypoints/background.ts`, `extension/src/ui/ReadingPanel.tsx`,
+`extension/src/ui/panelView.ts`, `extension/src/ui/panelView.test.ts`,
+`extension/src/ui/useLiveArticle.ts` (new),
+`extension/src/ui/useBoardOpen.ts` (deleted), `extension/src/ui/styles.css`,
+`extension/MANUAL-CHECKS.md`
+**Verification:** `npm run compile` clean. `npm test` 292 passing and 1 todo.
+`npm run build` green, and the built manifest carries
+`optional_host_permissions`. No hand check yet.
+**State after:** Code complete, not verified by hand. Nothing in the suite can
+see a Chrome permission dialog, a tab list, or a user gesture, so the whole
+grant flow rests on the manual section.
+**Next up:** Run "2026-09-09: two buttons that would not wake up" in
+`extension/MANUAL-CHECKS.md` against a freshly loaded build. Reload the unpacked
+extension first; Chrome will not pick up the new manifest line otherwise.
+**Open questions:** Whether `tabs.query({ currentWindow: true })` resolves to
+the browser window hosting the side panel. It should, and the manual section has
+a box for the case where it does not. Whether a reader wants Capture armed by an
+article sitting in a background tab, which is what matching on presence rather
+than focus gives them.
+
+### 2026-09-09 - The panel's missing URL, and Open the board while the board is open
+
+**What changed:** `.reading-body` is a column flex container, and its children
+kept the default `flex-shrink: 1`, so a card whose content was taller than the
+panel was squashed to fit rather than scrolled. `.editor-header` is the only
+section with `overflow: hidden`, so it was the only one that lost anything you
+could see, and what it lost was its last row: the source URL. `.reading-body >
+* { flex: none; }` ends it. Separately, the footer's "Open the board" is now
+disabled while a board tab exists, with the title "The board is already open."
+`BOARD_TAB_KEY` is a shared constant in `src/messages.ts` for the session key
+the background already wrote; the background now also removes it on
+`tabs.onRemoved`, and `ui/useBoardOpen.ts` reads and follows it.
+**Why:** The URL looked like a data bug and was a layout one, which is why it
+hit "some cards" and not others: only cards long enough to overflow lost it.
+The button was live over a board that was already open, so it stole a click and
+did nothing visible. Disabled rather than hidden, matching the Capture button
+one change earlier: the footer keeps the same three actions in the same places
+whatever the browser is doing. The background had to start clearing the tab id
+because `openBoard` was tolerant of a stale one and a greyed-out button is not.
+**Files:** `extension/src/ui/styles.css`, `extension/src/messages.ts`,
+`extension/src/entrypoints/background.ts`, `extension/src/ui/useBoardOpen.ts`
+(new), `extension/src/ui/ReadingPanel.tsx`, `extension/MANUAL-CHECKS.md`
+**Verification:** `npm run compile` clean, `npm test` 284 passing and 1 todo,
+`npm run build` green. Not verified by hand.
+**State after:** Both fixes are code complete and unrun against a build. The
+"2026-09-09: the missing URL and a sleeping button" section of
+`extension/MANUAL-CHECKS.md` is new and every box in it is unticked.
+**Next up:** Run that section together with the two 2026-09-09 sections above
+it against a loaded build.
+**Open questions:** A board tab that survives a browser restart outlives the
+session storage that names it, so the button will read "not open" over an open
+board until the reader clicks it once. That was already `openBoard`'s behaviour
+and now it is visible. Left alone rather than given a `tabs` permission.
+
+### 2026-09-09 - One panel, not two
+
+**What changed:** The board's own card panel is deleted. Clicking a card on the
+board now opens Chrome's side panel, the same panel the toolbar button opens on
+an article. `PanelState` became a discriminated union on `source`, and a new
+pure function, `ui/panelView.ts`, decides what the panel shows.
+**Why:** Two panels could be on screen at once holding two different cards, and
+they had diverged in look and in what they offered. They already shared their
+middle through `CardEditor`; only their hosts and their edges differed. Keeping
+the board's panel and restyling it to match was rejected: it would have fixed
+the look and left the real confusion, which is two panels, untouched.
+**Files:** `src/messages.ts`, `src/entrypoints/background.ts`, `src/ui/App.tsx`,
+`src/ui/ReadingPanel.tsx`, `src/ui/panelView.ts` (new),
+`src/ui/panelView.test.ts` (new), `src/ui/openCardInPanel.ts` (new),
+`src/ui/useOwnTab.ts` (new), `src/ui/DetailPanel.tsx` (deleted),
+`src/ui/styles.css`, `src/ui/CardEditor.tsx` (comment), `src/db/schema.ts`
+(comment), `extension/MANUAL-CHECKS.md`.
+**Verification:** `npm run compile` clean, `npm test` 284 passing and 1 todo,
+`npm run build` green. The nine `panelView` tests are the first tests over
+`src/ui/`. No browser check has been run.
+**State after:** Code complete, NOT verified by hand. The whole change rests on
+one unproven assumption: that the board page, an extension page in a normal tab,
+satisfies Chrome's user-gesture rule when it calls `sidePanel.open()` from a
+React click handler. Nothing in the test suite or the compiler can see that
+failing.
+**Next up:** Run the "2026-09-09: one panel" section of
+`extension/MANUAL-CHECKS.md` against a loaded build, its "The gesture" boxes
+first. If the gesture is refused, the fallback is routing through the background
+worker, which is less reliable, not more, and would need rethinking.
+**Open questions:** Nothing clears the panel state when the reader closes the
+side panel; Chrome fires no close event. Also, opening an article by the toolbar
+and then clicking that same card on the board disables Capture, even though the
+article tab is still open and the grant is still live. Both are consequences of
+the clean union and neither has bitten yet.
+
 
 ### 2026-09-09 - Redesign the board
 
