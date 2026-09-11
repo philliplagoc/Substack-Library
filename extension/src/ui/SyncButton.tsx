@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SyncReport, SyncSavedReply } from '../messages';
+import SignInDialog from './SignInDialog';
 
 /**
  * A one-line, human-readable summary of a completed run, e.g.
@@ -19,13 +20,18 @@ function summarize(report: SyncReport): string {
 export default function SyncButton() {
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState<SyncSavedReply | null>(null);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   async function handleSync() {
     setBusy(true);
     setReply(null);
     try {
       const answer = (await browser.runtime.sendMessage({ type: 'sync-saved' })) as SyncSavedReply;
-      setReply(answer);
+      if (!answer.ok && answer.needsSignIn) {
+        setSignInOpen(true);
+      } else {
+        setReply(answer);
+      }
     } catch (error) {
       setReply({ ok: false, reason: error instanceof Error ? error.message : String(error) });
     }
@@ -56,6 +62,8 @@ export default function SyncButton() {
             : ` Only the first ${reply.report.entriesSeen} entries loaded, so nothing was flagged as missing.`}
         </p>
       ) : null}
+
+      <SignInDialog open={signInOpen} onClose={() => setSignInOpen(false)} />
     </div>
   );
 }

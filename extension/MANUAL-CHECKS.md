@@ -233,7 +233,7 @@ accepted.
 - [x] Re-save it, sync, and the warning is gone.
 - [x] A card added by URL, never in the Saved list, carries no warning after a sync.
 - [x] A saved podcast becomes a card whose face reads its full duration and "watch" or "listen".
-- [x] Sync signed out, in a private window: the message says to sign in, and NO card gains a warning.
+- [ ] Sync signed out, in a private window: clicking Import shows the sign-in dialog without opening a Substack tab, and NO card gains a warning.
 - [x] The first-run backlog: on an empty board, one sync brings in every saved entry.
 
 ## Milestone 4: release polish
