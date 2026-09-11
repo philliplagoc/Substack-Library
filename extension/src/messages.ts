@@ -94,7 +94,9 @@ export type CaptureSelectionReply =
   | { ok: true; text: string }
   | { ok: false; reason: string };
 
-export type SyncSavedReply = { ok: true; report: SyncReport } | { ok: false; reason: string };
+export type SyncSavedReply =
+  | { ok: true; report: SyncReport }
+  | { ok: false; reason: string; needsSignIn?: boolean };
 
 // Re-exported so `src/ui/` reads one file for the whole message contract
 // rather than reaching into `src/db/` for half of it.
