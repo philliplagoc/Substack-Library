@@ -4,8 +4,9 @@ Substack Library is a local-first Chrome extension to help you track and take no
 
 ## What it does
 
-- Sync your existing saved Articles. It reads the title, author, publication.
+- Sync your existing saved articles. It reads the title, author, publication.
 - Track your reading progress on a Kanban Board.
+- Open up the extension on articles to automatically save them to your Board.
 - Take notes in a side panel docked beside the article on its own page.
 - Select text to keep it as a quote, and comment on the quotes.
 - Export your notes as Markdown.
