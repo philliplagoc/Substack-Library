@@ -29,17 +29,24 @@ const SESSION_PROBE_URL = 'https://substack.com/api/v1/settings';
 const PROBE_TIMEOUT_MS = 5000;
 
 /**
- * TODO(human): map the probe's outcome to a session state.
+ * Maps the probe's outcome to a session state.
  *
  * `status` is the HTTP status from the settings probe, or `null` when the
  * request itself failed (network error, or the timeout firing).
  *
- * Constraint: a wrong `'signed-out'` blocks a reader who IS signed in, which
- * is worse than the slow path this replaces — so anything that is not a
- * clear, confirmed signal must resolve to `'unknown'`, never `'signed-out'`.
+ * Only two outcomes are confirmed by direct observation of this endpoint: a
+ * `200` (a live session) and a `401` (Substack's own "Please sign in"
+ * response, measured live while signed out). Everything else - a `403` or a
+ * `500`, which could equally mean a transient auth hiccup or an unrelated
+ * server error, and a failed request, which says nothing about the session
+ * at all - resolves to `'unknown'` rather than guessed at. A wrong
+ * `'signed-out'` blocks a reader who IS signed in, which is worse than the
+ * slow path this probe replaces.
  */
 function classify(status: number | null): SubstackSessionState {
-  throw new Error('not implemented');
+  if (status === 200) return 'signed-in';
+  if (status === 401) return 'signed-out';
+  return 'unknown';
 }
 
 /**
