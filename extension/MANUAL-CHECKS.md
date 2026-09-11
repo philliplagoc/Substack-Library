@@ -738,3 +738,11 @@ article page" section above was amended for it.
       granting any host permission — Capture still works on that one tab (the
       `activeTab` grant). Switch away and back without granting the permission;
       Capture stops working.
+- [ ] Add an article opened from the Substack reader shell — an address bar
+      reading `substack.com/inbox/post/<id>`, `substack.com/home/post/p-<id>`
+      or `substack.com/@<handle>/p-<id>` — then take notes. Click over to the
+      board tab, then back to the article tab. The panel shows the card and its
+      notes, not the "Add to board and start taking notes" overlay. Close the
+      side panel and reopen it on that tab; still the card. Added 2026-09-11:
+      the resolved key used to live only in the panel's own state, which a tab
+      switch cleared, so the panel offered to add an article it already held.

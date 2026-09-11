@@ -15,9 +15,11 @@ import type { Card } from '../domain/types';
 import CardEditor from './CardEditor';
 import ExportButton from './ExportButton';
 import { panelView } from './panelView';
+import { effectiveArticleKey } from './readerKeys';
 import { useActiveTabGrant } from './useActiveTabGrant';
 import { useCapturePermission } from './useCapturePermission';
 import { useFocusedTab } from './useFocusedTab';
+import { useReaderKeys } from './useReaderKeys';
 import { ArrowRightIcon, CheckIcon, PlusIcon, TrashIcon } from './icons';
 
 /**
@@ -84,6 +86,34 @@ export default function ReadingPanel() {
   const tab = useFocusedTab();
   const panel = usePanelState();
 
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const [addResult, setAddResult] = useState<AddArticleReply | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  /*
+   * The real key for the focused article, learned from this visit's own Add.
+   *
+   * `AddArticleReply` carries it back before the background's session-storage
+   * write has come around through `storage.onChanged`, so it is worth holding
+   * for those few frames. It is not the durable copy: the background records
+   * the same answer under READER_KEYS_KEY, `useReaderKeys` reads it, and
+   * `effectiveArticleKey` weighs the two. That split is what survives a tab
+   * switch — this state does not, by design, and used to be all there was.
+   *
+   * Cleared in the same effect as `addResult`, so a stale key never survives
+   * a tab switch and shows the wrong card.
+   */
+  const [knownArticleKey, setKnownArticleKey] = useState<string | null>(null);
+  const readerKeys = useReaderKeys();
+  const articleKey = effectiveArticleKey(tab, readerKeys, knownArticleKey);
+
+  // Clear once the focused article changes, so a stale banner, error, or
+  // resolved key never survives a tab switch.
+  useEffect(() => {
+    setAddResult(null);
+    setKnownArticleKey(null);
+  }, [tab.kind === 'article' ? tab.articleKey : tab.kind]);
+
   /*
    * `undefined` while the query runs, `null` once it has run and found
    * nothing. Dexie returns `undefined` for both, and the two mean opposite
@@ -91,7 +121,10 @@ export default function ReadingPanel() {
    *
    * Which card is asked for depends on what is focused. The board addresses
    * its pick by id, because `articleKey` is indexed but not unique and
-   * `cardByArticleKey` returns the first match. An article has only its key.
+   * `cardByArticleKey` returns the first match. An article uses the key
+   * above, not `tab.articleKey` directly, for the reader-route reason noted
+   * there — and waits, rather than reporting no card, while that key is still
+   * undecided.
    */
   const card = useLiveQuery(() => {
     if (tab.kind === 'board') {
@@ -99,11 +132,11 @@ export default function ReadingPanel() {
       if (panel === null) return Promise.resolve(null);
       return getCard(panel.cardId).then((c) => c ?? null);
     }
-    if (tab.kind === 'article') {
-      return cardByArticleKey(tab.articleKey).then((c) => c ?? null);
+    if (tab.kind === 'article' && articleKey != null) {
+      return cardByArticleKey(articleKey).then((c) => c ?? null);
     }
     return Promise.resolve(undefined);
-  }, [tab.kind, tab.kind === 'board' ? panel?.cardId : tab.kind === 'article' ? tab.articleKey : null]);
+  }, [tab.kind, tab.kind === 'board' ? panel?.cardId : articleKey]);
 
   /*
    * Asked only of a focused article. Capture reads the page the reader is
@@ -113,18 +146,14 @@ export default function ReadingPanel() {
   const permission = useCapturePermission(tab.kind === 'article' ? tab.url : null);
   const activeTabGrantId = useActiveTabGrant();
 
-  const [captureError, setCaptureError] = useState<string | null>(null);
-  const [addResult, setAddResult] = useState<AddArticleReply | null>(null);
-  const [adding, setAdding] = useState(false);
-
-  // Clear once the focused article changes, so a stale banner or error never
-  // survives a tab switch.
-  useEffect(() => {
-    setAddResult(null);
-  }, [tab.kind === 'article' ? tab.articleKey : tab.kind]);
+  // panelView's race guards compare `card.articleKey` against the focused
+  // tab's key; substitute the resolved key above so a reader-route tab
+  // matches its own card once Add has confirmed one.
+  const tabForView =
+    tab.kind === 'article' && articleKey != null ? { ...tab, articleKey } : tab;
 
   const view = panelView(
-    tab,
+    tabForView,
     panel === undefined ? undefined : panel === null ? null : panel.cardId,
     card,
     permission,
@@ -140,6 +169,11 @@ export default function ReadingPanel() {
         url,
       } satisfies PanelMessage)) as AddArticleReply;
       setAddResult(reply);
+      // The reply carries the article's real key, resolved by the background
+      // (a DOM read, for a reader-shell tab). Remember it so the query above
+      // switches to it immediately, rather than waiting for a tab switch that
+      // may never come.
+      if (reply.ok) setKnownArticleKey(reply.articleKey);
     } catch (error) {
       // The background threw before it answered, so the port closed with no
       // reply. Reported down the same path as an `{ ok: false }` reply rather

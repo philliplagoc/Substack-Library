@@ -39,6 +39,31 @@ export const BOARD_TAB_KEY = 'boardTabId';
  */
 export const ACTIVE_TAB_GRANT_KEY = 'activeTabGrant';
 
+/**
+ * The session-storage key holding what the background has resolved about
+ * Substack's reader-shell routes.
+ *
+ * `/inbox/post/<id>` and its siblings name the app, not the article, so the
+ * panel cannot derive an article key from the address bar there. The
+ * background can: it injects a DOM read when it ingests. This is where it
+ * leaves the answer, so the panel stops having to hold it in component state
+ * that a tab switch wipes.
+ *
+ * Session-scoped on purpose. The mapping is a cache of something re-derivable,
+ * and a reader-shell id that changes meaning between browser sessions costs
+ * nothing more than one extra DOM read.
+ */
+export const READER_KEYS_KEY = 'readerKeys';
+
+/**
+ * Provisional article keys mapped to the real ones.
+ *
+ * The key is what `articleKey()` makes of the tab's own URL — on a reader
+ * route that is just the canonical URL, because no pattern matches. The value
+ * is the key the board actually stores the card under.
+ */
+export type ReaderKeys = Record<string, string>;
+
 /** What `ingestCard()` did. Named so the panel can key a banner on it. */
 export type CaptureOutcome = IngestOutcome['kind'];
 

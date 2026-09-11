@@ -3,6 +3,7 @@
 // reader's own call, made from the panel. On anything else it opens the board,
 // or focuses the board tab it already opened.
 import {
+  articleKey as provisionalKey,
   canonicalizeUrl,
   isReaderRoute,
   publicationFromHost,
@@ -22,7 +23,9 @@ import { applySync } from '../db/sync';
 import {
   ACTIVE_TAB_GRANT_KEY,
   BOARD_TAB_KEY,
+  READER_KEYS_KEY,
   type AddArticleReply,
+  type ReaderKeys,
   type CaptureSelectionReply,
   type PanelMessage,
   type SyncSavedReply,
@@ -196,14 +199,34 @@ export default defineBackground({
         estimatedReadingMinutes: readingMinutes(meta.wordCount, meta.readable),
       });
 
-      return outcome.kind === 'rejected'
-        ? { ok: false, reason: outcome.reason }
-        : {
-            ok: true,
-            outcome: outcome.kind,
-            articleKey: outcome.card.articleKey,
-            notices,
-          };
+      if (outcome.kind === 'rejected') return { ok: false, reason: outcome.reason };
+
+      /*
+       * Leave the answer where the panel can find it again.
+       *
+       * Only a reader-shell tab needs this. Anywhere else the address bar
+       * names the article and `articleKey()` agrees with the stored card
+       * already, so there is nothing to remember. Written before the reply so
+       * a panel that re-reads on the resulting `storage.onChanged` cannot
+       * beat the record it is reacting to.
+       */
+      if (reader) {
+        const provisional = provisionalKey(tabUrl);
+        if (provisional != null && provisional !== outcome.card.articleKey) {
+          const stored = await browser.storage.session.get(READER_KEYS_KEY);
+          const keys = (stored[READER_KEYS_KEY] as ReaderKeys | undefined) ?? {};
+          await browser.storage.session.set({
+            [READER_KEYS_KEY]: { ...keys, [provisional]: outcome.card.articleKey },
+          });
+        }
+      }
+
+      return {
+        ok: true,
+        outcome: outcome.kind,
+        articleKey: outcome.card.articleKey,
+        notices,
+      };
     }
 
     async function syncSaved(): Promise<SyncSavedReply> {
