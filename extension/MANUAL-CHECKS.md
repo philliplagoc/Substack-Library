@@ -643,6 +643,36 @@ Use a publication whose articles you have never granted, and check
       Capture grey with "Open the article first." and no "Allow on" button.
       There is no origin to ask for.
 
+## Side panel follows the focused tab
+
+- [ ] Open a Substack article and click the toolbar button. The panel opens on
+      that article and adds nothing to the board.
+- [ ] The panel shows that article's title with the dimmed editor preview and
+      the "Add to board and start taking notes" button.
+- [ ] Switch to a second article tab. The panel swaps to the second article's
+      draft (or its card, if already on the board).
+- [ ] Switch to a non-Substack tab. The panel shows "Open an article."
+- [ ] Switch to the board tab with nothing picked. The panel shows "Select an
+      article to view." Click a card; the panel shows that card. Switch away to
+      an unrelated tab; the panel returns to "Open an article." even though a
+      card was just picked.
+- [ ] Click "Add to board and start taking notes". The panel shows an "Added to
+      your board." banner, replaces the dimmed preview with the live editor,
+      and puts the card in the To Read column on the board.
+- [ ] Type notes after adding. The notes persist, and the save indicator still
+      reaches "Saved".
+- [ ] Capture on a publication whose host permission is already granted. The
+      quote attaches to the added card. On an ungranted publication the "Allow
+      on <host>" button appears in the draft's overlay area (or the card view
+      once added) and works.
+- [ ] Re-add an article already on the board (revisit its tab, click Add again
+      if the panel ever shows the overlay for it). The panel reports it as
+      updated and creates no duplicate card.
+- [ ] Immediately after the very first toolbar click on an article — before
+      granting any host permission — Capture still works on that one tab (the
+      `activeTab` grant). Switch away and back without granting the permission;
+      Capture stops working.
+
 ## 2026-09-10: toolbar cleanup, tooltips, and "Open the board" greying
 
 Run against a freshly built and reloaded extension.
