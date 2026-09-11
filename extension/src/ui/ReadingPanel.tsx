@@ -157,20 +157,27 @@ export default function ReadingPanel() {
   async function captureQuote(cardId: string, tabId: number) {
     setCaptureError(null);
 
-    const reply: CaptureSelectionReply = await browser.runtime.sendMessage({
-      type: 'capture-selection',
-      tabId,
-    } satisfies PanelMessage);
+    try {
+      const reply: CaptureSelectionReply = await browser.runtime.sendMessage({
+        type: 'capture-selection',
+        tabId,
+      } satisfies PanelMessage);
 
-    if (!reply.ok) {
-      setCaptureError(reply.reason);
-      return;
+      if (!reply.ok) {
+        setCaptureError(reply.reason);
+        return;
+      }
+
+      await addQuote(
+        cardId,
+        createQuote({ text: reply.text }, { id: nanoid(), capturedAt: new Date().toISOString() }),
+      );
+    } catch (error) {
+      // Same discipline as `addArticle` above: the click site only does
+      // `void captureQuote(…)`, so a rejected sendMessage or a failed write
+      // would otherwise be a click that visibly does nothing at all.
+      setCaptureError(error instanceof Error ? error.message : "Couldn't capture that quote.");
     }
-
-    await addQuote(
-      cardId,
-      createQuote({ text: reply.text }, { id: nanoid(), capturedAt: new Date().toISOString() }),
-    );
   }
 
   /*
@@ -245,6 +252,14 @@ export default function ReadingPanel() {
     // tab, but the narrowing does not survive the `view` binding.
     const draftTabId = tab.kind === 'article' ? tab.tabId : null;
 
+    /*
+     * Adding reads the page, so it needs the same right Capture does. Without
+     * it the Add button can only fail with "Can't read this page.", and this
+     * is the reader's only way out: an article reached by following a link
+     * carries no `activeTab` grant.
+     */
+    const askFor = view.capture.kind === 'ask' ? view.capture : null;
+
     return (
       <Shell>
         <div className="draft">
@@ -253,9 +268,21 @@ export default function ReadingPanel() {
           </div>
           <div className="draft-overlay">
             {addResult && !addResult.ok ? <p className="banner warn">{addResult.reason}</p> : null}
+            {askFor ? (
+              <button
+                className="allow-capture"
+                title={`Let Substack Library read this article from ${askFor.host}.`}
+                onClick={() => allowCapture(askFor.pattern)}
+              >
+                Allow on {askFor.host}
+              </button>
+            ) : null}
             <button
               className="add-article"
               disabled={adding || draftTabId == null}
+              // The preview beneath is aria-hidden, so this button is the only
+              // thing a screen reader reaches here. It has to name the article.
+              aria-label={`Add "${view.title || view.url}" to board and start taking notes`}
               onClick={() => {
                 if (draftTabId != null) void addArticle(draftTabId, view.url);
               }}
@@ -365,7 +392,13 @@ export default function ReadingPanel() {
             <span>Open the board</span>
             <ArrowRightIcon className="section-icon" />
           </button>
-          <button className="delete-card" onClick={() => void handleDelete()}>
+          {/* `.catch` rather than bare `void`: a failed delete is rare, but an
+            * unhandled rejection out of a click handler is never the right way
+            * to report one. */}
+          <button
+            className="delete-card"
+            onClick={() => void handleDelete().catch(() => {})}
+          >
             <TrashIcon className="section-icon" />
             <span>Delete card</span>
           </button>

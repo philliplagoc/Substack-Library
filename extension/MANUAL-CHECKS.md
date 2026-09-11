@@ -101,24 +101,29 @@ opens Chrome's side panel, the same one the toolbar button opens.
 
 ## Capture from an article page
 
-- [x] Toolbar click on a free Substack article opens the side panel.
-- [x] The panel says "Added to To Read." and shows the real title,
-      publication, and author.
-- [x] A reading estimate appears and is plausible for the article's length.
-- [x] The card is in To Read on the board.
-- [x] A second click on the same article says "Already on your board.
-      Metadata refreshed."
-- [x] A second click creates no duplicate card.
-- [x] Clicking from the `open.substack.com/pub/.../p/...` share route finds
-      the same card.
+> Amended 2026-09-10. The toolbar click no longer adds anything to the board and
+> shows no outcome banner; it opens the panel on the article and stops. The
+> boxes about adding, the title and byline, the reading estimate, the duplicate
+> check and the "Already on your board" message moved to the add flow, which the
+> dated section at the end of this file covers. What is left here is what the
+> toolbar click itself still does.
+
+- [ ] Toolbar click on a free Substack article opens the side panel on that
+      article, and adds nothing to the board.
+- [ ] No banner appears. There is no "Added to To Read." and no "Already on
+      your board."
+- [ ] A second toolbar click on the same article still just opens the panel on
+      it, and still creates no card.
+- [ ] The `open.substack.com/pub/.../p/...` share route opens the panel on the
+      same article, and once added resolves to the same single card.
 - [x] Toolbar click on a non-article page still opens the board.
 - [x] Toolbar click on `chrome://extensions` opens the board and shows no
       error.
-- [x] Toolbar click on a custom-domain publication captures a real title and
-      publication.
-- [x] A paywalled article creates a card, shows "Preview only", and leaves
-      the minutes blank.
-- [x] Signed out in a private window: the card is still created and the
+- [ ] On a custom-domain publication, adding from the panel gives a real title
+      and publication.
+- [ ] Adding a paywalled article creates a card, shows "Preview only", and
+      leaves the minutes blank.
+- [ ] Signed out in a private window: adding still creates the card and the
       signed-out notice appears.
 
 > The private-window box needs setup. Extensions do not run in incognito  
@@ -158,8 +163,11 @@ describes the shell and only the body knows which article is open.
 
 - [ ] Notes typed in the panel change the card face on the board without a
       reload.
-- [x] The panel keeps showing the previous article when you switch tabs
-      without clicking.
+- [ ] Switch tabs without clicking anything. The panel follows: it swaps to the
+      newly focused article, or to "Open an article." on anything else.
+      Reversed on 2026-09-10. This box used to read "The panel keeps showing the
+      previous article when you switch tabs without clicking", which is now
+      exactly the wrong behaviour.
 - [x] Narrowing the panel to its minimum leaves the quote comment boxes
       usable.
 - [ ] Open the same card in two Chrome windows, each with its own side panel.
@@ -643,36 +651,6 @@ Use a publication whose articles you have never granted, and check
       Capture grey with "Open the article first." and no "Allow on" button.
       There is no origin to ask for.
 
-## Side panel follows the focused tab
-
-- [ ] Open a Substack article and click the toolbar button. The panel opens on
-      that article and adds nothing to the board.
-- [ ] The panel shows that article's title with the dimmed editor preview and
-      the "Add to board and start taking notes" button.
-- [ ] Switch to a second article tab. The panel swaps to the second article's
-      draft (or its card, if already on the board).
-- [ ] Switch to a non-Substack tab. The panel shows "Open an article."
-- [ ] Switch to the board tab with nothing picked. The panel shows "Select an
-      article to view." Click a card; the panel shows that card. Switch away to
-      an unrelated tab; the panel returns to "Open an article." even though a
-      card was just picked.
-- [ ] Click "Add to board and start taking notes". The panel shows an "Added to
-      your board." banner, replaces the dimmed preview with the live editor,
-      and puts the card in the To Read column on the board.
-- [ ] Type notes after adding. The notes persist, and the save indicator still
-      reaches "Saved".
-- [ ] Capture on a publication whose host permission is already granted. The
-      quote attaches to the added card. On an ungranted publication the "Allow
-      on <host>" button appears in the draft's overlay area (or the card view
-      once added) and works.
-- [ ] Re-add an article already on the board (revisit its tab, click Add again
-      if the panel ever shows the overlay for it). The panel reports it as
-      updated and creates no duplicate card.
-- [ ] Immediately after the very first toolbar click on an article — before
-      granting any host permission — Capture still works on that one tab (the
-      `activeTab` grant). Switch away and back without granting the permission;
-      Capture stops working.
-
 ## 2026-09-10: toolbar cleanup, tooltips, and "Open the board" greying
 
 Run against a freshly built and reloaded extension.
@@ -719,3 +697,44 @@ Run against a freshly built and reloaded extension.
       again within a moment, with no panel reload.
 - [ ] Close the board tab. "Open the board" is orange, and a click opens a new
       board tab.
+
+## 2026-09-10: side panel follows the focused tab
+
+The toolbar click no longer adds anything. It opens the panel and hands over the
+`activeTab` grant; the panel classifies whichever tab is focused and decides
+what to show from that. Boxes in earlier sections that describe the toolbar
+click adding a card are records of the old behaviour; the "Capture from an
+article page" section above was amended for it.
+
+- [ ] Open a Substack article and click the toolbar button. The panel opens on
+      that article and adds nothing to the board.
+- [ ] The panel shows that article's title with the dimmed editor preview and
+      the "Add to board and start taking notes" button.
+- [ ] Switch to a second article tab. The panel swaps to the second article's
+      draft (or its card, if already on the board).
+- [ ] Switch to a non-Substack tab. The panel shows "Open an article."
+- [ ] Switch to the board tab with nothing picked. The panel shows "Select an
+      article to view." Click a card; the panel shows that card. Switch away to
+      an unrelated tab; the panel returns to "Open an article." even though a
+      card was just picked.
+- [ ] Click "Add to board and start taking notes". The panel shows an "Added to
+      To Read." banner, replaces the dimmed preview with the live editor, and
+      puts the card in the To Read column on the board.
+- [ ] Type notes after adding. The notes persist, and the save indicator still
+      reaches "Saved".
+- [ ] Nothing in the dimmed preview can be typed in or clicked: the notes box,
+      the tag input and the tag chips' × buttons are all disabled.
+- [ ] Capture on a publication whose host permission is already granted. The
+      quote attaches to the added card.
+- [ ] On an ungranted publication reached by following a link (no toolbar
+      click), the draft overlay shows an "Allow on <host>" button above the Add
+      button. Click it and allow; the panel can then read the page and Add
+      works. Added 2026-09-10: without it, Add could only fail with "Can't read
+      this page." and there was no way out of the panel.
+- [ ] Re-add an article already on the board (revisit its tab, click Add again
+      if the panel ever shows the overlay for it). The panel reports it as
+      updated and creates no duplicate card.
+- [ ] Immediately after the very first toolbar click on an article — before
+      granting any host permission — Capture still works on that one tab (the
+      `activeTab` grant). Switch away and back without granting the permission;
+      Capture stops working.
