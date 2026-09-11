@@ -45,7 +45,13 @@ export default function SignInDialog({
   }
 
   return (
-    <dialog ref={ref} className="signin-dialog" onClose={onClose}>
+    <dialog
+      ref={ref}
+      className="signin-dialog"
+      aria-labelledby="signin-dialog-title"
+      onClose={onClose}
+    >
+      <h2 id="signin-dialog-title">Sign in required</h2>
       <p>Sign in to Substack to read your Saved list.</p>
       <div className="signin-dialog-actions">
         <button type="button" className="signin-dialog-cancel" onClick={onClose}>

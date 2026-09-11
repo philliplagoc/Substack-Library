@@ -78,7 +78,7 @@ body {
 }
 
 /* Sync is the one primary action in the header. */
-.toolbar .sync button {
+.toolbar .sync > button {
   padding: 6px 12px;
   border: 1px solid var(--accent);
   border-radius: 6px;
@@ -88,8 +88,8 @@ body {
   font-weight: 500;
   cursor: pointer;
 }
-.toolbar .sync button:hover:not(:disabled) { background: var(--orange-dark); }
-.toolbar .sync button:disabled { opacity: 0.6; cursor: default; }
+.toolbar .sync > button:hover:not(:disabled) { background: var(--orange-dark); }
+.toolbar .sync > button:disabled { opacity: 0.6; cursor: default; }
 
 /* Export Notes, Back Up Library and Restore Backup: one quiet secondary cluster. */
 .toolbar .export-all button,
@@ -451,6 +451,12 @@ body {
 }
 .signin-dialog::backdrop {
   background: rgba(31, 31, 31, 0.5);
+}
+.signin-dialog h2 {
+  margin: 0 0 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
 }
 .signin-dialog p {
   margin: 0 0 14px;
