@@ -133,13 +133,25 @@ export default function ReadingPanel() {
 
   async function addArticle(tabId: number, url: string) {
     setAdding(true);
-    const reply = (await browser.runtime.sendMessage({
-      type: 'add-article',
-      tabId,
-      url,
-    } satisfies PanelMessage)) as AddArticleReply;
-    setAdding(false);
-    setAddResult(reply);
+    try {
+      const reply = (await browser.runtime.sendMessage({
+        type: 'add-article',
+        tabId,
+        url,
+      } satisfies PanelMessage)) as AddArticleReply;
+      setAddResult(reply);
+    } catch (error) {
+      // The background threw before it answered, so the port closed with no
+      // reply. Reported down the same path as an `{ ok: false }` reply rather
+      // than escaping as an unhandled rejection: the click site only does
+      // `void addArticle(…)`, and the button must not be left spinning.
+      setAddResult({
+        ok: false,
+        reason: error instanceof Error ? error.message : "Couldn't add this article.",
+      });
+    } finally {
+      setAdding(false);
+    }
   }
 
   async function captureQuote(cardId: string, tabId: number) {
