@@ -62,10 +62,5 @@ extension/
     ui/            shared React components
 ```
 
-## Upcoming Features
-
-- [ ] Importing articles into the Board using a URL.
-- [ ] Writing exports straight into an Obsidian vault.
-
 ## License
 MIT. See [LICENSE](LICENSE).
