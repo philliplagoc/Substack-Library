@@ -9,12 +9,17 @@ export default defineConfig({
     permissions: [
       'storage',
       'activeTab',
-      'scripting'
+      'scripting',
+      'tabs'
     ],
     // activeTab covers a tab the reader clicked the toolbar button on. Sync is
     // triggered from the board and injects into a tab the extension opened, so
-    // activeTab grants nothing there. Narrow on purpose: the Saved list is only
-    // ever served from substack.com.
+    // activeTab grants nothing there. `tabs` is what lets the panel follow the
+    // focused tab at all: without it Chrome withholds a tab's `url` and `title`
+    // from `tabs.query` unless some other grant already covers that tab, and
+    // the panel now has to classify EVERY tab the reader switches to, not only
+    // the one an activeTab or host-permission grant happens to reach. Narrow on
+    // purpose: the Saved list is only ever served from substack.com.
     host_permissions: ['https://substack.com/*'],
     // Asked for one publication at a time, from a click in the side panel, and
     // never at install. `activeTab` arms Capture only on the tab the toolbar

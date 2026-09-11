@@ -20,7 +20,7 @@ import type { Card } from '../domain/types';
  */
 export function openCardInPanel(card: Card, tab: OwnTab): Promise<void> {
   void browser.storage.session.set({
-    [PANEL_STATE_KEY]: { source: 'board', cardId: card.id } satisfies PanelState,
+    [PANEL_STATE_KEY]: { cardId: card.id } satisfies PanelState,
   });
 
   // Tab-scoped first, matching the toolbar path in `background.ts`. Window

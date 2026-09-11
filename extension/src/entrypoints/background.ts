@@ -1,6 +1,7 @@
-// The toolbar action. On an article it captures, ingests, and opens the reading
-// panel. On anything else it opens the board, or focuses the board tab it
-// already opened.
+// The toolbar action. On an article it opens the reading panel and records the
+// activeTab grant the click just handed over; adding the article is the
+// reader's own call, made from the panel. On anything else it opens the board,
+// or focuses the board tab it already opened.
 import {
   canonicalizeUrl,
   isReaderRoute,
@@ -19,11 +20,11 @@ import {
 import { extractSavedEntries, scrollToEnd } from '../substack/saved';
 import { applySync } from '../db/sync';
 import {
+  ACTIVE_TAB_GRANT_KEY,
   BOARD_TAB_KEY,
-  PANEL_STATE_KEY,
+  type AddArticleReply,
   type CaptureSelectionReply,
   type PanelMessage,
-  type PanelState,
   type SyncSavedReply,
 } from '../messages';
 
@@ -104,19 +105,13 @@ export default defineBackground({
       return tab.id;
     }
 
-    async function reject(tabId: number, notice: string) {
-      await browser.storage.session.set({
-        [PANEL_STATE_KEY]: {
-          source: 'capture',
-          articleKey: '',
-          tabId,
-          outcome: 'rejected',
-          notices: [notice],
-        } satisfies PanelState,
-      });
-    }
-
-    async function capture(tabId: number, tabUrl: string) {
+    /**
+     * Read one tab and put the article on the board.
+     *
+     * Called from the panel now, not from the toolbar click, so it answers the
+     * caller rather than writing what it did into session storage.
+     */
+    async function addArticle(tabId: number, tabUrl: string): Promise<AddArticleReply> {
       let meta: Awaited<ReturnType<typeof extractArticleMeta>> | undefined;
       let signedOut = false;
 
@@ -135,8 +130,7 @@ export default defineBackground({
       const notices: string[] = [];
 
       if (!meta) {
-        await reject(tabId, "Can't read this page.");
-        return;
+        return { ok: false, reason: "Can't read this page." };
       }
 
       // On the inbox reader route the head belongs to the app shell, so
@@ -159,11 +153,11 @@ export default defineBackground({
         // Keying on the inbox url would make a second card for an article the
         // board may already hold, so refuse and say why.
         if (!reader) {
-          await reject(
-            tabId,
-            "Couldn't tell which article this is. Open it on the publication's own page and click again.",
-          );
-          return;
+          return {
+            ok: false,
+            reason:
+              "Couldn't tell which article this is. Open it on the publication's own page and click again.",
+          };
         }
       }
 
@@ -202,15 +196,14 @@ export default defineBackground({
         estimatedReadingMinutes: readingMinutes(meta.wordCount, meta.readable),
       });
 
-      await browser.storage.session.set({
-        [PANEL_STATE_KEY]: {
-          source: 'capture',
-          articleKey: outcome.kind === 'rejected' ? '' : outcome.card.articleKey,
-          tabId,
-          outcome: outcome.kind,
-          notices: outcome.kind === 'rejected' ? [outcome.reason] : notices,
-        } satisfies PanelState,
-      });
+      return outcome.kind === 'rejected'
+        ? { ok: false, reason: outcome.reason }
+        : {
+            ok: true,
+            outcome: outcome.kind,
+            articleKey: outcome.card.articleKey,
+            notices,
+          };
     }
 
     async function syncSaved(): Promise<SyncSavedReply> {
@@ -282,7 +275,18 @@ export default defineBackground({
       // Open the panel FIRST. sidePanel.open() needs the user gesture, and the
       // gesture expires while the awaits below run.
       await browser.sidePanel.open({ tabId: tab.id });
-      await capture(tab.id, tab.url);
+
+      /*
+       * Nothing is ingested here. The click opens the panel and records the
+       * grant it just handed over; the reader decides whether this article
+       * belongs on their board.
+       *
+       * Never cleared, on purpose, and the same risk `panel.tabId` already
+       * carried: a stale id can leave Capture looking armed after the grant is
+       * actually gone, and the try/catch around the selection read already
+       * turns that into "Lost access to the article."
+       */
+      await browser.storage.session.set({ [ACTIVE_TAB_GRANT_KEY]: tab.id });
     });
 
     browser.runtime.onMessage.addListener((message: PanelMessage, _sender, sendResponse) => {
@@ -298,30 +302,17 @@ export default defineBackground({
         return true;
       }
 
+      if (message?.type === 'add-article') {
+        void (async () => sendResponse(await addArticle(message.tabId, message.url)))();
+        return true;
+      }
+
       if (message?.type !== 'capture-selection') return false;
 
       void (async () => {
-        const stored = await browser.storage.session.get(PANEL_STATE_KEY);
-        const panel = stored[PANEL_STATE_KEY] as PanelState | undefined;
-
-        /*
-         * Two ways to name the tab, and the panel's wins.
-         *
-         * The panel sends a tabId when it has found the article open in a tab
-         * it holds a host permission for, which is the only thing that works
-         * for a reader who reached the article by following a link. Without
-         * one, fall back to the tab the toolbar click covered: `activeTab`
-         * reaches that tab and no other.
-         */
-        const tabId = message.tabId ?? (panel?.source === 'capture' ? panel.tabId : undefined);
-
-        if (tabId == null) {
-          sendResponse({
-            ok: false,
-            reason: 'Open the article and click the toolbar button to capture a quote.',
-          } satisfies CaptureSelectionReply);
-          return;
-        }
+        // The panel classifies the focused tab itself, so it always names the
+        // tab to read from and there is nothing to fall back to.
+        const { tabId } = message;
 
         try {
           const results = await browser.scripting.executeScript({
@@ -331,9 +322,12 @@ export default defineBackground({
           const found = results[0]?.result;
 
           sendResponse(
-            found
+            (found
               ? { ok: true, text: found }
-              : { ok: false, reason: 'Select some text in the article first.' },
+              : {
+                  ok: false,
+                  reason: 'Select some text in the article first.',
+                }) satisfies CaptureSelectionReply,
           );
         } catch {
           // The tab navigated away or was closed, and an `activeTab` grant

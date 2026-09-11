@@ -439,6 +439,65 @@ body {
   text-align: center;
 }
 
+/* --- The uncaptured article --------------------------------------------- */
+
+/*
+ * An article that is not on the board yet: the editor it would get, drawn
+ * underneath, and the one button that would make it real, drawn over.
+ * Stacked rather than sequential so the preview reads as the thing the button
+ * is about, not as a second panel below it.
+ */
+.reading .draft {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/*
+ * Dimmed and inert. The `disabled` attributes on every input are the real
+ * guard against a write; this is only the part the reader can see.
+ */
+.reading .draft-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+.reading .draft-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+}
+/*
+ * The panel's primary action, and the same orange family as Capture, because
+ * it is the one thing on this screen worth clicking.
+ */
+.reading .add-article {
+  padding: 8px 14px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reading .add-article:hover:not(:disabled) { background: var(--orange-dark); }
+.reading .add-article:disabled {
+  background: var(--brand-stone);
+  border: 1px solid var(--brand-border);
+  color: var(--brand-muted);
+  cursor: default;
+}
+
 /* --- The four cards ----------------------------------------------------- */
 
 .reading .editor-header,

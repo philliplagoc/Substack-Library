@@ -25,6 +25,13 @@ interface Props {
    * the count, and the board wants nothing at all.
    */
   quotesAction?: ReactNode;
+  /**
+   * Rendered over a placeholder card for an article that is not on the board
+   * yet, to show the reader what they are about to get. Every input goes
+   * `disabled` and every write becomes a no-op: there is no row behind a
+   * placeholder, so a write would either throw or invent one.
+   */
+  preview?: boolean;
 }
 
 const SAVE_TEXT: Record<SaveStatus, string> = {
@@ -34,12 +41,12 @@ const SAVE_TEXT: Record<SaveStatus, string> = {
 };
 
 /** The first words of a quote, for a confirmation the reader can recognize. */
-function preview(text: string): string {
+function quotePreview(text: string): string {
   const flat = text.replace(/\s+/g, ' ').trim();
   return flat.length > 60 ? `${flat.slice(0, 60)}…` : flat;
 }
 
-export default function CardEditor({ card, footer, quotesAction }: Props) {
+export default function CardEditor({ card, footer, quotesAction, preview = false }: Props) {
   const [notes, setNotes] = useState(card.notes);
   const save = useSaveStatus();
 
@@ -57,6 +64,7 @@ export default function CardEditor({ card, footer, quotesAction }: Props) {
   // typing apart from a value that arrived from the other panel, and writes the
   // stale draft back over it.
   function handleNotesChange(value: string) {
+    if (preview) return;
     setNotes(value);
     const cardId = card.id;
 
@@ -76,7 +84,10 @@ export default function CardEditor({ card, footer, quotesAction }: Props) {
   // changes from outside while this editor is mounted. Mid-edit the
   // local draft wins and will be written; once it lands, the next outside
   // change is adopted, which is what stops the two panels reverting each other.
+  // The `preview` guards below are on the bodies, not the hooks: a hook that
+  // stops being called is a hook-order violation.
   useEffect(() => {
+    if (preview) return;
     if (notesTimer.current === null) setNotes(card.notes);
   }, [card.notes]);
 
@@ -84,6 +95,7 @@ export default function CardEditor({ card, footer, quotesAction }: Props) {
   // leaving, and it is addressed by that card's id, so fire it rather than
   // discard the reader's last keystrokes. Then show the new card's notes.
   useEffect(() => {
+    if (preview) return;
     if (notesTimer.current) {
       clearTimeout(notesTimer.current);
       notesFlush.current?.();
@@ -105,7 +117,7 @@ export default function CardEditor({ card, footer, quotesAction }: Props) {
   }, []);
 
   async function handleRemoveQuote(quoteId: string, text: string) {
-    const ok = window.confirm(`Remove this quote?\n\n“${preview(text)}”\n\nThis cannot be undone.`);
+    const ok = window.confirm(`Remove this quote?\n\n“${quotePreview(text)}”\n\nThis cannot be undone.`);
     if (!ok) return;
     await removeQuote(card.id, quoteId);
   }
@@ -148,7 +160,7 @@ export default function CardEditor({ card, footer, quotesAction }: Props) {
         </p>
       </section>
 
-      <TagEditor card={card} />
+      <TagEditor card={card} preview={preview} />
 
       <section className="editor-notes">
         <div className="section-head">
@@ -159,6 +171,7 @@ export default function CardEditor({ card, footer, quotesAction }: Props) {
         <textarea
           id={NOTES_ID}
           rows={8}
+          disabled={preview}
           value={notes}
           onChange={(e) => handleNotesChange(e.target.value)}
         />

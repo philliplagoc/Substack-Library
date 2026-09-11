@@ -16,13 +16,22 @@ const SUGGESTIONS_ID = 'tag-suggestions';
  * that both of its parents can supply it. The cost is that opening the side
  * panel now reads every card to build a suggestion list.
  */
-export default function TagEditor({ card }: { card: Card }) {
+export default function TagEditor({
+  card,
+  preview = false,
+}: {
+  card: Card;
+  /** Rendered over a placeholder card that is not on the board. Nothing here
+   * may write: there is no row behind it to write to. */
+  preview?: boolean;
+}) {
   const [draft, setDraft] = useState('');
   const cards = useLiveQuery(() => allCards(), []);
   const vocabulary = allTags(cards ?? []);
   const tags = card.tags ?? [];
 
   function commit() {
+    if (preview) return;
     const next = addTag(tags, draft);
     setDraft('');
     // A rejected tag returns the same array. Nothing to write, and nothing to
@@ -31,6 +40,7 @@ export default function TagEditor({ card }: { card: Card }) {
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (preview) return;
     if (event.key === 'Enter' || event.key === ',') {
       // Enter inside a form would submit it; a comma would land in the draft
       // only to be stripped by normalizeTag a moment later.
@@ -59,6 +69,7 @@ export default function TagEditor({ card }: { card: Card }) {
               <button
                 type="button"
                 aria-label={`Remove ${tag}`}
+                disabled={preview}
                 onClick={() => void updateCard(card.id, { tags: removeTag(tags, tag) })}
               >
                 ×
@@ -71,6 +82,7 @@ export default function TagEditor({ card }: { card: Card }) {
         id="tag-input"
         list={SUGGESTIONS_ID}
         placeholder="Add a tag"
+        disabled={preview}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={onKeyDown}
