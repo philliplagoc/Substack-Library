@@ -6,27 +6,28 @@ import { addQuote, cardByArticleKey, deleteCard, getCard } from '../db/cards';
 import { createQuote } from '../domain/quote';
 import {
   PANEL_STATE_KEY,
-  type CaptureOutcome,
+  type AddArticleReply,
   type CaptureSelectionReply,
   type PanelMessage,
   type PanelState,
 } from '../messages';
+import type { Card } from '../domain/types';
 import CardEditor from './CardEditor';
 import ExportButton from './ExportButton';
 import { panelView } from './panelView';
-import { useBoardFocused } from './useBoardFocused';
-import { useLiveArticle } from './useLiveArticle';
+import { effectiveArticleKey } from './readerKeys';
+import { useActiveTabGrant } from './useActiveTabGrant';
+import { useCapturePermission } from './useCapturePermission';
+import { useFocusedTab } from './useFocusedTab';
+import { useReaderKeys } from './useReaderKeys';
 import { ArrowRightIcon, CheckIcon, PlusIcon, TrashIcon } from './icons';
 
 /**
- * Follow the state that names the card to show.
+ * Follow the board's pick.
  *
- * Two things write it: the background on a toolbar click, and the board when
- * the reader clicks a card.
- *
- * Deliberately NOT tab focus. Switching to another article tab without
- * clicking leaves the panel where it was. The panel follows an action the
- * reader took, not one the browser took.
+ * One writer: the board, when the reader clicks a card. It answers the one
+ * question watching the focused tab cannot — which of possibly several cards
+ * on the board was clicked — and matters only while the board is focused.
  */
 function usePanelState(): PanelState | null | undefined {
   const [state, setState] = useState<PanelState | null | undefined>(undefined);
@@ -58,20 +59,15 @@ function usePanelState(): PanelState | null | undefined {
   return state;
 }
 
-const OUTCOME_TEXT: Record<CaptureOutcome, string> = {
+/** What adding the article did. Only the two outcomes that produce a card. */
+const OUTCOME_TEXT: Record<'added' | 'updated', string> = {
   added: 'Added to To Read.',
   updated: 'Already on your board. Metadata refreshed.',
-  rejected: "Couldn't read this page as a Substack article.",
 };
 
-/**
- * Two outcomes are good news and one is not, and the banner should say which
- * before the reader has read a word of it.
- */
-const OUTCOME_TONE: Record<CaptureOutcome, 'ok' | 'warn'> = {
+const OUTCOME_TONE: Record<'added' | 'updated', 'ok' | 'warn'> = {
   added: 'ok',
   updated: 'ok',
-  rejected: 'warn',
 };
 
 /** Shown on the Capture button when it has no page to read a selection from. */
@@ -87,54 +83,135 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 export default function ReadingPanel() {
+  const tab = useFocusedTab();
   const panel = usePanelState();
+
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const [addResult, setAddResult] = useState<AddArticleReply | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  /*
+   * The real key for the focused article, learned from this visit's own Add.
+   *
+   * `AddArticleReply` carries it back before the background's session-storage
+   * write has come around through `storage.onChanged`, so it is worth holding
+   * for those few frames. It is not the durable copy: the background records
+   * the same answer under READER_KEYS_KEY, `useReaderKeys` reads it, and
+   * `effectiveArticleKey` weighs the two. That split is what survives a tab
+   * switch — this state does not, by design, and used to be all there was.
+   *
+   * Cleared in the same effect as `addResult`, so a stale key never survives
+   * a tab switch and shows the wrong card.
+   */
+  const [knownArticleKey, setKnownArticleKey] = useState<string | null>(null);
+  const readerKeys = useReaderKeys();
+  const articleKey = effectiveArticleKey(tab, readerKeys, knownArticleKey);
+
+  // Clear once the focused article changes, so a stale banner, error, or
+  // resolved key never survives a tab switch.
+  useEffect(() => {
+    setAddResult(null);
+    setKnownArticleKey(null);
+  }, [tab.kind === 'article' ? tab.articleKey : tab.kind]);
 
   /*
    * `undefined` while the query runs, `null` once it has run and found
    * nothing. Dexie returns `undefined` for both, and the two mean opposite
-   * things here: one is "wait", the other is "that card is gone".
+   * things here: one is "wait", the other is "there is no card".
    *
-   * A board opening addresses the card by id, because `articleKey` is indexed
-   * but not unique and `cardByArticleKey` returns the first match.
+   * Which card is asked for depends on what is focused. The board addresses
+   * its pick by id, because `articleKey` is indexed but not unique and
+   * `cardByArticleKey` returns the first match. An article uses the key
+   * above, not `tab.articleKey` directly, for the reader-route reason noted
+   * there — and waits, rather than reporting no card, while that key is still
+   * undecided.
    */
   const card = useLiveQuery(() => {
-    if (!panel) return Promise.resolve(undefined);
-    const found =
-      panel.source === 'board' ? getCard(panel.cardId) : cardByArticleKey(panel.articleKey);
-    return found.then((c) => c ?? null);
-  }, [panel?.source, panel?.source === 'board' ? panel.cardId : panel?.articleKey]);
+    if (tab.kind === 'board') {
+      if (panel === undefined) return Promise.resolve(undefined);
+      if (panel === null) return Promise.resolve(null);
+      return getCard(panel.cardId).then((c) => c ?? null);
+    }
+    if (tab.kind === 'article' && articleKey != null) {
+      return cardByArticleKey(articleKey).then((c) => c ?? null);
+    }
+    return Promise.resolve(undefined);
+  }, [tab.kind, tab.kind === 'board' ? panel?.cardId : articleKey]);
 
   /*
-   * Asked of the card, not of the panel state. The state records how the panel
-   * was opened and never changes after; this asks what is in front of the
-   * reader now, which is the question the Capture button actually turns on.
+   * Asked only of a focused article. Capture reads the page the reader is
+   * looking at, so a background article tab is not a target and the board tab
+   * never is — neither has a permission worth checking.
    */
-  const live = useLiveArticle(card?.url ?? null, card?.articleKey ?? null);
+  const permission = useCapturePermission(tab.kind === 'article' ? tab.url : null);
+  const activeTabGrantId = useActiveTabGrant();
 
-  // Greys the "Open the board" button when the board is already in front of the
-  // reader, so the button never promises a jump it cannot make.
-  const boardFocused = useBoardFocused();
+  // panelView's race guards compare `card.articleKey` against the focused
+  // tab's key; substitute the resolved key above so a reader-route tab
+  // matches its own card once Add has confirmed one.
+  const tabForView =
+    tab.kind === 'article' && articleKey != null ? { ...tab, articleKey } : tab;
 
-  const [captureError, setCaptureError] = useState<string | null>(null);
-  const view = panelView(panel, card, live);
+  const view = panelView(
+    tabForView,
+    panel === undefined ? undefined : panel === null ? null : panel.cardId,
+    card,
+    permission,
+    activeTabGrantId,
+  );
+
+  async function addArticle(tabId: number, url: string) {
+    setAdding(true);
+    try {
+      const reply = (await browser.runtime.sendMessage({
+        type: 'add-article',
+        tabId,
+        url,
+      } satisfies PanelMessage)) as AddArticleReply;
+      setAddResult(reply);
+      // The reply carries the article's real key, resolved by the background
+      // (a DOM read, for a reader-shell tab). Remember it so the query above
+      // switches to it immediately, rather than waiting for a tab switch that
+      // may never come.
+      if (reply.ok) setKnownArticleKey(reply.articleKey);
+    } catch (error) {
+      // The background threw before it answered, so the port closed with no
+      // reply. Reported down the same path as an `{ ok: false }` reply rather
+      // than escaping as an unhandled rejection: the click site only does
+      // `void addArticle(…)`, and the button must not be left spinning.
+      setAddResult({
+        ok: false,
+        reason: error instanceof Error ? error.message : "Couldn't add this article.",
+      });
+    } finally {
+      setAdding(false);
+    }
+  }
 
   async function captureQuote(cardId: string, tabId: number) {
     setCaptureError(null);
 
-    const reply: CaptureSelectionReply = await browser.runtime.sendMessage({
-      type: 'capture-selection',
-      tabId,
-    } satisfies PanelMessage);
+    try {
+      const reply: CaptureSelectionReply = await browser.runtime.sendMessage({
+        type: 'capture-selection',
+        tabId,
+      } satisfies PanelMessage);
 
-    if (!reply.ok) {
-      setCaptureError(reply.reason);
-      return;
+      if (!reply.ok) {
+        setCaptureError(reply.reason);
+        return;
+      }
+
+      await addQuote(
+        cardId,
+        createQuote({ text: reply.text }, { id: nanoid(), capturedAt: new Date().toISOString() }),
+      );
+    } catch (error) {
+      // Same discipline as `addArticle` above: the click site only does
+      // `void captureQuote(…)`, so a rejected sendMessage or a failed write
+      // would otherwise be a click that visibly does nothing at all.
+      setCaptureError(error instanceof Error ? error.message : "Couldn't capture that quote.");
     }
-
-    await addQuote(
-      cardId,
-      createQuote({ text: reply.text }, { id: nanoid(), capturedAt: new Date().toISOString() }),
-    );
   }
 
   /*
@@ -161,9 +238,15 @@ export default function ReadingPanel() {
   if (view.kind === 'prompt') {
     return (
       <Shell>
-        <p className="empty">
-          Open a Substack article and click the Substack Library toolbar button.
-        </p>
+        <p className="empty">Open an article.</p>
+      </Shell>
+    );
+  }
+
+  if (view.kind === 'board-idle') {
+    return (
+      <Shell>
+        <p className="empty">Select an article to view.</p>
       </Shell>
     );
   }
@@ -176,27 +259,91 @@ export default function ReadingPanel() {
     );
   }
 
-  if (view.kind === 'rejected') {
+  if (view.kind === 'draft') {
+    /*
+     * A card that does not exist, shown so the reader can see what adding the
+     * article would give them. Every field takes the empty default
+     * `createCard` would give a brand-new card, and every input under it is
+     * disabled: nothing here may reach Dexie.
+     */
+    const placeholder: Card = {
+      id: '__draft__',
+      url: view.url,
+      articleKey: tab.kind === 'article' ? tab.articleKey : '',
+      title: view.title || view.url,
+      author: '',
+      publication: '',
+      status: 'to_read',
+      savedAt: '',
+      exportVersion: 0,
+      tags: [],
+      notes: '',
+      quotes: [],
+      sortOrder: 0,
+    };
+
+    // Re-derived rather than cast: 'draft' only ever arises from an article
+    // tab, but the narrowing does not survive the `view` binding.
+    const draftTabId = tab.kind === 'article' ? tab.tabId : null;
+
+    /*
+     * Adding reads the page, so it needs the same right Capture does. Without
+     * it the Add button can only fail with "Can't read this page.", and this
+     * is the reader's only way out: an article reached by following a link
+     * carries no `activeTab` grant.
+     */
+    const askFor = view.capture.kind === 'ask' ? view.capture : null;
+
     return (
       <Shell>
-        <p className="banner warn">{OUTCOME_TEXT[view.outcome]}</p>
-        {view.notices.map((n) => (
-          <p className="banner warn" key={n}>
-            {n}
-          </p>
-        ))}
+        <div className="draft">
+          <div className="draft-preview" aria-hidden="true">
+            <CardEditor card={placeholder} preview />
+          </div>
+          <div className="draft-overlay">
+            {addResult && !addResult.ok ? <p className="banner warn">{addResult.reason}</p> : null}
+            {askFor ? (
+              <button
+                className="allow-capture"
+                title={`Let Substack Library read this article from ${askFor.host}.`}
+                onClick={() => allowCapture(askFor.pattern)}
+              >
+                Allow on {askFor.host}
+              </button>
+            ) : null}
+            <button
+              className="add-article"
+              disabled={adding || draftTabId == null}
+              // The preview beneath is aria-hidden, so this button is the only
+              // thing a screen reader reaches here. It has to name the article.
+              aria-label={`Add "${view.title || view.url}" to board and start taking notes`}
+              onClick={() => {
+                if (draftTabId != null) void addArticle(draftTabId, view.url);
+              }}
+            >
+              Add to board and start taking notes
+            </button>
+          </div>
+        </div>
       </Shell>
     );
   }
 
-  const { card: shown, banner, notices, capture } = view;
+  const { card: shown, capture } = view;
+  const banner = addResult?.ok ? addResult.outcome : null;
+  const notices = addResult?.ok ? addResult.notices : [];
 
   async function handleDelete() {
     if (!window.confirm(`Delete "${shown.title}"? This cannot be undone.`)) return;
     await deleteCard(shown.id);
     // No close and no state to clear. The live query loses the row, the view
-    // turns to 'gone', and the board's outline goes with the tile.
+    // turns to 'gone' or back to a draft, and the board's outline goes with
+    // the tile.
   }
+
+  // Greys the "Open the board" button when the board is already in front of
+  // the reader, so the button never promises a jump it cannot make.
+  const boardFocused = tab.kind === 'board';
 
   return (
     <div className="reading">
@@ -224,8 +371,8 @@ export default function ReadingPanel() {
              *
              * Disabled, not hidden, when there is no page behind it. The
              * control is part of what this panel is, and hiding it would make
-             * the panel look like a different thing depending on how it was
-             * opened, which is the confusion this whole change removes.
+             * the panel look like a different thing depending on which tab is
+             * focused, which is the confusion this whole change removes.
              *
              * When the article is open but unreadable, the way out sits right
              * here: one button that asks Chrome for this publication.
@@ -279,7 +426,13 @@ export default function ReadingPanel() {
             <span>Open the board</span>
             <ArrowRightIcon className="section-icon" />
           </button>
-          <button className="delete-card" onClick={() => void handleDelete()}>
+          {/* `.catch` rather than bare `void`: a failed delete is rare, but an
+            * unhandled rejection out of a click handler is never the right way
+            * to report one. */}
+          <button
+            className="delete-card"
+            onClick={() => void handleDelete().catch(() => {})}
+          >
             <TrashIcon className="section-icon" />
             <span>Delete card</span>
           </button>
