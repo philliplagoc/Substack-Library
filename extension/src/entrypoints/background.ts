@@ -19,6 +19,7 @@ import {
   readSelection,
 } from '../substack/extract';
 import { extractSavedEntries, scrollToEnd } from '../substack/saved';
+import { checkSubstackSession } from '../substack/session';
 import { applySync } from '../db/sync';
 import {
   ACTIVE_TAB_GRANT_KEY,
@@ -230,6 +231,18 @@ export default defineBackground({
     }
 
     async function syncSaved(): Promise<SyncSavedReply> {
+      // A direct probe, before any tab opens. 'unknown' falls through to the
+      // in-page check below rather than blocking a reader the probe couldn't
+      // classify.
+      const session = await checkSubstackSession();
+      if (session === 'signed-out') {
+        return {
+          ok: false,
+          reason: 'Sign in to Substack, then sync again.',
+          needsSignIn: true,
+        };
+      }
+
       function why(error: unknown): string {
         return error instanceof Error ? error.message : String(error);
       }
@@ -249,7 +262,11 @@ export default defineBackground({
           func: detectSignedOut,
         });
         if (signedOut?.result === true) {
-          return { ok: false, reason: 'Sign in to Substack, then sync again.' };
+          return {
+            ok: false,
+            reason: 'Sign in to Substack, then sync again.',
+            needsSignIn: true,
+          };
         }
 
         // Two injections, not one. The scroll is slow and retryable; the
