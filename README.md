@@ -92,6 +92,10 @@ extension/
     ui/            shared React components
 ```
 
+## Credits
+
+<a href="https://www.flaticon.com/free-icons/library" title="library icons">Library icons created by inkubators - Flaticon</a>
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
