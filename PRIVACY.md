@@ -1,8 +1,8 @@
-# Privacy Policy for Substack Library
+# Privacy Policy for Article Tracker & Notes for Substack
 
 **Effective date:** 15 September 2026
 
-Substack Library is a local-first browser extension. It has no account system,
+Article Tracker & Notes for Substack is a local-first browser extension. It has no account system,
 no backend server, and no analytics. The developer does not receive, store, or
 have any means of accessing your data.
 
@@ -79,10 +79,11 @@ and the effective date above updated.
 
 ## Contact
 
-Questions about this policy: `[your preferred public contact address]`
+Questions about this policy can be raised as an issue at
+<https://github.com/philliplagoc/Substack-Library/issues>.
 
 ## Affiliation
 
-Substack Library is an independent project. It is not affiliated with, endorsed
-by, or sponsored by Substack Inc. "Substack" is a trademark of its respective
+Article Tracker & Notes for Substack is an independent project. It is not
+affiliated with, endorsed by, or sponsored by Substack Inc. "Substack" is a trademark of its respective
 owner.

@@ -4,7 +4,11 @@ export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'Substack Library',
+    // Leads with what the extension does, not with Substack's trademark: a
+    // store listing whose title starts with another company's brand reads as
+    // claiming affiliation, which is a rejection under the impersonation
+    // policy. The "<what it does> for <brand>" shape is the one that passes.
+    name: 'Article Tracker & Notes for Substack',
     description: 'A three-column reading board for Substack articles.',
     permissions: [
       'storage',
